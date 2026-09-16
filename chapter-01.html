@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第一篇：AI 核心认知篇——从工程到 AI Agent 必须建立的底层认知 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html" class="active">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="第一篇-ai-核心认知篇-从工程到-ai-agent-必须建立的底层认知">第一篇：AI 核心认知篇——从工程到 AI Agent 必须建立的底层认知</h1>
+<blockquote>
+<p>导语：很多工程师能&quot;写出&quot;一个 Agent Demo，却在面对真实业务时频频翻车：幻觉导致数字对不上、成本失控、长任务跑到一半状态丢失、换个模型行为全变。根源不在框架不熟，而在<strong>底层心智模型缺失</strong>。本篇解决三个问题：第一，LLM 到底&quot;是什么&quot;——它的能力从哪来、边界在哪里、为什么天然不确定；第二，Agent 到底&quot;该长什么样&quot;——Autonomous 与 Workflow 两大范式如何取舍；第三，工程师个人与团队&quot;该怎么进化&quot;——能力模型、AI Native 思维、以及 PE/CE/HE/LE/GE 这套调优技术谱系。读完本篇，你应该能对任何 Agent 方案给出&quot;为什么这样设计&quot;的底层解释，而不是&quot;某个框架就是这么写的&quot;。</p>
+</blockquote>
+<hr>
+<h2 id="1-从训推机理理解-llm-建立-agent-开发的底层心智模型">1. 从训推机理理解 LLM：建立 Agent 开发的底层心智模型</h2>
+<h3 id="1-1-核心概念-token-tokenizer-prompt-reasoning">1.1 核心概念：Token、Tokenizer、Prompt、Reasoning</h3>
+<p><strong>Token 是 LLM 的世界观单位。</strong> 模型不读&quot;字&quot;也不读&quot;词&quot;，它读 Token——由 Tokenizer（如 BPE 算法）把文本切成的子词片段。一个汉字通常是 1~2 个 Token，一个英文单词平均 0.75 个 Token 左右。</p>
+<p><strong>为什么不能直接按字或按词切？</strong> 这是个工程权衡问题，理解它能帮你预判很多诡异行为：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>切分方案</th>
+<th>优点</th>
+<th>致命伤</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>按字符切（每字一 Token）</td>
+<td>词表极小，永不遇到&quot;没见过的词&quot;</td>
+<td>序列太长——&quot;机器学习&quot;变 4 个单元，长文本序列爆炸，注意力算不动</td>
+</tr>
+<tr>
+<td>按整词切</td>
+<td>序列最短</td>
+<td>词表爆炸（英语变形、中文组合无穷），新词/错别字全成&quot;未知词&quot;</td>
+</tr>
+<tr>
+<td><strong>按子词切（BPE 等）</strong></td>
+<td>折中：常见词整块、生僻词拆碎片</td>
+<td>切分结果<strong>不直觉</strong>——这是万恶之源，也是下面诡异行为的来源</td>
+</tr>
+</tbody>
+</table></div>
+<p>BPE 的做法类似&quot;统计高频搭档&quot;：把训练语料里反复共现的片段逐步合并成大单元，于是常见词（&quot;the&quot;、&quot;人工智能&quot;）是整块，生僻组合被拆成碎片。这件事对工程的直接影响有三：</p>
+<ol>
+<li><strong>计费与限额都以 Token 计</strong>。上下文窗口 128K 指的是 Token 数，不是字符数。</li>
+<li><strong>切分不可控带来诡异行为</strong>。数字&quot;2024&quot;可能被切成&quot;20&quot;+&quot;24&quot;，导致模型做算术时逐位出错；这就是为什么精确计算永远应该交给工具（如 Python Sandbox）而不是让模型口算。</li>
+<li><strong>Prompt 的每一部分都在占预算</strong>。System Prompt、工具定义、历史消息、检索结果——全部计入上下文。</li>
+</ol>
+<p><strong>Prompt 是唯一的编程接口。</strong> 传统软件里你写函数，LLM 系统里你写上下文。System Prompt 定义角色与规则，User Message 定义任务，工具定义声明能力边界——它们共同构成模型的&quot;运行时环境&quot;。</p>
+<p><strong>Reasoning（推理）本质是&quot;想得久一点&quot;。</strong> 以 OpenAI o 系列、DeepSeek-R1 为代表的推理模型，通过强化学习训练出&quot;先产出长链思考再作答&quot;的行为模式。工程含义是：推理模型用<strong>更多的 decode Token 换更高的准确率</strong>，适合规划、诊断、多步推理类任务（如 DataAgent 中的&quot;GMV 异常归因&quot;），但对简单查数任务是纯粹的成本浪费。<strong>模型选型 = 在效果、成本、时延的三角里找位置。</strong></p>
+<h3 id="1-2-训练三阶段-能力从哪来-代价是什么">1.2 训练三阶段：能力从哪来，代价是什么</h3>
+<p>理解 PreTrain → SFT → RLHF 这条流水线，就能预判模型&quot;会什么、不会什么、有什么脾气&quot;：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>目标</th>
+<th>获得的能力</th>
+<th>代价 / 副作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PreTrain（预训练）</strong></td>
+<td>对海量文本做 next-token 预测</td>
+<td>语言、世界知识、代码、潜在推理模式</td>
+<td>只会&quot;续写&quot;，不会&quot;听指令&quot;；知识有截止日期；会背出训练数据里的错误与偏见</td>
+</tr>
+<tr>
+<td><strong>SFT（监督微调）</strong></td>
+<td>用&quot;指令—回答&quot;样本教模型按格式做事</td>
+<td>指令跟随、工具调用（Function Calling 的 JSON 格式）、结构化输出、ReAct 轨迹、分步规划</td>
+<td>能力被&quot;收窄&quot;到样本分布内；样本里没有的行为模型基本不会自发产生；过拟合会导致模式僵化</td>
+</tr>
+<tr>
+<td><strong>RLHF / RLAIF（对齐）</strong></td>
+<td>用人类/AI 偏好信号优化输出排序</td>
+<td>更有帮助、更无害、表达更符合人类口味；推理模型在此阶段学会长链思考</td>
+<td>奖励黑客（迎合评分而非正确）；&quot;对齐税&quot;——模型变得保守、爱拒绝、倾向说漂亮话；可能放大&quot;自信地错&quot;</td>
+</tr>
+</tbody>
+</table></div>
+<p>对 Agent 工程师的三条推论：</p>
+<ul>
+<li><strong>工具调用是&quot;训练出来的格式&quot;，不是&quot;模型的本能&quot;。</strong> 模型生成 <code>{&quot;name&quot;: &quot;query_order&quot;, &quot;arguments&quot;: {...}}</code> 是因为 SFT 见过大量这种样本。所以参数写错、幻觉出不存在的工具名，都是正常现象——<strong>必须在 Harness 层做 Schema 校验与重试</strong>。</li>
+<li><strong>ReAct、Planning 这些&quot;范式&quot;本质是把 SFT 已内化的行为模式用 Prompt 激活并外置成循环</strong>。模型会&quot;Thought/Action/Observation&quot;不是框架的魔法，是训练数据里有大量这类轨迹。</li>
+<li><strong>RLHF 的&quot;讨好倾向&quot;是幻觉的温床。</strong> 模型宁可编一个看似合理的 GMV 数字，也不愿说&quot;我查不到&quot;。DataAgent 的设计必须默认&quot;模型说的每个数字都要有 SQL 证据链&quot;。</li>
+</ul>
+<h3 id="1-3-推理机制-prefill-decode-kv-cache-与成本结构">1.3 推理机制：prefill、decode、KV Cache 与成本结构</h3>
+<p>一次完整的推理分两个阶段：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;输入上下文&lt;br/&gt;System+History+Tools&quot;] --&gt; B[&quot;Prefill 预填充&lt;br/&gt;并行计算全部输入的 KV&quot;]
+    B --&gt; C[&quot;Decode 解码&lt;br/&gt;逐个自回归生成 Token&quot;]
+    C --&gt; D{&quot;生成结束?&quot;}
+    D -- &quot;否，且每步复用 KV Cache&quot; --&gt; C
+    D -- &quot;是&quot; --&gt; E[&quot;返回结果&quot;]
+</pre>
+<ul>
+<li><strong>Prefill</strong>：把整段输入一次性并行算完注意力，计算密集但可并行，GPU 利用率高。</li>
+<li><strong>Decode</strong>：自回归地一个 Token 一个 Token 往外蹦，每步都要访问全部历史 KV，<strong>访存密集、无法并行</strong>——这就是为什么输出比输入慢、且长输出时延不可压缩。</li>
+<li><strong>KV Cache</strong>：缓存每个历史 Token 的 Key/Value 矩阵，避免重复计算。代价是显存占用随上下文长度线性增长——这是长上下文服务贵、并发受限的物理原因。</li>
+</ul>
+<p>换成时序视角，一次流式请求的生命周期如下——注意 prefill 只发生一次，而 decode 的循环里每步都要&quot;读全部历史 KV + 追加新 KV&quot;，这正是输出侧慢且贵的机械原因：</p>
+<pre class="mermaid">sequenceDiagram
+    participant C as 调用方
+    participant S as 推理引擎
+    participant K as KV Cache
+    C-&gt;&gt;S: 请求(System+History+Tools+User)
+    Note over S: Prefill: 一次性并行计算全部输入 Token 的 KV(算力密集)
+    S-&gt;&gt;K: 写入全部输入的 KV
+    S--&gt;&gt;C: 首个 Token(计时: TTFT)
+    loop Decode: 每步只产出一个 Token(访存密集)
+        S-&gt;&gt;K: 读取全部历史 KV
+        S-&gt;&gt;K: 追加新 Token 的 KV
+        S--&gt;&gt;C: 流式吐出 Token i
+    end
+    Note over S: 直到 EOS 或 max_tokens
+</pre>
+<p>工程推论：</p>
+<ol>
+<li><strong>成本 ≈ 输入 Token × 输入单价 + 输出 Token × 输出单价</strong>，输出通常贵 3~5 倍（因为 decode 低效）。让模型&quot;少说话、多调工具&quot;往往更省。</li>
+<li><strong>上下文越滚越长，每步 decode 越慢、KV 越贵</strong>。Agent 跑几十轮后必须做上下文压缩/裁剪，否则成本和时延双双爆炸。</li>
+<li><strong>前缀一致性能命中 KV Cache 复用</strong>（如 Anthropic 的 Prompt Caching）：System Prompt 和工具定义放在最前且保持稳定，动态内容放后面，可大幅降本。</li>
+</ol>
+<h3 id="1-4-采样机制-temperature-top-p-top-k">1.4 采样机制：Temperature / Top-p / Top-k</h3>
+<p>模型输出的本质是一个概率分布，采样参数决定&quot;从这个分布里怎么挑词&quot;：</p>
+<p><strong>先把这个分布从哪来的讲清楚。</strong> 模型每生成一个 Token，内部发生三步：① 神经网络对词表里每个候选 Token 打出一个原始分数（logits），比如&quot;今天天气很&quot;后面：&quot;好&quot;=8.2、&quot;冷&quot;=5.1、&quot;糟糕&quot;=3.0、&quot;香蕉&quot;=-2.7；② 用 softmax 把分数转成总和为 1 的概率分布——<strong>Temperature 就是在这一步动手脚的</strong>：logits 先除以 T 再 softmax，T 小则高分者被指数级放大（分布变尖），T 大则差距被抹平（分布变平）；③ 按概率抽一个 Token，追加到上下文末尾，进入下一轮。逐 Token 看，整个生成过程就是这个循环：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;当前上下文&lt;br/&gt;已生成的全部 Token&quot;] --&gt; B[&quot;前向计算&lt;br/&gt;输出全部候选的 logits&quot;]
+    B --&gt; C[&quot;logits ÷ T&lt;br/&gt;softmax 归一化&quot;]
+    C --&gt; D[&quot;按 Top-p/Top-k 截断&lt;br/&gt;得到候选小集合&quot;]
+    D --&gt; E[&quot;掷骰子采样&lt;br/&gt;选中一个 Token&quot;]
+    E --&gt; F[&quot;追加到上下文末尾&quot;]
+    F --&gt; G{&quot;是 EOS 或&lt;br/&gt;达到上限?&quot;}
+    G -- &quot;否&quot; --&gt; A
+    G -- &quot;是&quot; --&gt; H[&quot;生成结束&quot;]
+</pre>
+<p>注意图的左边：每一轮采样都把<strong>刚生成的 Token 也喂回上下文</strong>——这意味着早期一次&quot;手滑&quot;（采到坏 Token）会进入后续所有轮的输入，错误有自我强化的路径依赖。这是幻觉在长输出中越滚越大的机械原因，也是&quot;让模型边想边写&quot;比&quot;直接写结论&quot;更稳的原因之一：思考过程本身也在塑造后续采样的上下文。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>机制</th>
+<th>调大/调小的效果</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Temperature</strong></td>
+<td>对 logits 除以 T 再 softmax</td>
+<td>T→0 接近贪心（选概率最大者），T→1 趋于原始分布，T&gt;1 更随机</td>
+<td>分析、SQL 生成：0~0.3；头脑风暴文案：0.7~1.0</td>
+</tr>
+<tr>
+<td><strong>Top-p（核采样）</strong></td>
+<td>只从累计概率达 p 的最小词集里采</td>
+<td>p 越小越保守</td>
+<td>与 Temperature 二选一为主，常设 0.9~0.95</td>
+</tr>
+<tr>
+<td><strong>Top-k</strong></td>
+<td>只从概率最高的 k 个词里采</td>
+<td>k=1 即贪心</td>
+<td>较少单独用，多与 Top-p 组合</td>
+</tr>
+</tbody>
+</table></div>
+<p>关键认知：<strong>采样参数只能调&quot;分布的形状&quot;，不能把模型不会的东西变出来。</strong> 幻觉的根源在训练与知识边界，不在 Temperature。把 T 调到 0 只能让模型&quot;稳定地错&quot;，不能让错变对。另外 T=0 也不保证严格复现（浮点非确定性、服务端实现差异），<strong>需要确定性时请用结构化输出 + 校验 + 固定快照，而不是依赖采样参数</strong>。</p>
+<p>纸上得来终觉浅——下面这个交互 Demo 给了一组虚拟 token 的概率分布，拖动 Temperature / Top-p 滑块看分布如何变形，再连点&quot;采样一次&quot;（或&quot;连采 20 次&quot;）亲自验证&quot;低温集中、高温发散&quot;，右侧 logprobs 面板同步给出数值：</p>
+<div class="demo-embed" data-demo="llm-sampling"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>把 Temperature 拉到 0.2，连点&quot;连采 20 次&quot;，数一数最高分 token 被选中的次数——体会&quot;低温≈贪心&quot;为什么能让输出稳定。</li>
+<li>把 Temperature 拉到 1.5 再连采 20 次，观察选中的 token 是否开始&quot;跑偏&quot;到低概率词——这就是高温文案更&quot;有创意&quot;也更易出错的同一枚硬币。</li>
+<li>固定 T=1.0，把 Top-p 从 0.95 逐步降到 0.5，观察候选集合如何被截断——理解 Top-p 是&quot;掐掉长尾&quot;，而 Temperature 是&quot;改变形状&quot;，两者作用位置不同。</li>
+<li>看右侧 logprobs 面板：找出采样结果中概率并非最高却被选中的那一次，用&quot;掷骰子&quot;向同伴解释为什么它不是 bug——这是理解&quot;模型输出天然不确定&quot;的关键一刻。</li>
+</ol>
+<h3 id="1-5-幻觉与不确定性-理解-接纳-应用">1.5 幻觉与不确定性：理解、接纳、应用</h3>
+<p>幻觉不是 bug，是 next-token 预测机制的<strong>固有属性</strong>——模型的训练目标从来是&quot;像真的&quot;，不是&quot;是真的&quot;。把根因拆到四层，你会发现每一层都对应一种治理手段（这正是 1.7 边界表和篇09 评测体系的理论地基）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>根因层</th>
+<th>机制</th>
+<th>为什么必然产生幻觉</th>
+<th>对应的治理方向</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>目标层</strong></td>
+<td>训练目标是最大化&quot;下一个 Token 像训练语料&quot;的概率</td>
+<td>&quot;像&quot;与&quot;真&quot;在统计上相关但不等价——语料里通顺的谎话和真话同权</td>
+<td>Grounding：用工具证据替换参数记忆</td>
+</tr>
+<tr>
+<td><strong>数据层</strong></td>
+<td>训练语料有截止日期、有错误、长尾知识稀疏</td>
+<td>长尾事实在语料里出现次数少，模型只学到&quot;这类话的大概形状&quot;</td>
+<td>RAG / 检索：把长尾事实放进上下文</td>
+</tr>
+<tr>
+<td><strong>对齐层</strong></td>
+<td>RLHF 奖励&quot;有帮助、不拒绝&quot;的回答</td>
+<td>&quot;我不知道&quot;在偏好打分中吃亏，模型学会&quot;宁可编也要答&quot;</td>
+<td>Prompt 约束 + 评测惩罚编造</td>
+</tr>
+<tr>
+<td><strong>解码层</strong></td>
+<td>逐 Token 自回归生成，错误会进入后续上下文</td>
+<td>前面采错一个数字，后面会围绕它自圆其说，越滚越像真的</td>
+<td>结构化输出 + 校验重试 + 低温采样</td>
+</tr>
+</tbody>
+</table></div>
+<p>还有一个更扎心的视角：<strong>模型没有&quot;我不知道&quot;的内部状态。</strong> 人脑对&quot;记得&quot;和&quot;瞎猜&quot;有主观体验的区别，模型没有——它对背诵过的事实和现场编造的内容，调用的是同一套概率续写机制，置信度的外在表现（语气、措辞）完全一样。所以&quot;它说得很自信&quot;在工程上<strong>零信息量</strong>，唯一可信的是证据。</p>
+<p>成熟的 Agent 工程师对幻觉的态度分三层：</p>
+<ol>
+<li><strong>理解</strong>：幻觉高发区 = 长尾事实、精确数字、引用来源、多步算术、工具参数。这些区域一律不信赖模型的&quot;记忆&quot;。</li>
+<li><strong>接纳</strong>：不确定性也可以是资源。头脑风暴、方案发散、语义理解类任务，恰恰受益于模型的&quot;联想能力&quot;。</li>
+<li><strong>应用（治理）</strong>：把不确定性<strong>围起来</strong>——
+<ul>
+<li>** grounding**：所有事实性结论必须带工具证据（DataAgent 里每个指标数字都能回溯到一条 SQL）；</li>
+<li><strong>结构化约束</strong>：JSON Schema 输出 + 校验失败重试；</li>
+<li><strong>分治</strong>：把&quot;理解意图&quot;（模型擅长）和&quot;执行计算&quot;（确定性系统擅长）拆开；</li>
+<li><strong>验证回路</strong>：Independent Verification，让另一个模型/规则引擎审查输出。</li>
+</ul>
+</li>
+</ol>
+<h3 id="1-6-icl-上下文窗口与注意力">1.6 ICL、上下文窗口与注意力</h3>
+<p><strong>In-Context Learning（上下文学习）</strong> 是 LLM 最反直觉的能力：不更新任何权重，仅在 Prompt 里放几个示例（few-shot），模型就能学会新任务格式。机制上，注意力让模型在生成时&quot;检索并模仿&quot;上下文中的模式。</p>
+<p>工程运用三条：</p>
+<ul>
+<li><strong>示例是最高杠杆的 Prompt 资产。</strong> 3~5 个覆盖边界情况的输入输出对，效果常胜过长篇规则描述。DataAgent 里放几个&quot;问题→正确 SQL 口径&quot;的示例，比写一段&quot;注意口径&quot;的说明有效得多。</li>
+<li><strong>注意力会&quot;丢失中间&quot;（lost in the middle）<sup class="fn-ref"><a href="#fn-lostmiddle" id="ref-lostmiddle">[1]</a></sup>。</strong> 长上下文中，模型对开头和结尾的内容利用最好，塞在中间的关键规则容易被忽略。重要约束要么放 System Prompt 开头，要么在 User Message 尾部重申。</li>
+<li><strong>窗口长度 ≠ 有效长度。</strong> 宣称 128K 的窗口，塞到 100K 后检索精度、指令跟随质量都会退化，且成本线性上升。<strong>Context Engineering 的目标不是&quot;塞满&quot;，是&quot;最小充分&quot;。</strong></li>
+</ul>
+<p><strong>为什么窗口一定有上限？</strong> 两道物理约束：第一，<strong>注意力计算量随长度平方增长</strong>（每个 Token 都要和所有历史 Token 算相关性），窗口翻倍，算力开销约四倍；第二，<strong>KV Cache 显存随长度线性增长</strong>（1.3 节），窗口越长，单张卡能并发的请求越少。所以&quot;无限上下文&quot;不是算法问题，是经济问题——厂商标称的窗口长度，是在&quot;还能用、还不太贵&quot;之间划的一条商业线，不是质量保证线。</p>
+<p>一次典型 Agent 请求的窗口预算分配，和被挤压时发生的事：</p>
+<pre class="mermaid">flowchart TB
+    subgraph W[&quot;上下文窗口(例: 128K Token)&quot;]
+        S[&quot;System Prompt 与规则&lt;br/&gt;约 2K · 利用率高(开头)&quot;]
+        T[&quot;工具定义&lt;br/&gt;约 1-3K · 每轮都在&quot;]
+        H[&quot;历史消息与工具结果&lt;br/&gt;弹性最大 · 越滚越长&quot;]
+        R[&quot;检索资料 RAG&lt;br/&gt;按需注入&quot;]
+        Q[&quot;当前用户问题&lt;br/&gt;利用率高(结尾)&quot;]
+    end
+    H -- &quot;失控膨胀&quot; --&gt; X[&quot;挤压后果:&lt;br/&gt;中间规则被忽略(lost in the middle)&lt;br/&gt;成本时延上升 · 最终报 context_length_exceeded&quot;]
+</pre>
+<p><strong>上下文挤压模拟（交互实验）</strong>：下面这个 Demo 把一个 Agent 循环的上下文增长做成了可视化沙盘。你可以调整每轮对话和工具结果的长度，观察窗口如何被一点点吃满、&quot;挤掉旧消息&quot;策略如何救场、以及为什么&quot;重要的规则要放开头或结尾&quot;：</p>
+<div class="demo-embed" data-demo="context-window"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>先用默认参数跑 8 轮，观察窗口各分区的消长——找出第几轮开始触发&quot;裁剪旧历史&quot;，记下此刻总 Token 数。</li>
+<li>把&quot;每轮工具结果&quot;拉到最大再跑一次，对比裁剪提前了几轮——理解为什么工程上要给工具返回&quot;截断 + 摘要&quot;（篇06 的 Token 预算）。</li>
+<li>开启&quot;摘要压缩&quot;开关再跑同样轮数，观察绿色摘要区如何替代被裁掉的历史——这就是篇06&quot;状态压缩&quot;的最小模型。</li>
+<li>观察一条放在历史中段的关键规则在被裁剪前后的&quot;可见性&quot;变化，用 lost in the middle 向同伴解释：为什么重要约束要么放 System 开头、要么在用户问题尾部重申。</li>
+</ol>
+<h3 id="1-7-模型与确定性系统的职责边界">1.7 模型与确定性系统的职责边界</h3>
+<p>这是本篇最重要的工程判断，用一个决策表收尾：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>能力</th>
+<th>交给 LLM？</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>意图理解、语义分类、非结构化信息抽取</td>
+<td>✅ 首选</td>
+<td>模型的主场，确定性规则写不出</td>
+</tr>
+<tr>
+<td>规划与方案发散（列候选分析路径）</td>
+<td>✅ 但需收敛机制</td>
+<td>模型长于发散，需 Workflow/评审收敛</td>
+</tr>
+<tr>
+<td>精确计算、日期运算、单位换算</td>
+<td>❌ 交给工具</td>
+<td>Token 切分与概率生成天生不可靠</td>
+</tr>
+<tr>
+<td>数据查询、权限校验、SQL 安全</td>
+<td>❌ 交给 Query Gateway</td>
+<td>幻觉 + 注入风险，必须确定性拦截</td>
+</tr>
+<tr>
+<td>写库、调预算、发工单等副作用操作</td>
+<td>❌ 模型提议，人审批</td>
+<td>不可逆操作必须 Human Approval</td>
+</tr>
+<tr>
+<td>格式校验、Schema 检查、回归测试</td>
+<td>❌ 交给代码</td>
+<td>免费且 100% 可靠，别浪费 Token</td>
+</tr>
+</tbody>
+</table></div>
+<p>一句话：<strong>模型负责&quot;理解与判断&quot;，确定性系统负责&quot;执行与担保&quot;，Contract（接口契约）负责两者之间的翻译。</strong> 贯穿项目 DataAgent 的全部架构——Query Gateway、Python Sandbox、Human Approval——都是这张边界表的物化。</p>
+<hr>
+<h2 id="2-agent-的两种根本范式-autonomous-vs-workflow">2. Agent 的两种根本范式：Autonomous vs Workflow</h2>
+<h3 id="2-1-定义与共识">2.1 定义与共识</h3>
+<p>行业（以 Anthropic《Building Effective Agents》为代表<sup class="fn-ref"><a href="#fn-agents" id="ref-agents">[2]</a></sup>）的共识划分：</p>
+<ul>
+<li><strong>Workflow</strong>：LLM 与工具沿着<strong>人事先编排好的路径</strong>执行。流程拓扑是代码，模型是其中的&quot;智能节点&quot;。</li>
+<li><strong>Autonomous Agent</strong>：LLM <strong>自主决定</strong>下一步做什么、做多久、何时停。流程拓扑在运行时才生成，人只给目标和护栏。</li>
+</ul>
+<p>非共识地带（&quot;几个工具调用算不算 Agent&quot;）不重要，重要的是一个可操作的判据：<strong>循环的退出条件由谁决定？</strong> 由代码决定的是 Workflow，由模型决定的是 Autonomous。</p>
+<h3 id="2-2-autonomous-范式">2.2 Autonomous 范式</h3>
+<p><strong>ReAct</strong>（Reasoning + Acting，Yao et al. 2022<sup class="fn-ref"><a href="#fn-react" id="ref-react">[3]</a></sup>）：模型在一个&quot;思考→行动→观察&quot;的局部循环里滚动，每一步都基于最新观察重新决策。</p>
+<pre class="mermaid">flowchart TD
+    G[&quot;用户目标&quot;] --&gt; T[&quot;Thought 思考&lt;br/&gt;我现在知道什么?下一步做什么?&quot;]
+    T --&gt; A[&quot;Action 行动&lt;br/&gt;调用工具&quot;]
+    A --&gt; O[&quot;Observation 观察&lt;br/&gt;工具返回结果&quot;]
+    O --&gt; S{&quot;目标达成?&lt;br/&gt;由模型判断&quot;}
+    S -- &quot;否&quot; --&gt; T
+    S -- &quot;是&quot; --&gt; F[&quot;Final Answer&quot;]
+</pre>
+<p>优点：适应性强、路径无需预知、能处理开放式问题。缺点：错误会累积（一步错，步步在错误前提上推）；成本不可预测（循环次数未知）；调试困难。</p>
+<p><strong>Plan-and-Execute</strong>：先由一个 Planner 生成全局多步计划，再由 Executor 逐步执行，必要时 Replan。它用&quot;一次贵的规划&quot;换&quot;执行期的稳定&quot;，降低漂移，但代价是计划对早期错误假设脆弱，且多了一轮大模型开销。</p>
+<h3 id="2-3-workflow-范式-六种基础模式">2.3 Workflow 范式（六种基础模式）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>机制</th>
+<th>适用场景</th>
+<th>DataAgent 中的例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Prompt Chaining</strong></td>
+<td>任务拆成固定串行步骤，每步输出喂给下步，步间可加程序校验 Gate</td>
+<td>步骤固定、每步可独立验证</td>
+<td>&quot;取数→清洗→计算→成文&quot;的报告流水线</td>
+</tr>
+<tr>
+<td><strong>Routing</strong></td>
+<td>先分类，再路由到专用分支</td>
+<td>输入类型差异大、分支各有专长</td>
+<td>把问题路由到&quot;查数/诊断/预测/执行&quot;四个子流程</td>
+</tr>
+<tr>
+<td><strong>Parallelization</strong></td>
+<td>多任务并发：分片（Sectioning）或多解投票（Voting）</td>
+<td>可并行加速，或需多解提高置信</td>
+<td>同时拉取订单、库存、广告三路数据</td>
+</tr>
+<tr>
+<td><strong>Orchestrator-Workers</strong></td>
+<td>中心 LLM 动态拆解任务、分派给 Worker、汇总结果</td>
+<td>子任务数量和内容无法预知</td>
+<td>主控把&quot;月度经营分析&quot;拆给各指标分析 Worker</td>
+</tr>
+<tr>
+<td><strong>Evaluator-Optimizer</strong></td>
+<td>生成者产出，评估者打分反馈，循环到达标</td>
+<td>有明确质量标准、迭代可改进</td>
+<td>报告生成器 + 事实核查评估器循环</td>
+</tr>
+<tr>
+<td><strong>Agentic Workflow</strong></td>
+<td>Workflow 骨架 + 局部 Autonomous 节点的混合体</td>
+<td>主流程要可控，局部要灵活</td>
+<td>报告流水线中嵌入一个自主诊断 Loop</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-4-融合趋势与选型">2.4 融合趋势与选型</h3>
+<p>企业级实践的真实答案是<strong>混合架构</strong>：用 Workflow 提供确定性骨架（合规、审计、成本可控），在需要开放判断的节点嵌入 Autonomous Loop（诊断、规划），即&quot;Agentic Workflow&quot;。</p>
+<p>选型考量四问：</p>
+<ol>
+<li><strong>路径可预知吗？</strong> 可预知→Workflow；不可预知→Autonomous。</li>
+<li><strong>错误代价多大？</strong> 高（写库、调预算）→Workflow + 人工 Gate；低（探索性分析）→可自主。</li>
+<li><strong>成本与时延约束？</strong> 强约束→Workflow（次数可控）；宽松→Autonomous。</li>
+<li><strong>需要审计回放吗？</strong> 企业场景几乎总是需要→Workflow 骨架天然可审计。</li>
+</ol>
+<pre class="mermaid">flowchart LR
+    subgraph 选型决策
+        Q1{&quot;路径可预知?&quot;}
+        Q1 -- &quot;是&quot; --&gt; Q2{&quot;错误代价高?&quot;}
+        Q1 -- &quot;否&quot; --&gt; AU[&quot;Autonomous&lt;br/&gt;+ 自主性预算 + 停止条件&quot;]
+        Q2 -- &quot;高&quot; --&gt; WF1[&quot;Workflow&lt;br/&gt;+ Human Gate&quot;]
+        Q2 -- &quot;低&quot; --&gt; WF2[&quot;Workflow 或&lt;br/&gt;Agentic Workflow&quot;]
+        AU -.演进融合.-&gt; HY[&quot;Agentic Workflow:&lt;br/&gt;Workflow 骨架 + 自主节点&quot;]
+        WF2 -.-&gt; HY
+        WF1 -.-&gt; HY
+    end
+</pre>
+<hr>
+<h2 id="3-agent-工程师能力模型-三维画像与-l1-l4-分级">3. Agent 工程师能力模型：三维画像与 L1–L4 分级</h2>
+<p>市场对&quot;Agent 工程师&quot;的需求已从&quot;会调 API、会写 Prompt&quot;升级为&quot;能设计、评审、治理一个生产级 Agent 系统&quot;。三维能力画像：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>内涵</th>
+<th>关键词</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>技术能力</strong></td>
+<td>软件工程基本功 + LLM/Agent 机制 + 各子系统的实现与调优</td>
+<td>Context、Tool、Memory、Runtime、Eval、生产治理</td>
+</tr>
+<tr>
+<td><strong>架构能力</strong></td>
+<td>把业务问题建模为系统，做权衡并留下证据</td>
+<td>任务建模、控制权分配、状态设计、可靠性、安全、成本与性能取舍、ADR</td>
+</tr>
+<tr>
+<td><strong>职业能力</strong></td>
+<td>在不确定性中交付结果并持续进化</td>
+<td>创新实验、结果责任、执行闭环、跨职能协作、持续学习</td>
+</tr>
+</tbody>
+</table></div>
+<pre class="mermaid">flowchart TD
+    subgraph 三维能力画像
+        T[&quot;技术能力&lt;br/&gt;工程 × 机制 × 治理&quot;]
+        A[&quot;架构能力&lt;br/&gt;建模 × 取舍 × 证据&quot;]
+        P[&quot;职业能力&lt;br/&gt;责任 × 协作 × 进化&quot;]
+    end
+    T --&gt; L1[&quot;L1 功能开发&lt;br/&gt;在既有架构下完成 Agent 功能与基础验证&quot;]
+    A --&gt; L1
+    L1 --&gt; L2[&quot;L2 业务交付&lt;br/&gt;独立负责含 Context/Tool/State/Eval 的完整业务链路&quot;]
+    L2 --&gt; L3[&quot;L3 系统设计&lt;br/&gt;统筹 Runtime、可靠性、安全、成本与可观测性&quot;]
+    L3 --&gt; L4[&quot;L4 平台演进&lt;br/&gt;建设共享基础设施、工程标准与持续评测体系&quot;]
+    P -.贯穿.-&gt; L4
+</pre>
+<p>关键认知：</p>
+<ul>
+<li><strong>分级标准是&quot;责任半径&quot;不是&quot;技术名词量&quot;。</strong> L1 对一个功能点负责，L4 对&quot;多个团队、多个 Agent 能否持续协作演进&quot;负责。</li>
+<li><strong>架构师的工作方式升级</strong>：从&quot;给一个方案&quot;到&quot;提出候选方案、明确约束、用 Baseline/Badcase/Benchmark 验证取舍、用 ADR 留下决策证据&quot;。方案会过时，取舍逻辑和验证方法不会。</li>
+<li><strong>变与不变</strong>：框架、模型、API 年年变（变）；任务建模、状态设计、边界判断、证据驱动的决策方法（不变）。把学习时间投资在不变的对象上。</li>
+</ul>
+<hr>
+<h2 id="4-ai-native-团队与个人">4. AI Native 团队与个人</h2>
+<h3 id="4-1-ai-enabled-vs-ai-native">4.1 AI-Enabled vs AI-Native</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>AI-Enabled（工具化使用）</th>
+<th>AI-Native（原生重构）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>定位</td>
+<td>AI 是提效插件，流程不变</td>
+<td>流程围绕&quot;人机协同&quot;重新设计</td>
+</tr>
+<tr>
+<td>工作方式</td>
+<td>人做完，AI 帮忙润色/加速</td>
+<td>人定义目标与验收，AI 执行，人审查</td>
+</tr>
+<tr>
+<td>资产沉淀</td>
+<td>Prompt 散落在个人手里</td>
+<td>SPEC、Skill、Eval 成为团队工程资产</td>
+</tr>
+<tr>
+<td>质量保障</td>
+<td>人肉检查 AI 输出</td>
+<td>独立验证、评测门禁、Badcase 回流</td>
+</tr>
+<tr>
+<td>衡量指标</td>
+<td>&quot;省了多少时间&quot;</td>
+<td>&quot;单位成本交付了多少可靠结果&quot;</td>
+</tr>
+</tbody>
+</table></div>
+<p>伪 Native 鉴别法：把 AI 工具撤掉后流程原样运转的，是 Enabled；流程立刻瘫痪的，才可能（只是可能）是 Native。</p>
+<h3 id="4-2-三个思维转换">4.2 三个思维转换</h3>
+<ol>
+<li><strong>从完成任务 → 对结果负责</strong>：AI 写得快，错得也快。提交 AI 产出 = 你为其背书。</li>
+<li><strong>从执行者 → 定义者</strong>：核心价值从&quot;把活干完&quot;上移为&quot;把目标、边界、验收标准定义清楚&quot;——这恰是 SPEC 与 Eval 的能力。</li>
+<li><strong>从构建者 → 审查者</strong>：产出成本趋零，<strong>验证能力成为瓶颈</strong>。能设计&quot;独立验证机制&quot;的人比能写代码的人稀缺。</li>
+</ol>
+<h3 id="4-3-个人-ai-native-一个人的-opc-one-person-company">4.3 个人 AI Native：一个人的 OPC（One Person Company）</h3>
+<p>把自己经营成一家公司：</p>
+<ul>
+<li><strong>角色转换</strong>：你不再是&quot;员工 + 工具&quot;，而是&quot;CEO + 一支 Agent 团队&quot;——研究员 Agent、编码 Agent、评审 Agent 各司其职。</li>
+<li><strong>资产体系</strong>：个人 Prompt 库、Skill 库、上下文模板、常用工作流，全部版本化沉淀，每次任务都让资产增值（复利）。</li>
+<li><strong>个人 Evaluation 体系</strong>：给自己的 AI 产出建立抽检机制与 Badcase 本，记录&quot;AI 在哪类任务上坑过我&quot;，据此调整授权边界。</li>
+</ul>
+<h3 id="4-4-团队-ai-native-责任边界与基础设施">4.4 团队 AI Native：责任边界与基础设施</h3>
+<p>核心是<strong>控制权分配矩阵</strong>——按风险等级决定&quot;人、Agent、确定性系统&quot;谁执行、谁审查、谁担责：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>风险等级</th>
+<th>例子</th>
+<th>执行者</th>
+<th>审查</th>
+<th>责任人</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>低</td>
+<td>查数、出草稿报告</td>
+<td>Agent 自主</td>
+<td>抽检 + 自动 Eval</td>
+<td>流程 owner</td>
+</tr>
+<tr>
+<td>中</td>
+<td>生成并执行只读 SQL、发内部通知</td>
+<td>Agent 执行，确定性系统校验</td>
+<td>独立验证全量过</td>
+<td>模块 owner</td>
+</tr>
+<tr>
+<td>高</td>
+<td>调广告预算、写业务库、发工单</td>
+<td>Agent 提议，<strong>人审批后</strong>确定性系统执行</td>
+<td>双人复核 + 审计日志</td>
+<td>具名责任人</td>
+</tr>
+</tbody>
+</table></div>
+<p>团队基础设施四件套：<strong>团队级规则（Rules）、共享 SPEC、可复用 Skill、统一验证体系</strong>。同时划清个人资产与团队资产的边界：个人探索产出经过评审、加上测试与文档后，才能&quot;晋升&quot;为团队资产——这和代码从个人分支合并进主干是同一个治理逻辑。</p>
+<hr>
+<h2 id="5-llm-调优技术谱系-pe-ce-he-le-ge">5. LLM 调优技术谱系：PE、CE、HE、LE、GE</h2>
+<p>这套五层谱系是本教程从《企业级 Agent 工程化》课程继承的主干框架<sup class="fn-ref"><a href="#fn-course" id="ref-course">[4]</a></sup>——后面篇04 到篇09，本质上就是 HE、LE、CE、GE 各层的逐一展开。</p>
+<h3 id="5-1-五层技术与关系">5.1 五层技术与关系</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>全称</th>
+<th>调优对象</th>
+<th>核心问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PE</strong></td>
+<td>Prompt Engineering</td>
+<td>单次请求的指令与格式</td>
+<td>怎么把意图说清楚</td>
+</tr>
+<tr>
+<td><strong>CE</strong></td>
+<td>Context Engineering</td>
+<td>喂给模型的信息组织</td>
+<td>怎么给&quot;最小充分&quot;的上下文</td>
+</tr>
+<tr>
+<td><strong>HE</strong></td>
+<td>Harness Engineering</td>
+<td>包裹模型的脚手架（工具、校验、重试、采样控制）</td>
+<td>怎么让单次调用可靠、可恢复</td>
+</tr>
+<tr>
+<td><strong>LE</strong></td>
+<td>Loop Engineering</td>
+<td>多轮迭代的控制（停止条件、预算、状态压缩）</td>
+<td>怎么让多步执行受控收敛</td>
+</tr>
+<tr>
+<td><strong>GE</strong></td>
+<td>Graph Engineering</td>
+<td>多节点/多 Agent 的拓扑编排</td>
+<td>怎么让复杂任务结构化协作</td>
+</tr>
+</tbody>
+</table></div>
+<p>五层是<strong>递进 + 嵌套</strong>，不是取代：CE 包含 PE 的成果，HE 包裹 CE，LE 调度 HE，GE 编排 LE。用一张嵌套图把这个关系钉死——内层的能力被外层当作&quot;零件&quot;调用，而越靠外层，工程负债越重：</p>
+<pre class="mermaid">flowchart TB
+    subgraph GE[&quot;GE Graph Engineering · 多节点/多 Agent 拓扑编排&quot;]
+        subgraph LE[&quot;LE Loop Engineering · 多轮迭代控制(停止条件/预算/状态压缩)&quot;]
+            subgraph HE[&quot;HE Harness Engineering · 单次调用可靠(工具/校验/重试)&quot;]
+                subgraph CE[&quot;CE Context Engineering · 上下文组织(最小充分)&quot;]
+                    PE[&quot;PE Prompt Engineering&lt;br/&gt;单次请求的指令与格式&quot;]
+                end
+            end
+        end
+    end
+    IN[&quot;← 逐代被模型内化&lt;br/&gt;(咒语/简单 ReAct)&quot;] -.-&gt; PE
+    OUT[&quot;永远不被内化 →&lt;br/&gt;权限/审计/成本/状态/评测&quot;] -.-&gt; GE
+</pre>
+<p>参照 OpenAI 的五级 AI 路线图（Chatbot→Reasoner→Agent→Innovator→Organization），越往后走，竞争的焦点越从&quot;模型本身&quot;移向&quot;模型外面的工程系统&quot;——这正是五层技术存在的理由。</p>
+<p><strong>模型内化趋势</strong>：每一代模型都在内化上一层的手工技巧——早期的&quot;让我们一步步思考&quot;咒语被推理模型内化，简单的 ReAct 循环被 Agentic 训练内化。但<strong>权限、审计、成本、状态、评测永远不会被内化</strong>，因为它们是业务约束而非模型能力。学习重点应放在这些稳定的工程对象上。</p>
+<h3 id="5-2-user-视角-vs-builder-视角">5.2 User 视角 vs Builder 视角</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>User 视角（驾驭 AI 完成任务）</th>
+<th>Builder 视角（把方法固化成系统）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PE</td>
+<td>写清目标、约束、输出格式</td>
+<td>把最佳 Prompt 固化为产品模板与版本化资产</td>
+</tr>
+<tr>
+<td>CE</td>
+<td>挑对文件、喂对背景</td>
+<td>建检索、权限、上下文组装管线</td>
+</tr>
+<tr>
+<td>HE</td>
+<td>会用工具、会要求结构化输出</td>
+<td>建工具注册、Schema 校验、重试与降级</td>
+</tr>
+<tr>
+<td>LE</td>
+<td>会给反馈、会要求自我检查</td>
+<td>建停止条件、循环预算、状态持久化</td>
+</tr>
+<tr>
+<td>GE</td>
+<td>会把大任务拆开派给不同 Agent</td>
+<td>建编排引擎、任务图、多租户调度</td>
+</tr>
+</tbody>
+</table></div>
+<p>双重视角的修炼路径：先以 User 身份把五层&quot;用顺手&quot;，再把被反复验证有效的个人方法&quot;晋升&quot;为 Builder 资产——这与第 4 节的个人→团队资产升级是同一飞轮。</p>
+<h3 id="5-3-架构选型-什么时候用哪一层">5.3 架构选型：什么时候用哪一层</h3>
+<ul>
+<li>单轮能解决、格式要稳 → 停在 PE + CE，<strong>保持简单</strong>；</li>
+<li>需要工具但流程固定 → 上 HE（Function Calling + 校验），不必上 Loop；</li>
+<li>开放式探索、步数未知 → 上 LE，但配自主预算与停止条件；</li>
+<li>多角色协作、并行、长任务 → 上 GE；</li>
+<li><strong>任何一层都是负债</strong>：复杂度每加一层，调试、评测、成本治理的难度都上一个台阶。能用 CE 解决的不要用 LE 解决。</li>
+</ul>
+<hr>
+<h2 id="常见误区">常见误区</h2>
+<ol>
+<li><strong>&quot;Temperature=0 就不会幻觉。&quot;</strong> 采样只影响分布形状，幻觉源于知识与机制。T=0 只能稳定复现错误。根治靠 grounding 与验证。</li>
+<li><strong>&quot;上下文窗口大 = 可以多塞。&quot;</strong> 注意力在中段衰减、成本随长度线性涨、KV Cache 占显存。Context 的第一原则是&quot;最小充分&quot;。</li>
+<li><strong>&quot;Agent 就该全自动，加 Workflow 是技术不行。&quot;</strong> 全自动在错误代价高的企业场景是事故而非先进性。混合编排、按风险分级授权才是成熟设计。</li>
+<li><strong>&quot;会写 Prompt 就是 Agent 工程师。&quot;</strong> Prompt 是五层里最浅、最易被模型内化的一层。能力分水岭在状态、边界、评测与治理。</li>
+<li><strong>&quot;RLHF 之后模型说的就是对的。&quot;</strong> 对齐优化的是&quot;人类偏好&quot;，不是&quot;事实正确&quot;。模型被训练得更自信，不等于更可靠。</li>
+<li><strong>&quot;换个更强模型，工程问题就消失了。&quot;</strong> 模型升级改善单点能力，但权限、审计、成本、状态管理一个都不会自动解决。</li>
+</ol>
+<h2 id="本篇实战-五个递进实验-每步都有验收标准">本篇实战：五个递进实验（每步都有验收标准）</h2>
+<p>按顺序做。每个实验都在为后面的工程篇积累&quot;第一手证据&quot;——篇06 的上下文治理、篇09 的评测，都建立在你在这里亲眼看到的现象上。</p>
+<p><strong>实验 1：Token 解剖</strong></p>
+<ul>
+<li><strong>目标</strong>：把&quot;Token 是计费与限额单位&quot;从概念变成肌肉记忆。</li>
+<li><strong>操作</strong>：用 tiktoken（或目标模型对应 tokenizer）分别统计你的 System Prompt、一个工具定义、一段示例对话的 Token 数；再算一笔 DataAgent&quot;月报生成&quot;任务（约 20 轮循环、每轮历史累积）的输入/输出成本。</li>
+<li><strong>验收标准</strong>：指出最大成本项（通常是&quot;越滚越长的历史消息&quot;），并给出一个削减方案，能说明它利用了 KV Cache 前缀稳定性或上下文压缩中的哪一条。</li>
+</ul>
+<p><strong>实验 2：采样对照</strong></p>
+<ul>
+<li><strong>目标</strong>：亲手证伪&quot;T=0 就不会错&quot;，建立对采样参数作用边界的正确预期。</li>
+<li><strong>操作</strong>：同一道&quot;给一个模糊业务问题写分析 SQL&quot;的题，分别在 T=0、T=0.3、T=1.0 下各跑 5 次，记录答案的一致性与正确率。</li>
+<li><strong>验收标准</strong>：写一段结论，必须区分&quot;一致性&quot;和&quot;正确率&quot;两个维度（T=0 一致性高但可能稳定地错），并给出你会用于生产的参数组合及理由。</li>
+</ul>
+<p><strong>实验 3：范式改造</strong></p>
+<ul>
+<li><strong>目标</strong>：把 Autonomous vs Workflow 的选型四问用在一个真实任务上。</li>
+<li><strong>操作</strong>：把&quot;诊断某租户 GMV 环比下跌&quot;分别用（a）纯 ReAct Loop 和（b）Workflow（Routing→并行取数→诊断节点→Evaluator 审核）各设计一遍，画出流程图。</li>
+<li><strong>验收标准</strong>：列出两者在成本可预测性、可审计性、错误传播上的差异表，并用选型四问说明你最终选哪个、为什么。</li>
+</ul>
+<p><strong>实验 4：职责边界审查</strong></p>
+<ul>
+<li><strong>目标</strong>：把 1.7 边界表变成可执行的代码评审动作。</li>
+<li><strong>操作</strong>：找一个你写过的 Agent 功能，逐条列出它让模型做的事，对照 1.7 的边界表，找出至少两处&quot;应该交给确定性系统却交给了模型&quot;的地方。</li>
+<li><strong>验收标准</strong>：每处写出改造方案（交给什么确定性机制、模型保留什么职责），并说明改造后哪类失败模式被消除了。</li>
+</ul>
+<p><strong>实验 5：五层自检</strong></p>
+<ul>
+<li><strong>目标</strong>：识别自己工作流中的&quot;杀鸡用牛刀&quot;与&quot;赤手空拳&quot;。</li>
+<li><strong>操作</strong>：选一个你正在用的 AI 工作流，标注它用到 PE/CE/HE/LE/GE 的哪几层。</li>
+<li><strong>验收标准</strong>：明确指出一处复杂度超过任务需要的地方（该降层）或一处该上 HE/LE 却靠人肉的地方（该升层），并给出调整计划。</li>
+</ul>
+<h3 id="ai-coding-实操模式-让-ai-帮你-设计实验-而不是-替你做实验">AI Coding 实操模式：让 AI 帮你&quot;设计实验&quot;而不是&quot;替你做实验&quot;</h3>
+<p>认知篇的实验价值在于<strong>你亲眼看到现象</strong>，AI 的正确用法是帮你设计更严谨的实验、检查你的结论——而不是直接生成结论让你抄。</p>
+<p><strong>① 可复制提示词模板</strong></p>
+<p>实验设计审查：</p>
+<pre><code class="language-text">我要做一个验证【假设，如：Temperature 不影响正确率只影响多样性】的对照实验。
+请帮我审查实验设计：(1) 我的自变量、因变量、控制变量分别是什么，有没有混淆变量；
+(2) 样本量够不够支撑结论；(3) 有没有我没想到的偏差来源（如模型版本漂移、Prompt 泄漏答案）。
+不要替我下结论，只帮我把实验设计做严谨。
+
+【我的实验设计】&lt;粘贴你的方案&gt;
+</code></pre>
+<p>结论压力测试：</p>
+<pre><code class="language-text">我从实验中得出了这个结论：【粘贴结论】。
+请扮演一个挑剔的评审，列出这个结论可能成立的 3 个替代解释，
+以及能区分它们的追加实验各一个。
+</code></pre>
+<p><strong>② AI 初版人工评审清单</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> AI 给出的实验数据/结论，我至少抽查复现过一条，没有直接采信</li>
+<li class="task-item"><input type="checkbox" disabled> AI 引用的&quot;论文结论&quot;或&quot;官方文档说法&quot;，我核对过原文或标注了&quot;未核实&quot;</li>
+<li class="task-item"><input type="checkbox" disabled> 实验结论里区分了&quot;我观察到的&quot;和&quot;AI 推测的&quot;，没有混为一谈</li>
+<li class="task-item"><input type="checkbox" disabled> 涉及具体数字（Token 单价、窗口上限）时，我查了当前服务商的最新文档</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<ul>
+<li>五个实验全部通过各自的验收标准，且每个实验结论都有你亲手跑出的数据支撑；</li>
+<li>自测清单 10 项全部能口头回答，其中至少 3 项能引用你自己实验中的具体数字；</li>
+<li>遇到&quot;模型能力&quot;的争论时，你的第一反应是&quot;设计个实验测一下&quot;，而不是查观点站队。</li>
+</ul>
+<h2 id="自测清单">自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 我能解释 Token 切分为什么会让模型算错数字，以及工程上如何规避。</li>
+<li class="task-item"><input type="checkbox" disabled> 我能说出 PreTrain/SFT/RLHF 各自赋予了什么能力、带来什么副作用。</li>
+<li class="task-item"><input type="checkbox" disabled> 我能画出 prefill/decode/KV Cache 流程，并据此解释&quot;输出比输入贵&quot;和&quot;长上下文变慢变贵&quot;。</li>
+<li class="task-item"><input type="checkbox" disabled> 我知道 Temperature/Top-p 的真实作用范围，不会指望它们消灭幻觉。</li>
+<li class="task-item"><input type="checkbox" disabled> 我能为幻觉高发区（数字、引用、工具参数）设计 grounding 与校验机制。</li>
+<li class="task-item"><input type="checkbox" disabled> 我能说清 ICL 与&quot;lost in the middle&quot;对 Prompt 设计的具体约束。</li>
+<li class="task-item"><input type="checkbox" disabled> 给定一个需求，我能在 Autonomous / Workflow / Agentic Workflow 之间给出选型并说明四问依据。</li>
+<li class="task-item"><input type="checkbox" disabled> 我能复述 L1–L4 的责任半径差异，并定位自己在哪一级。</li>
+<li class="task-item"><input type="checkbox" disabled> 我能区分 AI-Enabled 与 AI-Native，并举出团队责任边界矩阵的例子。</li>
+<li class="task-item"><input type="checkbox" disabled> 我能解释 PE/CE/HE/LE/GE 的递进嵌套关系，以及&quot;哪些会被模型内化、哪些不会&quot;。</li>
+</ul>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-lostmiddle">Liu et al., 《Lost in the Middle: How Language Models Use Long Contexts》（2023），arXiv:2307.03172——长上下文中&quot;开头/结尾利用率高、中段丢失&quot;现象的实证研究，<a href="https://arxiv.org/abs/2307.03172">https://arxiv.org/abs/2307.03172</a> 。 <a class="fn-back" href="#ref-lostmiddle" aria-label="回到正文">↩</a></li>
+<li id="fn-agents">Anthropic 工程博客，《Building Effective Agents》（2024-12）——Workflow 与 Autonomous Agent 的划分及六种 Workflow 基础模式的出处，<a href="https://www.anthropic.com/engineering/building-effective-agents">https://www.anthropic.com/engineering/building-effective-agents</a> 。 <a class="fn-back" href="#ref-agents" aria-label="回到正文">↩</a></li>
+<li id="fn-react">Yao et al., 《ReAct: Synergizing Reasoning and Acting in Language Models》（2022），arXiv:2210.03629，<a href="https://arxiv.org/abs/2210.03629">https://arxiv.org/abs/2210.03629</a> 。 <a class="fn-back" href="#ref-react" aria-label="回到正文">↩</a></li>
+<li id="fn-course">极客时间专栏《企业级 Agent 工程化》——本篇的能力模型分级、PE/CE/HE/LE/GE 调优谱系与贯穿项目 DataAgent 的架构语境均重构自该课程。 <a class="fn-back" href="#ref-course" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-00.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇00 · 小白前置篇</span></a>
+      <a class="next" href="chapter-02.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇02 · AI Coding 道法术器</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-从训推机理理解-llm-建立-agent-开发的底层心智模型">1. 从训推机理理解 LLM：建立 Agent 开发的底层心智模型</a>
+    <a class="toc-h3" href="#1-1-核心概念-token-tokenizer-prompt-reasoning">1.1 核心概念：Token、Tokenizer、Prompt、Reasoning</a>
+    <a class="toc-h3" href="#1-2-训练三阶段-能力从哪来-代价是什么">1.2 训练三阶段：能力从哪来，代价是什么</a>
+    <a class="toc-h3" href="#1-3-推理机制-prefill-decode-kv-cache-与成本结构">1.3 推理机制：prefill、decode、KV Cache 与成本结构</a>
+    <a class="toc-h3" href="#1-4-采样机制-temperature-top-p-top-k">1.4 采样机制：Temperature / Top-p / Top-k</a>
+    <a class="toc-h3" href="#1-5-幻觉与不确定性-理解-接纳-应用">1.5 幻觉与不确定性：理解、接纳、应用</a>
+    <a class="toc-h3" href="#1-6-icl-上下文窗口与注意力">1.6 ICL、上下文窗口与注意力</a>
+    <a class="toc-h3" href="#1-7-模型与确定性系统的职责边界">1.7 模型与确定性系统的职责边界</a>
+    <a class="toc-h2" href="#2-agent-的两种根本范式-autonomous-vs-workflow">2. Agent 的两种根本范式：Autonomous vs Workflow</a>
+    <a class="toc-h3" href="#2-1-定义与共识">2.1 定义与共识</a>
+    <a class="toc-h3" href="#2-2-autonomous-范式">2.2 Autonomous 范式</a>
+    <a class="toc-h3" href="#2-3-workflow-范式-六种基础模式">2.3 Workflow 范式（六种基础模式）</a>
+    <a class="toc-h3" href="#2-4-融合趋势与选型">2.4 融合趋势与选型</a>
+    <a class="toc-h2" href="#3-agent-工程师能力模型-三维画像与-l1-l4-分级">3. Agent 工程师能力模型：三维画像与 L1–L4 分级</a>
+    <a class="toc-h2" href="#4-ai-native-团队与个人">4. AI Native 团队与个人</a>
+    <a class="toc-h3" href="#4-1-ai-enabled-vs-ai-native">4.1 AI-Enabled vs AI-Native</a>
+    <a class="toc-h3" href="#4-2-三个思维转换">4.2 三个思维转换</a>
+    <a class="toc-h3" href="#4-3-个人-ai-native-一个人的-opc-one-person-company">4.3 个人 AI Native：一个人的 OPC（One Person Company）</a>
+    <a class="toc-h3" href="#4-4-团队-ai-native-责任边界与基础设施">4.4 团队 AI Native：责任边界与基础设施</a>
+    <a class="toc-h2" href="#5-llm-调优技术谱系-pe-ce-he-le-ge">5. LLM 调优技术谱系：PE、CE、HE、LE、GE</a>
+    <a class="toc-h3" href="#5-1-五层技术与关系">5.1 五层技术与关系</a>
+    <a class="toc-h3" href="#5-2-user-视角-vs-builder-视角">5.2 User 视角 vs Builder 视角</a>
+    <a class="toc-h3" href="#5-3-架构选型-什么时候用哪一层">5.3 架构选型：什么时候用哪一层</a>
+    <a class="toc-h2" href="#常见误区">常见误区</a>
+    <a class="toc-h2" href="#本篇实战-五个递进实验-每步都有验收标准">本篇实战：五个递进实验（每步都有验收标准）</a>
+    <a class="toc-h3" href="#ai-coding-实操模式-让-ai-帮你-设计实验-而不是-替你做实验">AI Coding 实操模式：让 AI 帮你"设计实验"而不是"替你做实验"</a>
+    <a class="toc-h2" href="#自测清单">自测清单</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

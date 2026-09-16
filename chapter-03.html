@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第三篇：贯穿实战立项篇——把真实业务问题转化为可验证、可演进的企业级 Agent 项目 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html" class="active">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="第三篇-贯穿实战立项篇-把真实业务问题转化为可验证-可演进的企业级-agent-项目">第三篇：贯穿实战立项篇——把真实业务问题转化为可验证、可演进的企业级 Agent 项目</h1>
+<blockquote>
+<p>导语：大多数 Agent 项目的失败，不是败在模型能力，而是败在&quot;立项&quot;——把一句业务口号直接翻译成 Demo，没有边界、没有基线、没有决策记录，三个月后没人说得清系统到底该有多好、为什么长成现在这样。本篇以贯穿项目&quot;多租户零售经营分析 DataAgent&quot;为例，讲清楚一件企业级 Agent 项目在写下第一行业务代码之前必须完成的事：定义业务与目标、确定架构起点与职责边界、建立选型决策机制、签下质量契约并冻结 M0 评测基线、搭好脚手架。这一篇产出的是&quot;工程判断力&quot;，后续所有篇章都在它划定的轨道上演进。</p>
+</blockquote>
+<hr>
+<h2 id="1-项目业务与目标-dataagent-到底要解决什么问题">1. 项目业务与目标：DataAgent 到底要解决什么问题</h2>
+<h3 id="1-1-业务场景">1.1 业务场景</h3>
+<p>DataAgent 面向品牌商家与零售企业，以 SaaS 形态服务<strong>多个企业租户</strong>。每个租户有自己的数据源（订单库、商品库、库存系统、会员系统、广告投放平台、售后系统）、自己的指标口径、自己的预算和权限体系。租户内的运营、商品、财务等角色用自然语言提出经营问题，Agent 自主完成分析闭环。</p>
+<p>这个场景的关键特征：<strong>它不是&quot;自然语言查数&quot;（NL2SQL）的升级版</strong>。NL2SQL 只回答&quot;数是多少&quot;，DataAgent 要回答&quot;发生了什么、为什么、该怎么办、做完效果如何&quot;。这两者的工程复杂度差一个数量级。</p>
+<h3 id="1-2-八类典型任务与它们的架构含义">1.2 八类典型任务与它们的架构含义</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>典型任务</th>
+<th>示例</th>
+<th>对架构的要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>跨源数据查询</td>
+<td>&quot;上周华东区 TOP10 商品的销量和库存&quot;</td>
+<td>Data Connector、只读 Query Gateway、SQL 安全</td>
+</tr>
+<tr>
+<td>指标口径理解</td>
+<td>&quot;毛利率&quot;在不同租户口径不同（是否含运费、是否扣券）</td>
+<td>Semantic / 指标治理模块，术语与血缘管理</td>
+</tr>
+<tr>
+<td>SQL + Python Sandbox 分析</td>
+<td>漏斗分析、同期群分析、图表生成</td>
+<td>云端 Sandbox 隔离、资源限额、结果回传</td>
+</tr>
+<tr>
+<td>指标异常诊断</td>
+<td>&quot;GMV 昨天跌了 18%，为什么&quot;</td>
+<td>Autonomous Analysis Loop、证据链追踪</td>
+</tr>
+<tr>
+<td>行动建议</td>
+<td>补货、调价、人群运营、预算调整</td>
+<td>建议与执行分离，输出结构化建议单</td>
+</tr>
+<tr>
+<td>人工审批</td>
+<td>创建工单、调整广告预算、写回业务系统</td>
+<td>副作用工具风险分级、Human Approval 网关</td>
+</tr>
+<tr>
+<td>周期报告与持续监测</td>
+<td>每周一 9:00 生成经营周报，持续跟踪行动效果</td>
+<td>Scheduler、长任务、状态持久化</td>
+</tr>
+<tr>
+<td>租户管理</td>
+<td>管理员配置数据源、指标、模型、工具、预算、权限</td>
+<td>多租户隔离、配置中心、审计日志</td>
+</tr>
+</tbody>
+</table></div>
+<p>注意最后一列：每一条业务诉求都直接映射到一个架构模块。这正是立项阶段要做的事——<strong>把业务语言翻译成系统能力清单</strong>，而不是先写 Prompt。</p>
+<h3 id="1-3-为什么这个场景适合-agent-而不是传统-bi-或报表">1.3 为什么这个场景适合 Agent，而不是传统 BI 或报表</h3>
+<p>判断标准是三点：<strong>任务的开放性</strong>（&quot;诊断 GMV 异常&quot;没有固定查询模板，需要根据中间结果决定下一步查什么）、<strong>步骤的不可预知性</strong>（分析计划要在运行时生成，无法预先穷举）、<strong>行动的闭环性</strong>（从洞察到审批到执行到效果追踪）。如果三个问题的答案都是&quot;否&quot;——问题固定、路径固定、只读不写——那应该做 BI 报表，不要做 Agent。立项时先过这三问，能挡掉一半&quot;为了 Agent 而 Agent&quot;的伪需求。</p>
+<h3 id="1-4-立项方法-一页立项书-先对齐再动工">1.4 立项方法：一页立项书，先对齐再动工</h3>
+<p>企业里立项失败的头号原因不是方案差，而是<strong>各干各的理解</strong>：老板以为要做&quot;全自动经营参谋&quot;，工程师以为要做&quot;查数机器人&quot;，三个月后互相指责。对策是把对齐动作压缩成<strong>一页立项书</strong>——超过一页说明你没想清楚，不足一页说明你没想具体。立项书本质上是篇02 SPEC 六段式在&quot;项目&quot;这个更大尺度上的应用<sup class="fn-ref"><a href="#fn-course" id="ref-course">[1]</a></sup>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>立项书栏目</th>
+<th>要回答的问题</th>
+<th>常见翻车</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>业务问题</strong></td>
+<td>谁在什么场景下痛？现在怎么解决的、为什么不够？</td>
+<td>写的是&quot;我们要用大模型做 XX&quot;——这是方案不是问题</td>
+</tr>
+<tr>
+<td><strong>目标与成功度量</strong></td>
+<td>做到什么程度算成？数字是什么？</td>
+<td>&quot;提升分析效率&quot;——不可度量等于没有目标</td>
+</tr>
+<tr>
+<td><strong>非目标</strong></td>
+<td>明确不做什么</td>
+<td>不设非目标，范围蔓延到失控</td>
+</tr>
+<tr>
+<td><strong>Agent 三问</strong></td>
+<td>开放性/不可预知性/闭环性逐项论证</td>
+<td>跳过三问，为 Agent 而 Agent</td>
+</tr>
+<tr>
+<td><strong>边界与约束</strong></td>
+<td>数据权限、预算上限、合规红线</td>
+<td>上线后才发现碰不得某类数据</td>
+</tr>
+<tr>
+<td><strong>M0 范围</strong></td>
+<td>第一刀切在哪（见 1.5 节）</td>
+<td>第一版就想做终态</td>
+</tr>
+<tr>
+<td><strong>风险与备选</strong></td>
+<td>最大的三个不确定点，各自的 Plan B</td>
+<td>只有乐观路径</td>
+</tr>
+</tbody>
+</table></div>
+<p>写完立项书的对齐仪式只有一个：<strong>让 stakeholders 逐栏确认，尤其是&quot;非目标&quot;栏</strong>——人很容易同意&quot;要做什么&quot;，真正的对齐发生在&quot;不做什么&quot;上。</p>
+<h3 id="1-5-mvp-切割-纵切蛋糕-而不是横切分层">1.5 MVP 切割：纵切蛋糕，而不是横切分层</h3>
+<p>M0 切多大？新手最容易犯的反模式是<strong>横切</strong>：先花两个月把&quot;所有数据连接器&quot;做完，再做语义层，再做 Loop——每层都是半成品，任何一层出问题整体归零，而且直到最后一天都没有一个能跑的端到端流程。</p>
+<p>正确的切法是<strong>纵切（Walking Skeleton，会走路的骨架）</strong>：选一条最窄但完整的业务链路，从头到尾打穿——哪怕只支持&quot;单租户 + 一个数据源 + 查数一类问题&quot;，但它能真实地&quot;提问→生成 SQL→执行→返回答案→留下 Trace→被 EvalCase 评测&quot;。骨架的价值有三：第一，<strong>端到端风险最先暴露</strong>（集成问题、口径问题、延迟问题，都是横切法最后才遇到的）；第二，<strong>每个迭代都有可演示、可评测的增量</strong>——这正是 4.2 节 M0 基线能存在的前提；第三，<strong>团队士气靠&quot;能跑的东西&quot;喂养</strong>，不靠架构图。</p>
+<pre class="mermaid">flowchart TD
+    A[&quot;全部设想功能&lt;br/&gt;八类任务 × 多租户 × 全数据源&quot;] --&gt; B{&quot;这条链路能&lt;br/&gt;端到端跑通吗?&quot;}
+    B -- &quot;不能, 继续砍&quot; --&gt; C[&quot;砍租户数 → 单租户&lt;br/&gt;砍数据源 → 一个&lt;br/&gt;砍任务类型 → 查数&quot;]
+    C --&gt; B
+    B -- &quot;能, 但太粗?&quot; --&gt; D{&quot;能支撑 Eval&lt;br/&gt;与基线吗?&quot;}
+    D -- &quot;不能&quot; --&gt; E[&quot;补最小评测面:&lt;br/&gt;Trace + 20 条 EvalCase&quot;]
+    E --&gt; D
+    D -- &quot;能&quot; --&gt; F[&quot;M0 会走路的骨架&lt;br/&gt;冻结基线 → 进入迭代&quot;]
+    F -. &quot;每轮迭代: 加一类任务&lt;br/&gt;或加一种治理能力&quot; .-&gt; G[&quot;M1 / M2 ...&lt;br/&gt;逐层逼近终态&quot;]
+</pre>
+<p>切割决策的三条纪律：<strong>砍宽度不砍深度</strong>（链路必须完整，范围可以很窄）；<strong>砍功能不砍评测</strong>（Eval 和 Trace 从 M0 就在，它们不是功能，是眼睛）；<strong>砍实现不砍边界</strong>（模块接口按终态设计，实现按现状从简——这就是 2.1 节&quot;为将来拆分保留可能性&quot;的含义）。</p>
+<hr>
+<h2 id="2-系统架构-为什么从模块化单体起步">2. 系统架构：为什么从模块化单体起步</h2>
+<h3 id="2-1-模块化单体-vs-微服务-起点之争">2.1 模块化单体 vs 微服务：起点之争</h3>
+<p>新手最常见的误判是：既然最终形态是多租户、长任务、云端 Sandbox、微服务部署，那就第一天直接上微服务。这是企业级 Agent 项目的第一大坑。</p>
+<p>课程采用<strong>演进式架构</strong><sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>：先用模块化单体建立业务、数据与效果基线（M0），再依次拆出 LLM Runtime、Agent API/Scheduler/Worker/Sandbox，最后增加 Data Connector、Query Gateway、Context、Semantic、Tool、Memory 等治理模块。理由有三：</p>
+<ol>
+<li><strong>边界还不稳定</strong>。Agent 系统的模块边界（Context 归谁管、Memory 和 Knowledge 怎么分）需要在真实 Badcase 中才能看清。服务拆早了，每次边界调整都变成跨服务的 API 变更，成本放大十倍。</li>
+<li><strong>基线必须先于拆分</strong>。没有 M0 基线，你无法回答&quot;拆出 LLM Runtime 之后效果有没有变差&quot;。模块化单体让评测、Trace、数据都在一个进程里，基线成本最低。</li>
+<li><strong>分布式问题会掩盖 Agent 问题</strong>。M0 阶段你要调试的是&quot;Agent 为什么诊断错了&quot;，不是&quot;消息为什么丢了&quot;。把分布式复杂度推迟到它被证明需要的时候。</li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>模块化单体</th>
+<th>微服务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>适用阶段</td>
+<td>M0-M1：边界探索、基线建立</td>
+<td>M2+：边界稳定、需要独立扩缩容</td>
+</tr>
+<tr>
+<td>模块边界调整成本</td>
+<td>改包结构，一次重构</td>
+<td>跨服务 API 变更，多团队协调</td>
+</tr>
+<tr>
+<td>调试与 Trace</td>
+<td>进程内调用栈，天然完整</td>
+<td>需要分布式追踪基础设施</td>
+</tr>
+<tr>
+<td>独立扩缩容</td>
+<td>不支持</td>
+<td>支持（Sandbox、Worker 需要）</td>
+</tr>
+<tr>
+<td>故障隔离</td>
+<td>弱（一崩全崩）</td>
+<td>强</td>
+</tr>
+<tr>
+<td>团队并行</td>
+<td>小团队足够</td>
+<td>多团队必需</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>关键认知</strong>：模块化单体不是&quot;简陋版微服务&quot;，而是一种有意识的架构决策——用单体的低复杂度换取边界探索期的高迭代速度，并通过严格的模块边界（只允许跨模块接口调用、禁止跨模块读表）为将来的拆分保留可能性。</p>
+<p>里程碑演进路线与每次拆分的&quot;基线回归&quot;纪律：</p>
+<pre class="mermaid">flowchart LR
+    M0[&quot;M0 模块化单体&lt;br/&gt;骨架跑通 · 冻结基线&quot;] --&gt; M1[&quot;M1 拆出 LLM Runtime&lt;br/&gt;模型调用唯一入口&quot;]
+    M1 --&gt; M2[&quot;M2 拆 API/Scheduler/Worker&lt;br/&gt;Sandbox · 长任务与隔离&quot;]
+    M2 --&gt; M3[&quot;M3+ 治理模块补齐&lt;br/&gt;Context/Semantic/Tool/Memory&quot;]
+    R[&quot;每次拆分后&lt;br/&gt;对照 M0 基线回归&lt;br/&gt;效果不许回退&quot;] -. 门禁 .-&gt; M1
+    R -. 门禁 .-&gt; M2
+    R -. 门禁 .-&gt; M3
+</pre>
+<p>注意图中没有画&quot;推翻重来&quot;的分支——演进式架构的每一站都是可独立交付、可评测的系统，不是烂尾楼的脚手架。</p>
+<h3 id="2-2-四种执行范式的职责边界">2.2 四种执行范式的职责边界</h3>
+<p>DataAgent 内部并存四种执行方式，立项时必须划清它们各自管什么：</p>
+<ul>
+<li><strong>确定性系统（Deterministic System）</strong>：传统代码。租户配置、权限校验、SQL 安全审查、审批流、账单归集。输入确定则输出确定，可单测、可审计。</li>
+<li><strong>Workflow</strong>：预定义的有向步骤序列，步骤内部可以是 LLM 调用。适合&quot;周报生成&quot;这种路径固定、但每个步骤需要生成能力的任务。</li>
+<li><strong>Autonomous Analysis Loop</strong>：Agent 自主循环——观察→规划→行动（调工具）→再观察，直到满足停止条件。适合&quot;GMV 异常诊断&quot;这种路径不可预知的任务。</li>
+<li><strong>Execution Graph</strong>：对一次具体执行的拓扑建模（节点=动作，边=依赖），是 Loop/Workflow 运行后的<strong>记录与回放结构</strong>，也是 Graph Engineering 的建模对象。</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>确定性系统</th>
+<th>Workflow</th>
+<th>Autonomous Loop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>路径何时确定</td>
+<td>编译期</td>
+<td>设计期</td>
+<td>运行时</td>
+</tr>
+<tr>
+<td>典型任务</td>
+<td>权限、审批、账单</td>
+<td>周期报告</td>
+<td>异常诊断</td>
+</tr>
+<tr>
+<td>可预测性</td>
+<td>完全</td>
+<td>高</td>
+<td>低</td>
+</tr>
+<tr>
+<td>验证方式</td>
+<td>单元测试</td>
+<td>流程测试 + 步骤 Eval</td>
+<td>Outcome/Trajectory Eval</td>
+</tr>
+<tr>
+<td>失败成本</td>
+<td>低（快速失败）</td>
+<td>中</td>
+<td>高（可能跑偏烧钱）</td>
+</tr>
+</tbody>
+</table></div>
+<p>职责边界的原则一句话：<strong>能用确定性代码解决的，不用 Workflow；能用 Workflow 解决的，不用 Autonomous Loop</strong>。自主性是有成本的（不可预测、烧钱、难验证），只在路径不可预知的诊断类任务上购买它。</p>
+<pre class="mermaid">flowchart TB
+    U[租户用户提问] --&gt; R{Router&lt;br/&gt;任务分类}
+    R --&gt;|查数/固定口径| W[Workflow&lt;br/&gt;预定义分析流程]
+    R --&gt;|异常诊断/开放问题| L[Autonomous&lt;br/&gt;Analysis Loop]
+    R --&gt;|配置/审批/权限| D[确定性系统&lt;br/&gt;传统代码]
+    W --&gt; G[(Execution Graph&lt;br/&gt;执行记录/回放)]
+    L --&gt; G
+    L --&gt;|发现副作用动作| A[Human Approval&lt;br/&gt;人工审批网关]
+    D --&gt; A
+    A --&gt;|批准后| E[写回业务系统]
+    G --&gt; EV[Eval / 基线对比]
+</pre>
+<hr>
+<h2 id="3-架构选型机制-让每个决策都有证据">3. 架构选型机制：让每个决策都有证据</h2>
+<p>企业级架构和 Demo 的核心区别：每个关键取舍都留下<strong>可审查的证据链</strong>。课程要求每个里程碑走同一套机制：</p>
+<ol>
+<li><strong>候选方案（Candidates）</strong>：至少列出 2-3 个真实可行的方案，包括&quot;什么都不做&quot;。</li>
+<li><strong>Decision Matrix（决策矩阵）</strong>：把候选方案 × 评估维度（效果、成本、时延、稳定性、演进成本、团队能力）打分。打分必须有依据，维度权重必须写明。</li>
+<li><strong>Benchmark</strong>：对影响效果的方案，跑同一组数据集对比，用数字说话。</li>
+<li><strong>Badcase 库</strong>：每个被淘汰的方案，至少记录一个&quot;它在什么情况下会失败&quot;的具体案例。Badcase 是架构评审中最有说服力的材料。</li>
+<li><strong>ADR（Architecture Decision Record）</strong>：把最终决定固化成一份短文档——背景、选项、决定、后果。ADR 遵循&quot;不可变&quot;原则：推翻旧决策就写新 ADR，不改旧的。</li>
+</ol>
+<p>为什么需要这套机制？因为 Agent 系统的选型几乎都是<strong>情境依赖</strong>的：没有&quot;最好的路由策略&quot;，只有&quot;在你的成本预算和 Badcase 分布下最合适的策略&quot;。没有证据链，三个月后的新成员只能看到结论，看不到约束条件，于是重蹈覆辙。</p>
+<h3 id="3-1-decision-matrix-与-adr-的代码化">3.1 Decision Matrix 与 ADR 的代码化</h3>
+<p>把决策机制做成脚手架的一部分，而不是 Wiki 里的文档：</p>
+<pre><code class="language-python"># decision/matrix.py —— 决策矩阵：候选方案 × 加权维度
+from dataclasses import dataclass, field
+
+@dataclass
+class Score:
+    value: float          # 1-5 分
+    evidence: str         # 打分依据：Benchmark 编号 / Badcase 编号 / 实测数据
+
+@dataclass
+class DecisionMatrix:
+    topic: str                                  # 例：&quot;M1 模型路由策略选型&quot;
+    weights: dict[str, float]                   # 例：{&quot;效果&quot;:0.4,&quot;成本&quot;:0.3,&quot;稳定性&quot;:0.3}
+    candidates: dict[str, dict[str, Score]] = field(default_factory=dict)
+
+    def rank(self) -&gt; list[tuple[str, float]]:
+        result = {}
+        for name, dims in self.candidates.items():
+            missing = set(self.weights) - set(dims)
+            if missing:
+                raise ValueError(f&quot;{name} 缺少维度评分: {missing}&quot;)  # 不许漏评
+            result[name] = sum(self.weights[d] * dims[d].value for d in self.weights)
+        return sorted(result.items(), key=lambda kv: -kv[1])
+
+# decisions/ADR-0003.md 由脚本校验必填章节：
+# Status / Context / Options(with Badcase refs) / Decision / Consequences
+@dataclass
+class ADR:
+    id: str                 # ADR-0003
+    status: str             # proposed | accepted | superseded-by(ADR-0007)
+    context: str            # 约束条件：为什么现在必须决定
+    options: list[str]      # 每个选项附 Badcase 引用
+    decision: str           # 选了什么
+    consequences: list[str] # 正面与负面后果都要写
+</code></pre>
+<p>CI 里加一条检查：新增 ADR 若 <code>options</code> 不足 2 个或缺少 Badcase 引用，直接 fail。机制要长在流水线里才有约束力。</p>
+<hr>
+<h2 id="4-质量契约与-m0-评测基线">4. 质量契约与 M0 评测基线</h2>
+<h3 id="4-1-三层成功标准">4.1 三层成功标准</h3>
+<p>&quot;系统好不好&quot;必须拆成三个可独立测量的层次，否则一次回归你不知道该怪谁：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层次</th>
+<th>关注的问题</th>
+<th>DataAgent 示例指标</th>
+<th>典型工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Outcome（结果层）</strong></td>
+<td>最终交付物对不对</td>
+<td>诊断结论准确率、建议采纳率、报告事实错误数</td>
+<td>Golden Dataset + Grader（规则/人工/LLM-as-Judge）</td>
+</tr>
+<tr>
+<td><strong>Trajectory（轨迹层）</strong></td>
+<td>过程走得好不好</td>
+<td>步骤数是否合理、有无无效 SQL、证据链完整性、是否该停就停</td>
+<td>Execution Graph 分析、轨迹对比</td>
+</tr>
+<tr>
+<td><strong>System（系统层）</strong></td>
+<td>工程属性达不达标</td>
+<td>P95 时延、单次任务成本、故障率、审批合规率、租户隔离零事故</td>
+<td>监控、压测、审计</td>
+</tr>
+</tbody>
+</table></div>
+<p>三层必须<strong>同时</strong>定义。只看 Outcome 会放过&quot;蒙对的烂轨迹&quot;（这次对了下次就错）；只看 Trajectory 会陷入过程洁癖；不看 System 则上线即翻车。</p>
+<h3 id="4-2-m0-基线-冻结起点-才能度量演进">4.2 M0 基线：冻结起点，才能度量演进</h3>
+<p>M0 是模块化单体跑通后的第一个可评测版本。基线要记录六类数据：<strong>任务质量</strong>（Outcome 分数分布）、<strong>证据完整性</strong>（结论是否都有数据支撑）、<strong>成本</strong>（每任务 token / 金额）、<strong>时延</strong>（P50/P95）、<strong>安全</strong>（越权访问、危险 SQL 拦截数）、<strong>失败类型</strong>（Failure Taxonomy 的首批分类）。后续每个里程碑的验收标准就是&quot;相对 M0 基线的改进量&quot;，这就是 Regression Gate 的数据来源。</p>
+<pre><code class="language-python"># eval/baseline.py —— M0 评测基线的核心数据结构
+from dataclasses import dataclass, field
+from enum import Enum
+
+class FailureType(str, Enum):
+    WRONG_METRIC_SEMANTIC = &quot;指标口径理解错误&quot;
+    BAD_SQL = &quot;SQL 生成/执行失败&quot;
+    MISSING_EVIDENCE = &quot;结论缺少证据&quot;
+    OVERREACH = &quot;越权/危险操作&quot;
+    LOOP_NONSTOP = &quot;Loop 未在预算内收敛&quot;
+    SANDBOX_ERROR = &quot;Sandbox 执行异常&quot;
+
+@dataclass
+class EvalCase:
+    id: str                    # &quot;gmv-drop-diagnosis-001&quot;
+    tenant_fixture: str        # 固定租户数据快照，保证可复现
+    question: str              # &quot;昨天 GMV 为什么跌&quot;
+    expected_outcome: dict     # 期望结论的关键要素（非全文匹配）
+    trajectory_checks: list[str]  # 例：[&quot;必须先查分渠道GMV再下钻&quot;,&quot;证据&gt;=2条&quot;]
+    cost_budget_usd: float
+    deadline_sec: int
+
+@dataclass
+class TrialResult:
+    case_id: str
+    outcome_score: float       # 0-1，由 Grader 给出
+    trajectory_violations: list[str]
+    cost_usd: float
+    latency_ms: int
+    failures: list[FailureType]
+
+@dataclass
+class Baseline:
+    version: str               # &quot;M0&quot;
+    frozen_at: str
+    trials: list[TrialResult] = field(default_factory=list)
+
+    def summary(self) -&gt; dict:
+        n = len(self.trials)
+        return {
+            &quot;outcome_avg&quot;: sum(t.outcome_score for t in self.trials) / n,
+            &quot;p95_latency_ms&quot;: sorted(t.latency_ms for t in self.trials)[int(n*0.95)-1],
+            &quot;cost_avg_usd&quot;: sum(t.cost_usd for t in self.trials) / n,
+            &quot;failure_dist&quot;: {f.value: sum(1 for t in self.trials if f in t.failures)
+                             for f in FailureType},
+        }
+</code></pre>
+<p>要点：<code>tenant_fixture</code> 用<strong>数据快照</strong>而非活库，否则基线不可复现；<code>expected_outcome</code> 校验关键要素而非全文，给生成留空间；基线文件入库并打 tag，M0 之后任何人不许改。</p>
+<hr>
+<h2 id="5-项目脚手架">5. 项目脚手架</h2>
+<p>脚手架的目标：让&quot;质量契约&quot;和&quot;决策机制&quot;从第一天起就是代码结构的一部分。</p>
+<pre class="mermaid">flowchart LR
+    subgraph 模块化单体 M0
+        API[api/&lt;br/&gt;租户/任务入口] --&gt; AG[agent/&lt;br/&gt;Loop+Workflow]
+        AG --&gt; LLM[llm/&lt;br/&gt;模型调用-后续拆Runtime]
+        AG --&gt; TL[tools/&lt;br/&gt;SQL/Python/审批]
+        AG --&gt; SM[semantic/&lt;br/&gt;指标口径]
+        TL --&gt; SB[sandbox/&lt;br/&gt;本地隔离执行]
+        AG --&gt; DB[(store/&lt;br/&gt;执行记录)]
+    end
+    subgraph 治理层-与业务同级
+        EV[eval/&lt;br/&gt;cases+grader+baseline]
+        DC[decisions/&lt;br/&gt;matrix+ADR]
+        FX[fixtures/&lt;br/&gt;租户数据快照]
+    end
+    EV --&gt; AG
+</pre>
+<p>关键约定：<code>eval/</code>、<code>decisions/</code>、<code>fixtures/</code> 与业务代码<strong>同级</strong>，而不是藏在 <code>tests/</code> 角落——它们是和功能代码同等重要的一等公民；<code>llm/</code> 在 M0 只是薄封装，但所有模型调用必须经过它，为第四篇拆出 LLM Runtime 埋下唯一入口。</p>
+<hr>
+<h2 id="常见误区">常见误区</h2>
+<ol>
+<li><strong>先写 Prompt 后定指标</strong>。没有 EvalCase 的 Prompt 优化是玄学。先写 20 条 M0 用例，再谈调优。</li>
+<li><strong>把&quot;模块化单体&quot;写成&quot;大泥球单体&quot;</strong>。模块化的核心是边界纪律（接口调用、禁止跨模块读表），不是目录分得好看。</li>
+<li><strong>ADR 写成会议纪要</strong>。ADR 的价值在&quot;约束条件 + 被淘汰方案及其 Badcase&quot;，不在最终结论。</li>
+<li><strong>Outcome 用全文匹配做 Grader</strong>。生成式输出必须按关键要素评分，否则基线噪声大到不可用。</li>
+<li><strong>基线用活库</strong>。数据漂移会让三个月后所有回归对比失去意义，必须用 fixture 快照冻结。</li>
+</ol>
+<h2 id="本篇实战-五步走完一次立项-每步都有验收标准">本篇实战：五步走完一次立项（每步都有验收标准）</h2>
+<p>用你手头一个真实业务问题（没有就用&quot;为线下连锁门店做一个经营问答 Agent&quot;），五步走完一遍完整的立项流程。产出物就是一套可以直接给评审会用的立项材料。</p>
+<p><strong>第 1 步：一页立项书</strong></p>
+<ul>
+<li><strong>目标</strong>：把模糊业务诉求压缩成可对齐的一页纸。</li>
+<li><strong>操作</strong>：按 1.4 节七栏目写立项书；Agent 三问必须逐项给论证，不接受&quot;是/否&quot;两个字。</li>
+<li><strong>验收标准</strong>：找一个不了解背景的人读一遍，他能复述&quot;解决谁的什么问题、不做什么、第一版切在哪&quot;；他说不清哪栏，就改哪栏。</li>
+</ul>
+<p><strong>第 2 步：MVP 切割</strong></p>
+<ul>
+<li><strong>目标</strong>：练一次纵切，拒绝横切。</li>
+<li><strong>操作</strong>：列出终态的全部能力清单（参考 1.2 节八类任务表），用 1.5 节的决策流图逐轮砍，直到剩下一条最窄完整链路；画出你的 Walking Skeleton 包含哪几环。</li>
+<li><strong>验收标准</strong>：能回答三个问题——这条链路端到端演示一次需要几分钟？它最先暴露的集成风险是什么？被砍掉的能力排进 M1/M2 的顺序依据是什么？</li>
+</ul>
+<p><strong>第 3 步：执行范式职责边界图</strong></p>
+<ul>
+<li><strong>目标</strong>：给&quot;自主性只买在刀刃上&quot;立字据。</li>
+<li><strong>操作</strong>：画出该项目的 Loop/Workflow/确定性系统职责边界图（参考 2.2 节），每个任务标注归属。</li>
+<li><strong>验收标准</strong>：每个归属都能写出一句&quot;为什么&quot;；尤其写清&quot;为什么审批不交给 Loop&quot;。</li>
+</ul>
+<p><strong>第 4 步：一次完整选型</strong></p>
+<ul>
+<li><strong>目标</strong>：把选型机制五件套（候选→矩阵→Benchmark→Badcase→ADR）跑通一遍。</li>
+<li><strong>操作</strong>：针对&quot;模块化单体 vs 直接微服务&quot;（或你项目的真实选型点）做 Decision Matrix：≥3 候选、≥4 维度、每格附证据；然后写一份 ADR；最后给脚手架的 CI 加一条规则——新增 ADR 少于 2 个 option 或缺 Badcase 引用则构建失败。</li>
+<li><strong>验收标准</strong>：ADR 中至少引用 2 个 Badcase，且&quot;被淘汰方案为什么不行&quot;比&quot;选中方案为什么行&quot;写得更具体；故意提交一份不合格 ADR，验证 CI 真的会拦下它——机制长在流水线里才有约束力。</li>
+</ul>
+<p><strong>第 5 步：定义 M0 评测基线</strong></p>
+<ul>
+<li><strong>目标</strong>：让&quot;系统变好了&quot;从此有数字可依。</li>
+<li><strong>操作</strong>：定义 20 条 EvalCase，覆盖 Outcome/Trajectory/System 三层和至少 4 种 FailureType；用第 4 节的 <code>Baseline.summary()</code> 跑出一版初始基线。</li>
+<li><strong>验收标准</strong>：基线六类数据齐全；随意抽一条 EvalCase，你能说出它测的是哪一层、防的是哪类失败。</li>
+</ul>
+<h3 id="ai-coding-实操模式-用-ai-加速立项-但不让-ai-替你拍板">AI Coding 实操模式：用 AI 加速立项，但不让 AI 替你拍板</h3>
+<p>立项阶段 AI 的最佳角色是<strong>魔鬼代言人 + 材料起草员</strong>：它帮你挑刺、起草、穷举风险，但&quot;切在哪、赌什么&quot;必须人拍板——因为立项的本质是责任分配，AI 不能替你负责。</p>
+<p><strong>① 可复制提示词模板</strong></p>
+<p>立项书压力测试：</p>
+<pre><code class="language-text">这是我们项目的立项书草稿：【粘贴】。
+请扮演挑剔的投资人/架构评审，逐项输出：(1) 哪一栏最弱、为什么；
+(2) Agent 三问的论证里有没有自欺欺人的地方；(3) 至少 3 个这份立项书
+没想到的风险，按发生概率排序；(4) 如果只能验证一个假设再做决定，该验证哪个？
+只挑刺，不夸。
+</code></pre>
+<p>MVP 切割辩论：</p>
+<pre><code class="language-text">这是我们 Agent 项目的终态能力清单：【粘贴清单】。
+我们计划的 M0 范围是：【粘贴】。请挑战这个切法：
+(1) 这条链路真的端到端完整吗，缺了哪一环就不成立？
+(2) 有没有更窄但仍然完整的切法？(3) 被砍掉的能力里，
+哪个的缺失会让 M0 的评测结论失真？
+</code></pre>
+<p><strong>② AI 初版人工评审清单</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 立项书是&quot;业务语言&quot;不是&quot;技术许愿&quot;——每个栏目都能向非技术人员讲通</li>
+<li class="task-item"><input type="checkbox" disabled> AI 起草的 EvalCase 覆盖了失败模式，不是全挑模型擅长的问题（防&quot;考题泄漏&quot;）</li>
+<li class="task-item"><input type="checkbox" disabled> AI 给出的市场/竞品/可行性论断，逐条核实过来源或标注&quot;未核实&quot;</li>
+<li class="task-item"><input type="checkbox" disabled> Decision Matrix 的权重是人定的，不是 AI 顺手填的——权重就是立场</li>
+<li class="task-item"><input type="checkbox" disabled> 最终拍板的每个决策，都有具名的人负责，没有&quot;AI 建议如此&quot;作为理由</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<ul>
+<li>五步产出物齐全（立项书、切割图、边界图、矩阵+ADR、基线），且互相引用一致（如立项书的 M0 范围 = 切割图的结果 = 基线的评测对象）；</li>
+<li>至少一处 AI 的反对意见改变了你的原始方案——如果一条都没有，要么你的方案完美，要么你没真的让它挑刺。</li>
+</ul>
+<h2 id="自测清单">自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 我能说清 DataAgent 与 NL2SQL 的本质区别，并用&quot;三问&quot;判断任意需求是否适合 Agent</li>
+<li class="task-item"><input type="checkbox" disabled> 我能解释为什么 M0 选择模块化单体，以及它为大泥球划出的两条边界纪律</li>
+<li class="task-item"><input type="checkbox" disabled> 我能划分 Loop / Workflow / Execution Graph / 确定性系统的职责，并举例说明</li>
+<li class="task-item"><input type="checkbox" disabled> 我能完整走一遍选型机制：候选 → 矩阵 → Benchmark → Badcase → ADR</li>
+<li class="task-item"><input type="checkbox" disabled> 我能说出 Outcome / Trajectory / System 三层各自的指标与漏掉任意一层的后果</li>
+<li class="task-item"><input type="checkbox" disabled> 我知道 M0 基线要冻结哪六类数据，以及为什么必须用 fixture 快照</li>
+<li class="task-item"><input type="checkbox" disabled> 我的脚手架里 eval/decisions/fixtures 是与业务同级的一等公民</li>
+</ul>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-course">极客时间专栏《企业级 Agent 工程化》——本篇的贯穿项目 DataAgent、八类任务映射、M0 基线与里程碑演进路线均重构自该课程的实战主线。 <a class="fn-back" href="#ref-course" aria-label="回到正文">↩</a></li>
+<li id="fn-phoenix">周志明《凤凰架构：构建可靠的大型分布式系统》——演进式架构&quot;以演进能力作为架构质量度量&quot;的思想来源，模块化单体作为起点的论证与之呼应，<a href="https://icyfenix.cn">https://icyfenix.cn</a> 。 <a class="fn-back" href="#ref-phoenix" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-02.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇02 · AI Coding 道法术器</span></a>
+      <a class="next" href="chapter-04.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇04 · LLM 执行底座</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-项目业务与目标-dataagent-到底要解决什么问题">1. 项目业务与目标：DataAgent 到底要解决什么问题</a>
+    <a class="toc-h3" href="#1-1-业务场景">1.1 业务场景</a>
+    <a class="toc-h3" href="#1-2-八类典型任务与它们的架构含义">1.2 八类典型任务与它们的架构含义</a>
+    <a class="toc-h3" href="#1-3-为什么这个场景适合-agent-而不是传统-bi-或报表">1.3 为什么这个场景适合 Agent，而不是传统 BI 或报表</a>
+    <a class="toc-h3" href="#1-4-立项方法-一页立项书-先对齐再动工">1.4 立项方法：一页立项书，先对齐再动工</a>
+    <a class="toc-h3" href="#1-5-mvp-切割-纵切蛋糕-而不是横切分层">1.5 MVP 切割：纵切蛋糕，而不是横切分层</a>
+    <a class="toc-h2" href="#2-系统架构-为什么从模块化单体起步">2. 系统架构：为什么从模块化单体起步</a>
+    <a class="toc-h3" href="#2-1-模块化单体-vs-微服务-起点之争">2.1 模块化单体 vs 微服务：起点之争</a>
+    <a class="toc-h3" href="#2-2-四种执行范式的职责边界">2.2 四种执行范式的职责边界</a>
+    <a class="toc-h2" href="#3-架构选型机制-让每个决策都有证据">3. 架构选型机制：让每个决策都有证据</a>
+    <a class="toc-h3" href="#3-1-decision-matrix-与-adr-的代码化">3.1 Decision Matrix 与 ADR 的代码化</a>
+    <a class="toc-h2" href="#4-质量契约与-m0-评测基线">4. 质量契约与 M0 评测基线</a>
+    <a class="toc-h3" href="#4-1-三层成功标准">4.1 三层成功标准</a>
+    <a class="toc-h3" href="#4-2-m0-基线-冻结起点-才能度量演进">4.2 M0 基线：冻结起点，才能度量演进</a>
+    <a class="toc-h2" href="#5-项目脚手架">5. 项目脚手架</a>
+    <a class="toc-h2" href="#常见误区">常见误区</a>
+    <a class="toc-h2" href="#本篇实战-五步走完一次立项-每步都有验收标准">本篇实战：五步走完一次立项（每步都有验收标准）</a>
+    <a class="toc-h3" href="#ai-coding-实操模式-用-ai-加速立项-但不让-ai-替你拍板">AI Coding 实操模式：用 AI 加速立项，但不让 AI 替你拍板</a>
+    <a class="toc-h2" href="#自测清单">自测清单</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
