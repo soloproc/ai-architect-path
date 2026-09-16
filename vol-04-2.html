@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷04-2：分布式事务与共识——2PC、TCC、Saga、本地消息表与 Raft · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷04-2：分布式事务与共识——2PC、TCC、Saga、本地消息表与 Raft · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html" class="active">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷04-2-分布式事务与共识-2pc-tcc-saga-本地消息表与-raft">卷04-2：分布式事务与共识——2PC、TCC、Saga、本地消息表与 Raft</h1>
+<blockquote>
+<p>导语：卷03-2 的防超卖实验解决了<strong>单库内</strong>的一致性，本页把问题推到跨服务：下单、扣库存、发券，凭什么同时成功或同时失败？以及一个更底层的问题——&quot;协调者&quot;&quot;主库&quot;&quot;Leader&quot;自己挂了怎么办、谁来选新的？前者是分布式事务（2PC/TCC/Saga/本地消息表），后者是共识问题（Raft 专题）。本页是卷04 的理论峰值，也是全路径难度最高点之一。</p>
+</blockquote>
+<blockquote>
+<p><strong>🧮 思维铺垫（只需两件工具，都不是新知识）</strong>：一是<strong>多数派相交</strong>——任意两个&quot;过半数&quot;集合至少共享一个元素（3 个节点的大多数是 2，任意两个 2 人小组必有重叠），Raft 的全部安全性都建立在这一句话上；看到 ⌊N/2⌋+1 不要慌，它就是&quot;过半数&quot;的写法。二是<strong>状态机思维</strong>——把&quot;订单已建、库存未扣&quot;这样的中间态当成一等公民来显式设计，而不是当成异常去掩盖；BASE 与 Saga 的全部工程实践都是这个思维的展开。带着这两件工具，本页的数学密度就只是&quot;看起来吓人&quot;。</p>
+</blockquote>
+<hr>
+<h2 id="3-分布式事务-下单-扣库存-发券-凭什么同时成功或同时失败">3. 分布式事务：下单、扣库存、发券，凭什么同时成功或同时失败</h2>
+<p>卷03 的防超卖实验解决了<strong>单库内</strong>的一致性问题（行锁+条件更新）。但 RetailHub 的下单链路已经跨服务了：订单服务写订单、库存服务扣库存、营销服务发券。任何一个环节失败，数据就会出现&quot;订单创建了但库存没扣&quot;的中间态。这就是分布式事务问题。</p>
+<p><strong>先立世界观：ACID 守单机，BASE 闯天下。</strong> 单机数据库用 ACID（原子、一致、隔离、持久）给你&quot;要么全成要么全不成&quot;的硬承诺；一旦跨机器，网络分区让硬承诺的代价高到无法承受（这正是 CAP 的约束），于是工程界演化出 <strong>BASE</strong> 姿态：<strong>Basically Available</strong>（基本可用——允许有损服务，响应慢点、数据旧点，但不瘫）、<strong>Soft State</strong>（软状态——允许系统存在&quot;订单已建、库存未扣&quot;这样的中间态）、<strong>Eventually Consistent</strong>（最终一致——中间态会在有限时间内收敛）。一句话对比：<strong>ACID 是&quot;永远不许错&quot;，BASE 是&quot;允许暂时错，但保证会修好，且修好的过程可追溯&quot;</strong>。下面四种方案，2PC/TCC 是想方设法在分布式里保住 ACID 气质，Saga/本地消息表则是 BASE 的正规军——RetailHub 的下单链路站在 BASE 一边。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ACID（单机事务）</th>
+<th>BASE（分布式姿态）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一致性</td>
+<td>强一致，提交即可见</td>
+<td>最终一致，中间态对外可见</td>
+</tr>
+<tr>
+<td>可用性</td>
+<td>故障时宁可阻塞</td>
+<td>故障时降级服务，保住主干</td>
+</tr>
+<tr>
+<td>中间态</td>
+<td>不存在</td>
+<td>存在，必须显式设计（状态机）</td>
+</tr>
+<tr>
+<td>失败处理</td>
+<td>回滚，用户看到&quot;失败&quot;</td>
+<td>补偿，用户可能先看到&quot;成功&quot;再看到&quot;已取消&quot;</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>单库账务、库存扣减</td>
+<td>跨服务下单、通知、报表</td>
+</tr>
+</tbody>
+</table></div>
+<p>四种主流解法：</p>
+<h3 id="3-1-2pc-xa-强一致-但企业系统里越来越少见">3.1 2PC/XA：强一致，但企业系统里越来越少见</h3>
+<p>两阶段提交由协调者先问所有参与者&quot;能不能提交&quot;（prepare），全部点头后再统一提交（commit）。把时序画出来，两个致命点一眼可见——<strong>prepare 阶段资源全部锁定</strong>，以及<strong>协调者是全场唯一的单点</strong>：</p>
+<pre class="mermaid">sequenceDiagram
+    participant C as 协调者
+    participant O as 订单服务
+    participant I as 库存服务
+    Note over C,I: 阶段一 Prepare：询问 + 锁资源
+    C-&gt;&gt;O: PREPARE?
+    O--&gt;&gt;C: YES（锁定订单草稿行）
+    C-&gt;&gt;I: PREPARE?
+    I--&gt;&gt;C: YES（锁定库存行）
+    Note over O,I: 此刻起两个服务的资源都被攥住&lt;br/&gt;其他事务访问只能排队
+    Note over C,I: 阶段二 Commit：统一提交
+    C-&gt;&gt;O: COMMIT
+    C-&gt;&gt;I: COMMIT
+    O--&gt;&gt;C: DONE（释放锁）
+    I--&gt;&gt;C: DONE（释放锁）
+</pre>
+<p>三个要讲透的机理：</p>
+<ol>
+<li><strong>参与者投出 YES 的那一刻，就把命运交给了协调者</strong>。YES 的意思是&quot;我承诺能提交，资源已锁、undo/redo 日志已落盘&quot;。此后它既不能擅自提交也不能擅自回滚——只能等协调者的判决。这是 2PC 强一致的来源，也是它**阻塞（blocking）**的根源。</li>
+<li><strong>协调者宕机 + 参与者宕机叠加时，没人知道该提交还是回滚</strong>。幸存者们面面相觑：那个没应答的参与者到底是准备提交还是准备回滚？只能阻塞等待或人工介入。<strong>3PC 的改进</strong>是在 prepare 和 commit 之间加一个 preCommit 缓冲态、并给参与者加超时自动提交——缓解了阻塞，却在网络分区时引入&quot;两侧各自超时提交，数据分裂&quot;的新风险，所以 3PC 基本只活在教科书里。</li>
+<li><strong>性能账</strong>：两轮网络往返 + prepare 到 commit 之间全程持锁，吞吐被最慢的参与者拖垮。每秒几千单的链路里，锁被攥住 200ms 就是灾难。</li>
+</ol>
+<p><strong>吞吐低、可用性差，互联网高并发链路基本弃用</strong>，但在对一致性要求极高的金融核心账务里仍有位置。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：2PC 的时序与阻塞。</strong> 先不勾选任何捣乱项，点&quot;发起事务&quot;看一遍正常的 prepare → commit 动画，注意每个服务投 YES 时资源旁出现的 🔒。然后勾选&quot;库存服务 prepare 后立刻宕机&quot;重放：看协调者的 COMMIT 永远送达不到、库存行锁无法释放、整个事务卡死——只能靠&quot;管理员介入&quot;收场。把这一幕记住，你就永远记住了为什么互联网下单链路不用 2PC。</p>
+</blockquote>
+<div class="demo-embed" data-demo="two-phase-commit"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>正常流程跑一遍：阶段一中每个服务投 YES 的同时发生了什么（看资源区）？这个动作为什么是 2PC 强一致的来源？</li>
+<li>勾选&quot;库存服务投 NO&quot;重放：订单服务明明投了 YES，最后为什么也要回滚？它的资源被白白锁了多久？</li>
+<li>勾选&quot;prepare 后宕机&quot;重放：协调者的 COMMIT 发到了几个服务？库存服务的锁为什么释放不了？</li>
+<li>在阻塞状态下回答：如果你是库存服务的另一个事务，现在要扣同一行库存，你会怎样？这解释了 2PC&quot;吞吐低&quot;的哪一层原因？</li>
+<li>对照 §3.5 对比表回答：本地消息表用哪两个机制换掉了 2PC 的&quot;锁等待&quot;？代价是什么（提示：中间态）？</li>
+</ol>
+<h3 id="3-2-tcc-try-confirm-cancel-把-2pc-从数据库层搬到业务层">3.2 TCC（Try-Confirm-Cancel）：把 2PC 从数据库层搬到业务层</h3>
+<p>每个操作拆成三步：Try（冻结资源，如把 10 件库存从&quot;可用&quot;挪到&quot;冻结&quot;）、Confirm（确认扣减，冻结转实扣）、Cancel（释放冻结）。优点是不长锁、性能好；代价是<strong>每个接口要写三个版本</strong>，且要保证幂等和空回滚（Try 没执行成功时 Cancel 也要能安全执行）。适合核心资金链路，开发成本高。</p>
+<h3 id="3-3-saga-长流程拆成本地事务链-失败则逆向补偿">3.3 Saga：长流程拆成本地事务链，失败则逆向补偿</h3>
+<p>Saga 把&quot;下单→扣库存→发券&quot;拆成三个本地事务，每个都有对应的补偿动作（取消订单→回补库存→作废券）。依次执行，某步失败就逆序调用已完成步骤的补偿：</p>
+<pre class="mermaid">sequenceDiagram
+    participant S as Saga 协调器
+    participant O as 订单服务
+    participant I as 库存服务
+    participant M as 营销服务
+    S-&gt;&gt;O: 创建订单（本地事务）
+    O--&gt;&gt;S: OK
+    S-&gt;&gt;I: 扣减库存（本地事务）
+    I--&gt;&gt;S: OK
+    S-&gt;&gt;M: 发放优惠券（本地事务）
+    M--&gt;&gt;S: 失败（券池不足）
+    S-&gt;&gt;I: 补偿：回补库存
+    I--&gt;&gt;S: OK
+    S-&gt;&gt;O: 补偿：取消订单
+    O--&gt;&gt;S: OK
+    Note over S,O: 最终：无订单、库存原样、无券&lt;br/&gt;状态自洽
+</pre>
+<p>Saga 的关键认知：<strong>它不保证&quot;原子性&quot;，保证的是&quot;最终自洽&quot;</strong>——中间状态对外可见（用户可能短暂看到订单已创建），所以补偿逻辑和状态机设计（订单要有&quot;已取消&quot;态）必须写进业务设计，不能事后补。</p>
+<h3 id="3-4-本地消息表-零售系统里最务实的选择">3.4 本地消息表：零售系统里最务实的选择</h3>
+<p>核心思想：<strong>把&quot;要通知下游&quot;这件事和业务数据写在同一个本地事务里</strong>。订单服务在创建订单的同一个事务里，往自己的 <code>outbox</code> 表插一条&quot;订单已创建&quot;消息；后台任务把 outbox 里的消息投递到 MQ，库存服务消费 MQ 扣库存。本地事务保证&quot;订单和消息要么都在要么都不在&quot;，MQ 的重投递+消费端幂等保证&quot;最终至少送达一次且只生效一次&quot;。这就是卷02 引入的 MQ 的真正用武之地，也是本卷实战采用的方案（它是 Outbox 模式的朴素版）。</p>
+<h3 id="3-5-选型对比">3.5 选型对比</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>一致性</th>
+<th>性能/可用性</th>
+<th>业务侵入</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2PC/XA</td>
+<td>强一致</td>
+<td>差（阻塞、单点协调者）</td>
+<td>低（数据库支持）</td>
+<td>金融核心账务</td>
+</tr>
+<tr>
+<td>TCC</td>
+<td>强一致（业务层）</td>
+<td>较好</td>
+<td>极高（每个接口×3）</td>
+<td>资金、库存核心链路</td>
+</tr>
+<tr>
+<td>Saga</td>
+<td>最终一致（补偿）</td>
+<td>好</td>
+<td>高（要写补偿）</td>
+<td>长流程、跨多个领域服务</td>
+</tr>
+<tr>
+<td>本地消息表</td>
+<td>最终一致（重试）</td>
+<td>好</td>
+<td>中（outbox 表+幂等消费）</td>
+<td>零售下单、通知类链路，<strong>本卷采用</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3-6-共识算法-raft-分布式系统的-宪法">3.6 共识算法：Raft——分布式系统的&quot;宪法&quot;</h3>
+<p>上面所有方案都回避了一个更底层的问题：<strong>&quot;协调者&quot;&quot;主库&quot;&quot;Leader&quot;自己挂了怎么办？谁来选新的？</strong> 这就是共识问题——让一群会宕机、会断网的节点，对&quot;谁是老大、数据是什么顺序&quot;达成一致。Paxos 提出了正确性证明但难到臭名昭著，<strong>Raft 是为&quot;可理解性&quot;而生的共识算法</strong>，etcd、Consul、RocketMQ 的 DLedger、TiKV 用的都是它。把 Raft 讲透只需要两个子问题。</p>
+<p><strong>子问题一：选主（Leader Election）。</strong> 节点只有三种角色：Follower、Candidate、Leader。规则骨架：</p>
+<ol>
+<li>平时 Leader 定期发心跳；Follower 超过<strong>选举超时</strong>（150~300ms 的随机值——随机是为了让大家错开，避免每次选票都瓜分）没收到心跳，就怀疑 Leader 死了。</li>
+<li>该 Follower 把<strong>任期（term）+1</strong>，自荐为 Candidate，先投自己一票，再向全体拉票。</li>
+<li>拿到**多数派（⌊N/2⌋+1 票）**就当选 Leader；没拿够就等下一轮随机超时再来。</li>
+<li>任何节点见到比自己更高的 term，立刻退回 Follower——<strong>term 单调递增是防止&quot;两个皇帝&quot;的第一道锁</strong>。</li>
+</ol>
+<p><strong>子问题二：日志复制（Log Replication）。</strong> 选主只是开始，干活的流程是：</p>
+<ol>
+<li>客户端只跟 Leader 写。Leader 把操作追加到自己日志末尾（<strong>未提交</strong>状态，对客户端不可见）。</li>
+<li>Leader 把日志条目并行复制给所有 Follower。</li>
+<li>收到<strong>多数派确认</strong>后，Leader 才把条目标记为<strong>已提交（committed）</strong>，应用到状态机，回复客户端成功，并随下次心跳通知 Follower 提交。</li>
+</ol>
+<p>为什么&quot;多数派提交&quot;就敢承诺不丢？<strong>多数派相交原理</strong>：任意两个多数派至少共享一个节点。新 Leader 一定由某个多数派选出，而任何多数派里至少有一个节点持有全部已提交日志——所以已提交的日志永远不会被新任期推翻。这也是卷03 讲的&quot;线性一致&quot;在工程上的实现方式之一。</p>
+<pre class="mermaid">sequenceDiagram
+    participant F as Follower(节点B)
+    participant C as Candidate(节点A)
+    participant F2 as Follower(节点C)
+    Note over F,F2: Leader 心跳停止，各自随机倒计时
+    C-&gt;&gt;C: 选举超时先到：term 3→4&lt;br/&gt;自荐+投自己(1票)
+    C-&gt;&gt;F: RequestVote(term=4)
+    C-&gt;&gt;F2: RequestVote(term=4)
+    F--&gt;&gt;C: 投票（term 更新为 4）
+    F2--&gt;&gt;C: 投票
+    Note over C: 3/3 票 ≥ 多数派 2&lt;br/&gt;当选 Leader
+    C-&gt;&gt;F: 心跳 AppendEntries(term=4)
+    C-&gt;&gt;F2: 心跳 AppendEntries(term=4)
+    Note over C,F2: 之后：客户端写 → Leader 追加日志&lt;br/&gt;→ 复制到多数派 → 标记已提交 → 回复客户端
+</pre>
+<p><strong>Raft 与 CAP、2PC 的关系，一句话串起来</strong>：Raft 是分区时选 C 的代表——少数派一侧选不出 Leader、拒绝写入，换取&quot;永远只有一个合法老大、已提交日志永不丢&quot;；而 2PC 解决的是&quot;多个资源要不要一起动&quot;的原子性问题，Raft 解决的是&quot;同一份数据由谁说了算&quot;的多数派问题，两者正交，常一起出现（如 Spanner 用 Paxos 选主 + 2PC 跨组分事务）。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：Raft 选主与日志复制。</strong> 5 节点集群，点&quot;发起选主&quot;看 Candidate 拉票动画；当选后点&quot;客户端写入一条日志&quot;，盯着条目从普通字变成<strong>加粗</strong>（已提交）的瞬间——那正是&quot;复制到多数派&quot;的时刻。然后&quot;杀死 Leader&quot;重新选举，看已提交日志原样保留；最后&quot;制造网络分区（2|3）&quot;，在 2 节点那一侧发起选举和写入，体验少数派&quot;永远选不出 Leader、日志无法提交&quot;的停摆——这就是 CAP 里&quot;P 发生时选 C&quot;的具体机制。</p>
+</blockquote>
+<div class="demo-embed" data-demo="raft-election"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>发起选主，观察 Candidate 的 term 变化与票数增长：5 节点集群的多数派是几票？如果只拿到 2 票会发生什么？</li>
+<li>当选 Leader 后写入一条日志：条目从&quot;未提交&quot;变&quot;已提交（加粗）&quot;的瞬间，集群里至少有几个节点持有了它？</li>
+<li>写入 2 条日志后&quot;杀死 Leader&quot;，再发起选主：新 Leader 的日志里那 2 条还在吗？用&quot;多数派相交原理&quot;解释为什么。</li>
+<li>制造网络分区（2|3）后，先在 B 区（3 节点侧）选主，成功了吗？再在 A 区（2 节点侧）选主，观察失败过程——这对应 CAP 的哪个选择？</li>
+<li>分区期间在 B 区写入一条日志（能提交），恢复网络后重启归队的 A 区节点会怎样处理自己的旧日志？（提示：回忆课文中&quot;日志复制的一致性检查&quot;。）</li>
+</ol>
+<hr>
+<h2 id="8-本卷实战-中-本地消息表改造下单链路">8. 本卷实战（中）：本地消息表改造下单链路</h2>
+<h3 id="8-1-背景">8.1 背景</h3>
+<p>本步是卷04 实战的第 3 步（前两步见卷04-1）：把下单链路改造为本地消息表（Outbox）方案——这正是本页 §3.4 选型结论的落地，也是卷02 引入的 MQ 的真正用武之地。</p>
+<h3 id="8-2-任务清单-本页一步">8.2 任务清单（本页一步）</h3>
+<p><strong>第 3 步：本地消息表改造下单链路</strong></p>
+<ul>
+<li>目标：订单与&quot;通知库存&quot;要么都发生、要么都不发生，MQ 故障可恢复。</li>
+<li>操作：按 §8.5 骨架建 <code>outbox</code> 表，改造 <code>create_order</code> 为同事务双写，写 relay 任务与幂等消费端。</li>
+<li>验收：下单 100 单后中断 MQ，恢复后 outbox 消息全部送达；库存扣减总数 = 成功订单数，无重复扣减。</li>
+</ul>
+<h3 id="8-5-代码骨架-3-本地消息表-outbox-下单链路">8.5 代码骨架 3：本地消息表（Outbox）下单链路</h3>
+<pre><code class="language-python"># retailhub/order/service.py（关键片段）
+from sqlalchemy import insert
+from db import engine, orders, outbox  # outbox(id, topic, payload, status, created_at)
+
+def create_order(tenant_id: str, sku: str, qty: int) -&gt; dict:
+    with engine.begin() as conn:  # 同一个本地事务：订单与消息同生共死
+        result = conn.execute(
+            insert(orders).values(tenant_id=tenant_id, sku=sku,
+                                  qty=qty, status=&quot;CREATED&quot;)
+        )
+        order_id = result.inserted_primary_key[0]
+        conn.execute(
+            insert(outbox).values(
+                topic=&quot;order.created&quot;,
+                payload={&quot;order_id&quot;: order_id, &quot;sku&quot;: sku, &quot;qty&quot;: qty},
+                status=&quot;PENDING&quot;,
+            )
+        )
+    return {&quot;order_id&quot;: order_id}
+
+# retailhub/order/outbox_relay.py：后台投递任务（可用 K8s CronJob 或常驻 worker）
+def relay_pending_messages(mq_producer):
+    with engine.begin() as conn:
+        rows = conn.execute(
+            outbox.select().where(outbox.c.status == &quot;PENDING&quot;).limit(100)
+        ).fetchall()
+        for row in rows:
+            mq_producer.send(row.topic, row.payload)  # MQ 失败则下轮重试
+            conn.execute(
+                outbox.update().where(outbox.c.id == row.id)
+                .values(status=&quot;SENT&quot;)
+            )
+
+# retailhub/inventory/consumer.py：消费端幂等——用消息 ID 去重
+def handle_order_created(msg: dict, processed_ids: set):
+    msg_id = msg[&quot;message_id&quot;]
+    if msg_id in processed_ids:        # 幂等：MQ 重投递不会重复扣库存
+        return
+    deduct_stock_with_optimistic_lock(msg[&quot;sku&quot;], msg[&quot;qty&quot;])  # 卷03 的防超卖逻辑
+    processed_ids.add(msg_id)          # 生产实现：写入 dedup 表或 Redis SETNX
+</code></pre>
+<h3 id="8-8-验收标准-本页部分">8.8 验收标准（本页部分）</h3>
+<ul>
+<li class="task-item"><input type="checkbox"> 下单 100 单后中断 MQ，恢复后 outbox 消息全部送达，库存扣减总数与成功订单数一致，无重复扣减</li>
+</ul>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<p>本页正文未使用编号脚注。理论背景承自卷03-2「一致性与共识」（DDIA 第 9 章）；分布式事务与共识的分布式治理视角另见卷04-1、卷04-3 页末所列《凤凰架构》等参考。</p>
+<hr>
+<p>➡️ 下一页：<a href="vol-04-3.html">卷04-3：可观测性、容器化与平台工程——从&quot;扛得住&quot;到&quot;人人能用&quot;</a></p>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-04-1.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷04-1 · 通信与流量治理</span></a>
+      <a class="next" href="vol-04-3.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷04-3 · 可观测与平台工程</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#3-分布式事务-下单-扣库存-发券-凭什么同时成功或同时失败">3. 分布式事务：下单、扣库存、发券，凭什么同时成功或同时失败</a>
+    <a class="toc-h3" href="#3-1-2pc-xa-强一致-但企业系统里越来越少见">3.1 2PC/XA：强一致，但企业系统里越来越少见</a>
+    <a class="toc-h3" href="#3-2-tcc-try-confirm-cancel-把-2pc-从数据库层搬到业务层">3.2 TCC（Try-Confirm-Cancel）：把 2PC 从数据库层搬到业务层</a>
+    <a class="toc-h3" href="#3-3-saga-长流程拆成本地事务链-失败则逆向补偿">3.3 Saga：长流程拆成本地事务链，失败则逆向补偿</a>
+    <a class="toc-h3" href="#3-4-本地消息表-零售系统里最务实的选择">3.4 本地消息表：零售系统里最务实的选择</a>
+    <a class="toc-h3" href="#3-5-选型对比">3.5 选型对比</a>
+    <a class="toc-h3" href="#3-6-共识算法-raft-分布式系统的-宪法">3.6 共识算法：Raft——分布式系统的"宪法"</a>
+    <a class="toc-h2" href="#8-本卷实战-中-本地消息表改造下单链路">8. 本卷实战（中）：本地消息表改造下单链路</a>
+    <a class="toc-h3" href="#8-1-背景">8.1 背景</a>
+    <a class="toc-h3" href="#8-2-任务清单-本页一步">8.2 任务清单（本页一步）</a>
+    <a class="toc-h3" href="#8-5-代码骨架-3-本地消息表-outbox-下单链路">8.5 代码骨架 3：本地消息表（Outbox）下单链路</a>
+    <a class="toc-h3" href="#8-8-验收标准-本页部分">8.8 验收标准（本页部分）</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-04-2:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

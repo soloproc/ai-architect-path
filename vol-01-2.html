@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷01-2：数据库与部署实战——把服务真正交付出来 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷01-2：数据库与部署实战——把服务真正交付出来 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html" class="active">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷01-2-数据库与部署实战-把服务真正交付出来">卷01-2：数据库与部署实战——把服务真正交付出来</h1>
+<blockquote>
+<p>导语：上一页你跟随一次请求走完了网络与并发的全程，这一页把它落到地上：<strong>给 FastAPI 接上真正的数据库，并把服务部署成别人能跑起来的样子</strong>。你将学会 SQLite 与 MySQL 的边界、连接池为什么是应用与数据库之间的&quot;配额合同&quot;、N+1 这个性能杀手的最小样本，以及结构化日志、最小监控、Git 协作与 Linux 部署这些&quot;不出事没人夸、出事救你命&quot;的基本功。本页包含卷01 的完整实战（RetailHub 演进第 1 步）与总验收清单——学完后，一个不看你屏幕的人，拿着你的 README 和 curl 命令清单，就能在自己机器上把服务跑起来并完成验收。</p>
+</blockquote>
+<hr>
+<h2 id="4-sqlite-与-mysql-差异-连接池-以及-n-1">4. SQLite 与 MySQL：差异、连接池，以及 N+1</h2>
+<h3 id="4-1-为什么先用-sqlite-以及它和-mysql-的真实差异">4.1 为什么先用 SQLite，以及它和 MySQL 的真实差异</h3>
+<p>SQLite 是<strong>嵌入式数据库</strong>：一个文件就是一个库，不需要装服务器。本卷用它，是因为现阶段&quot;少一个组件就少一层干扰&quot;。但你必须知道它和 MySQL 的边界在哪：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>SQLite</th>
+<th>MySQL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>部署形态</td>
+<td>单个文件，随进程启动</td>
+<td>独立服务进程，网络连接</td>
+</tr>
+<tr>
+<td>并发写</td>
+<td><strong>同一时刻只有一个写者</strong>（库级锁）</td>
+<td>行级锁，多连接并发写</td>
+</tr>
+<tr>
+<td>连接方式</td>
+<td>打开本地文件</td>
+<td>TCP 连接 + 账号密码</td>
+</tr>
+<tr>
+<td>适用场景</td>
+<td>单机、原型、边缘设备、测试</td>
+<td>多用户在线服务</td>
+</tr>
+<tr>
+<td>数据类型</td>
+<td>弱类型（类型亲和性）</td>
+<td>强类型、严格约束</td>
+</tr>
+</tbody>
+</table></div>
+<p>**结论：卷01 用 SQLite 是刻意简化，不是 SQLite 能替代 MySQL。**卷02 流量一上来，SQLite 的写锁就会成为全系统的咽喉，那时你会亲手把它换成 MySQL——这次替换本身就是一次架构演进演练。</p>
+<h3 id="4-2-连接与连接池">4.2 连接与连接池</h3>
+<p>每来一个请求就新建数据库连接，是新手代码里最常见的隐形炸弹：建连有网络握手 + 认证开销（MySQL 尤为明显），高并发下数据库会被&quot;建连&quot;本身拖死。<strong>连接池</strong>的做法：预先建好一些连接放在池子里，请求来了借一个，用完还回去。</p>
+<p>建一次 MySQL 连接到底有多贵？拆开看：<strong>TCP 三次握手</strong>（约 1 个 RTT，见 1.5 节）→ <strong>MySQL 自己的认证握手</strong>（交换账号密码、协商字符集与权限，再来 1~2 个 RTT）→ 服务端为这条连接<strong>分配线程与会话内存</strong>。同城机房一个 RTT 约 0.5ms，单次看很便宜——但每秒 1000 个请求就意味着每秒 1000 次完整的&quot;建立→用一次→拆除&quot;，数据库相当一部分 CPU 在反复办&quot;入职离职手续&quot;而不是干活。连接池把这笔成本<strong>摊销</strong>到整个进程生命周期：池里的连接长期存活，被成百上千个请求轮流借用。</p>
+<p>池不是越大越好，它是应用与数据库之间的一份&quot;配额合同&quot;：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>池子状态</th>
+<th>可观测症状</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>太小</td>
+<td>请求排队等连接，延迟上涨，但数据库 CPU 很闲</td>
+<td>瓶颈在池，不在库——扩池</td>
+</tr>
+<tr>
+<td>太大</td>
+<td>数据库连接数/内存顶满，切换剧增，整体反而更慢</td>
+<td>数据库被&quot;连接本身&quot;拖垮</td>
+</tr>
+<tr>
+<td>合适</td>
+<td>数据库接近饱和之前，池基本不排队</td>
+<td>配额与产能匹配</td>
+</tr>
+</tbody>
+</table></div>
+<p>一个反直觉的经验：<strong>池大小由&quot;数据库吃得下多少并发&quot;决定，而不是由&quot;应用有多少并发请求&quot;决定</strong>——借不到连接的请求就该在池外排队，排队远比把数据库打垮便宜。卷02 大促压测时你会亲眼看到这条曲线。</p>
+<pre><code class="language-python"># app/db.py —— SQLite 版的数据访问层（含&quot;借还&quot;思想）
+import sqlite3
+from contextlib import contextmanager
+from pathlib import Path
+
+DB_PATH = Path(__file__).resolve().parent.parent / &quot;retailhub.db&quot;
+
+def init_db() -&gt; None:
+    &quot;&quot;&quot;建表 + 造演示数据，只在首次启动时执行。&quot;&quot;&quot;
+    with get_conn() as conn:
+        conn.executescript(&quot;&quot;&quot;
+        CREATE TABLE IF NOT EXISTS items(
+            item_id INTEGER PRIMARY KEY, name TEXT NOT NULL,
+            price REAL NOT NULL CHECK(price &gt;= 0));
+        CREATE TABLE IF NOT EXISTS orders(
+            order_id INTEGER PRIMARY KEY, item_id INTEGER NOT NULL,
+            quantity INTEGER NOT NULL, amount REAL NOT NULL,
+            status TEXT NOT NULL DEFAULT &#x27;paid&#x27;,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY(item_id) REFERENCES items(item_id));
+        CREATE INDEX IF NOT EXISTS idx_orders_created ON orders(created_at);
+        &quot;&quot;&quot;)
+        if conn.execute(&quot;SELECT COUNT(*) FROM items&quot;).fetchone()[0] == 0:
+            conn.executemany(
+                &quot;INSERT INTO items VALUES(?,?,?)&quot;,
+                [(1001, &quot;保温杯&quot;, 89.0), (1002, &quot;机械键盘&quot;, 349.0),
+                 (1003, &quot;人体工学椅&quot;, 1299.0)])
+            conn.executemany(
+                &quot;INSERT INTO orders(item_id,quantity,amount,status,created_at)&quot;
+                &quot; VALUES(?,?,?,?,?)&quot;,
+                [(1001, 2, 178.0, &quot;paid&quot;, &quot;2025-06-01 10:00:00&quot;),
+                 (1002, 1, 349.0, &quot;paid&quot;, &quot;2025-06-01 11:30:00&quot;),
+                 (1003, 1, 1299.0, &quot;refunded&quot;, &quot;2025-06-02 09:15:00&quot;),
+                 (1001, 5, 445.0, &quot;paid&quot;, &quot;2025-06-02 14:00:00&quot;)])
+
+@contextmanager
+def get_conn():
+    &quot;&quot;&quot;上下文管理器：借连接、用完归还并提交/回滚——连接池思想的雏形。&quot;&quot;&quot;
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row          # 查询结果可按列名取值
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()                      # 出错必须回滚，见第 6 节误区
+        raise
+    finally:
+        conn.close()
+</code></pre>
+<p>注意 <code>CREATE INDEX</code> 那一行：按日期汇总 GMV 是 <code>WHERE created_at BETWEEN ... GROUP BY ...</code>，没有索引就是全表扫描。现在 4 行数据无所谓，卷03 讲存储引擎时你会明白这个索引到底买来了什么。<strong>（这正对应&quot;数据库如何找到你要的数据&quot;这个入口问题。<sup class="fn-ref"><a href="#fn-ddia-ch3" id="ref-ddia-ch3">[1]</a></sup>）</strong></p>
+<h3 id="4-3-n-1-问题-性能杀手的最小样本">4.3 N+1 问题：性能杀手的最小样本</h3>
+<p>需求是&quot;订单详情含商品信息&quot;。两种写法：</p>
+<pre><code class="language-python"># 反例：N+1。先查 1 次订单列表，再循环里每单查 1 次商品 → N+1 次查询
+for order in orders:                       # 查询 1：拿到 100 个订单
+    item = get_item(order[&quot;item_id&quot;])      # 查询 2~101：循环里逐条查
+
+# 正例：一次 JOIN 搞定
+SQL = &quot;&quot;&quot;
+SELECT o.order_id, o.status, o.created_at, o.amount AS total_amount,
+       i.item_id, i.name, i.price, o.quantity
+FROM orders o JOIN items i ON i.item_id = o.item_id
+WHERE o.order_id = ?
+&quot;&quot;&quot;
+</code></pre>
+<p>N+1 的危害不在次数本身，而在<strong>每次查询都有一次网络往返</strong>（SQLite 是函数调用所以感觉不明显——这正是 SQLite 教学的局限，MySQL 下 100 次往返就是几十上百毫秒）。识别口诀：<strong>只要循环里出现数据库查询，就要警惕 N+1</strong>。卷03 讲分区与分布式查询时，这个问题会以&quot;跨节点 JOIN 放大&quot;的形态再出现一次。</p>
+<p>两种写法的请求模式对比，一眼看清差距：</p>
+<pre class="mermaid">sequenceDiagram
+    participant A as 应用
+    participant DB as MySQL
+    rect rgb(254, 242, 242)
+    Note over A,DB: 反例 N+1：101 次往返
+    A-&gt;&gt;DB: ① 查 100 个订单
+    DB--&gt;&gt;A: 订单列表
+    A-&gt;&gt;DB: ② 查订单1的商品
+    DB--&gt;&gt;A: ...
+    A-&gt;&gt;DB: ③ 查订单2的商品
+    DB--&gt;&gt;A: ...
+    Note over A,DB: ……再重复 98 次，每次一个 RTT
+    end
+    rect rgb(240, 250, 248)
+    Note over A,DB: 正例 JOIN：1 次往返
+    A-&gt;&gt;DB: ① 一条 JOIN SQL 拿全
+    DB--&gt;&gt;A: 订单+商品 全部数据
+    end
+</pre>
+<hr>
+<h2 id="5-日志与最简单的监控">5. 日志与最简单的监控</h2>
+<h3 id="5-1-日志-出事时你唯一的证人">5.1 日志：出事时你唯一的证人</h3>
+<p>新手用 <code>print</code>，工程用结构化日志。区别在：日志带<strong>时间、级别、位置、结构化字段</strong>，能被收集、检索、告警。</p>
+<pre><code class="language-python"># app/logging_config.py —— 最小可用的结构化日志
+import logging, json, time
+
+class JsonFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -&gt; str:
+        payload = {
+            &quot;ts&quot;: round(record.created, 3),
+            &quot;level&quot;: record.levelname,
+            &quot;logger&quot;: record.name,
+            &quot;msg&quot;: record.getMessage(),
+        }
+        if hasattr(record, &quot;extra&quot;):
+            payload.update(record.extra)     # 业务字段：order_id、耗时等
+        return json.dumps(payload, ensure_ascii=False)
+
+def setup_logging() -&gt; logging.Logger:
+    logger = logging.getLogger(&quot;retailhub&quot;)
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    logger.handlers = [handler]
+    return logger
+
+# 在路由里这样用：
+# logger.info(&quot;order detail&quot;, extra={&quot;extra&quot;: {&quot;order_id&quot;: oid, &quot;cost_ms&quot;: ms}})
+</code></pre>
+<p>三个约定：① 级别语义——DEBUG 调试、INFO 关键业务事件、WARNING 可疑、ERROR 失败；② <strong>绝不打敏感信息</strong>（密码、token、完整身份证）；③ 每次请求打一条&quot;访问日志&quot;（方法、路径、状态码、耗时），这是最低成本的可观测性。</p>
+<h3 id="5-2-监控的最小集">5.2 监控的最小集</h3>
+<p>本卷只要求两个端点，但它们是一切可观测性的种子：</p>
+<ul>
+<li><code>GET /health</code>：进程活着吗？返回 <code>{&quot;status&quot;: &quot;ok&quot;}</code>。将来 K8s 的存活探针（卷04）探的就是它。</li>
+<li><code>GET /metrics</code>：最简指标——累计请求数、累计错误数、平均耗时。自己用一个 dict 计数即可，先建立&quot;指标是被暴露出来、由外部抓取的&quot;这个心智模型；卷04 会换成 Prometheus，概念完全平移。</li>
+</ul>
+<pre class="mermaid">flowchart LR
+    U[用户 curl] --&gt; N[Nginx 反向代理&lt;br/&gt;对外 80 端口]
+    N --&gt; A[Uvicorn/FastAPI&lt;br/&gt;对内 8000 端口]
+    A --&gt; S[(SQLite 文件)]
+    A --&gt; L[JSON 日志 → stdout]
+    P[外部探针] --&gt;|GET /health| A
+    P --&gt;|GET /metrics| A
+</pre>
+<hr>
+<h2 id="6-git-协作基本功">6. Git 协作基本功</h2>
+<p>即使一个人写，也按协作标准来——这是习惯不是流程。最小命令集：</p>
+<pre><code class="language-bash">git init &amp;&amp; git add -A &amp;&amp; git commit -m &quot;feat: 订单/商品查询服务 v0.1&quot;
+git checkout -b feature/gmv-summary      # 每个功能一个分支
+# ...写代码...
+git add -p                                # 逐块审视自己要提交什么
+git commit -m &quot;feat: 按日期汇总 GMV 端点&quot;
+git checkout main &amp;&amp; git merge feature/gmv-summary
+git log --oneline --graph                 # 看懂自己的历史
+</code></pre>
+<p>约定：commit message 用 <code>feat/fix/docs/refactor:</code> 前缀，一句话说清&quot;做了什么&quot;，不做的事不写进同一次提交；<code>.gitignore</code> 至少包含 <code>__pycache__/</code>、<code>*.db</code>、<code>.venv/</code>；<strong>数据库文件、密钥、虚拟环境永远不进仓库</strong>。</p>
+<hr>
+<h2 id="7-linux-部署最小集-概念级">7. Linux 部署最小集（概念级）</h2>
+<p>你的服务最终要跑在一台没有 VS Code、会重启的 Linux 机器上。两个概念先建立：</p>
+<ul>
+<li><strong>systemd</strong>：Linux 的&quot;进程管家&quot;。你写一个 <code>.service</code> 文件声明&quot;启动命令、工作目录、崩溃后自动拉起、开机自启&quot;，从此 <code>systemctl start retailhub</code> 一条命令管理服务，机器重启服务自动回来。没有它，你的服务就是一个 SSH 窗口一关就死的 <code>python main.py</code>。</li>
+<li><strong>Nginx 反向代理</strong>：站在 FastAPI 前面的&quot;门卫&quot;。对外统一 80/443 端口、处理 HTTPS 证书、做访问日志和限流，把请求转发给内部的 8000 端口。为什么要这层？因为 FastAPI 专注业务，Nginx 专注网络——<strong>关注点分离</strong>，这个思想在卷04 会放大成整个微服务网关层。</li>
+</ul>
+<p>再加一组&quot;出问题时你的第一套工具&quot;。服务器上没有图形界面，排查全靠命令，本卷先混个脸熟：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>干什么</th>
+<th>典型场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>top</code> / <code>htop</code></td>
+<td>看 CPU/内存谁在吃</td>
+<td>接口变慢，先看机器是不是满了</td>
+</tr>
+<tr>
+<td><code>ps aux | grep uvicorn</code></td>
+<td>找进程</td>
+<td>服务还在吗？起了几个 worker？</td>
+</tr>
+<tr>
+<td><code>ss -lntp</code></td>
+<td>看端口监听与占用</td>
+<td>进程活着但 8000 没监听 → 地址绑错了</td>
+</tr>
+<tr>
+<td><code>tail -f app.log</code></td>
+<td>追着日志实时看</td>
+<td>复现问题时盯着报错出现</td>
+</tr>
+<tr>
+<td><code>curl -v</code></td>
+<td>看完整请求/响应报文</td>
+<td>对应 1.1 节：直接读案发现场</td>
+</tr>
+<tr>
+<td><code>chmod</code> / <code>chown</code></td>
+<td>修权限与属主</td>
+<td>部署后写不了日志文件，十有八九是属主不对</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>为什么把命令列进教程</strong>：你未来 80% 的线上排查路径都是&quot;<code>top</code> 看资源 → <code>ss</code> 看端口 → <code>tail</code> 看日志 → <code>curl</code> 复现&quot;这四步的排列组合。卷04 进了容器和 K8s，它们会换上 <code>kubectl top / logs / exec</code> 的马甲重新出现——套路不变。</p>
+<p>本卷不要求真配一遍 systemd 和 Nginx，但验收标准要求你能在纸上画出第 5 节那张部署图。</p>
+<hr>
+<h2 id="8-本卷实战-retailhub-演进第-1-步">8. 本卷实战：RetailHub 演进第 1 步</h2>
+<p><strong>背景</strong>：零售品牌&quot;RetailHub&quot;需要最基础的经营查询能力。你是唯一的工程师，交付一个单机查询服务。</p>
+<p>按下面的递进步骤做，每一步都有独立的验收标准——<strong>任何一步验收不过，不进入下一步</strong>。</p>
+<p><strong>步骤 1：建库与种子数据</strong></p>
+<ul>
+<li>目标：有 <code>retailhub.db</code>，含 <code>items</code>/<code>orders</code> 两张表和够用的演示数据。</li>
+<li>操作：按第 4.2 节的 <code>init_db</code> 建表，把演示订单扩充到 ≥20 条（跨 3 天以上，含 <code>paid</code>/<code>refunded</code> 两种状态），执行 <code>python -c &quot;from app.db import init_db; init_db()&quot;</code>。</li>
+<li>验收标准：<code>sqlite3 retailhub.db &quot;SELECT COUNT(*), MIN(created_at), MAX(created_at) FROM orders;&quot;</code> 返回行数 ≥20 且日期跨度 ≥3 天。</li>
+</ul>
+<p><strong>步骤 2：订单列表与详情端点</strong></p>
+<ul>
+<li>目标：<code>GET /orders</code> 分页列表与 <code>GET /orders/{order_id}</code> 详情（JOIN 出商品名称与单价）可用，参数校验与 404 行为正确。</li>
+<li>操作：按第 3 节骨架实现，启动后先在 <code>/docs</code> 里点通，再用 curl 验证异常分支。</li>
+<li>验收标准：正常分页返回 <code>items/total/page/size</code>；<code>page=0</code> 返回 422；存在的 id 返回含 <code>name</code> 与 <code>price</code>；不存在的 id 返回 404 且响应体是 JSON 而非 HTML 报错页。</li>
+</ul>
+<p><strong>步骤 3：GMV 汇总端点与第一条 ADR</strong></p>
+<ul>
+<li>目标：<code>GET /stats/gmv?start=&amp;end=</code> 按日期返回每天 <code>date / order_count / gmv</code>（<code>SUM(amount)</code>），<code>refunded</code> 订单不计入 GMV——<strong>这是你的第一条&quot;指标口径&quot;决策，写一条 200 字 ADR 记录它</strong>。</li>
+<li>操作：核心 SQL 骨架如下，包进路由并加出参模型：</li>
+</ul>
+<pre><code class="language-sql">SELECT substr(created_at, 1, 10) AS date,
+       COUNT(*) AS order_count,
+       ROUND(SUM(amount), 2) AS gmv
+FROM orders
+WHERE status != &#x27;refunded&#x27;
+  AND created_at &gt;= :start AND created_at &lt; :end
+GROUP BY substr(created_at, 1, 10)
+ORDER BY date;
+</code></pre>
+<ul>
+<li>验收标准：挑一天用 sqlite3 CLI 手工核算，接口返回值与手工结果一致，且 refunded 订单确实被排除。</li>
+</ul>
+<p><strong>步骤 4：结构化日志与健康检查</strong></p>
+<ul>
+<li>目标：每个请求输出一条 JSON 访问日志（方法、路径、状态码、耗时）；<code>GET /health</code> 返回 <code>{&quot;status&quot;:&quot;ok&quot;}</code>。</li>
+<li>操作：按第 5.1 节配置 <code>JsonFormatter</code>，用一个中间件或在路由依赖里记录耗时。</li>
+<li>验收标准：连续发 5 个请求，终端出现 5 条合法 JSON 日志，每条含路径与耗时字段。</li>
+</ul>
+<p><strong>步骤 5：工程收尾（目录、Git、README）</strong></p>
+<ul>
+<li>目标：目录结构如下，代码 git 入库，README 能让陌生人原样跑通：</li>
+</ul>
+<pre><code class="language-plaintext">retailhub/
+├── app/
+│   ├── main.py            # 路由 + Pydantic 模型
+│   ├── db.py              # 连接管理 + 建表 + 种子数据
+│   └── logging_config.py  # 结构化日志
+├── requirements.txt
+├── .gitignore
+├── docs/adr/0001-gmv-exclude-refunded.md
+└── README.md              # 启动步骤 + 验收命令
+</code></pre>
+<ul>
+<li>验收标准：另建一个干净虚拟环境，严格按 README 的步骤能拉起服务并通过步骤 2 的 curl 验证。</li>
+</ul>
+<h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
+<p>本卷练习适合&quot;AI 起草 + 你评审&quot;的模式，下面是可直接复制的提示词模板：</p>
+<pre><code class="language-plaintext">你是一名资深 FastAPI 工程师。我在完成学习项目 RetailHub v0.1（Python 3.11 + FastAPI + SQLite），
+请按以下约束生成代码，不要引入额外依赖：
+- 目录结构：app/main.py（路由 + Pydantic 模型）、app/db.py（连接管理 + 建表 + 种子数据）、
+  app/logging_config.py（JSON 结构化日志）
+- 端点：GET /orders（page/size 分页，page≥1，1≤size≤100，返回 items/total/page/size）、
+  GET /orders/{id}（JOIN items 出商品名与单价，不存在返回 404）、
+  GET /stats/gmv?start=&amp;end=（按天汇总，排除 status=&#x27;refunded&#x27; 的订单）
+- 要求：用 response_model 声明出参；查询参数用 Query 校验；业务错误一律 HTTPException；
+  每个请求输出一条 JSON 访问日志（方法、路径、状态码、耗时）；/health 返回 {&quot;status&quot;:&quot;ok&quot;}
+- 种子数据：≥20 条订单，跨 3 天以上，含 paid/refunded 两种状态
+请先给出文件清单与关键设计决策，再逐文件输出完整代码。
+</code></pre>
+<p><strong>AI 生成初版后的人工评审清单</strong>（逐条过，别跳）：</p>
+<ol>
+<li>逐行读 <code>db.py</code> 的连接管理：异常路径有没有 <code>rollback</code>，<code>finally</code> 里有没有 <code>close</code>？（对照第 6 节误区 4）</li>
+<li>全文搜索 <code>return {</code>：是否存在&quot;200 + 错误字段&quot;的伪错误返回？所有业务错误必须走 <code>HTTPException</code>。</li>
+<li>异常分支不能只看不测：用 curl 实际打出一次 404 和一次 422，确认响应体不是 HTML。</li>
+<li>GMV 口径对账：挑一天用 sqlite3 CLI 手工核算，确认 refunded 被排除——AI 经常&quot;忘了&quot;这个业务约束。</li>
+<li><code>git status</code> 检查：<code>.db</code> 文件、<code>.venv/</code>、<code>__pycache__/</code> 有没有被跟踪？</li>
+<li>让 AI 逐处解释它生成的代码里哪里该用 <code>async def</code>、哪里不该，以及为什么（回 3.2/3.3 节自答）——<strong>它答不清或你听不懂的地方，就是你要补的课，别放过。</strong></li>
+</ol>
+<p><strong>AI Coding 验收标准</strong>：上面的总验收 checklist 全部打勾，且 AI 生成代码的每一行你都能向&quot;空气面试官&quot;讲清用途；讲不清的行，要么改到你懂，要么删掉。</p>
+<p><strong>总验收标准（checkbox，全部满足才算过）</strong>：</p>
+<ul>
+<li class="task-item"><input type="checkbox"> <code>curl &quot;http://localhost:8000/orders?page=1&amp;size=5&quot;</code> 返回分页结构与正确的 total</li>
+<li class="task-item"><input type="checkbox"> <code>curl http://localhost:8000/orders/1</code> 返回的 JSON 里包含商品 <code>name</code> 与 <code>price</code></li>
+<li class="task-item"><input type="checkbox"> <code>curl http://localhost:8000/orders/99999</code> 返回 404 且响应体不是 HTML 报错页</li>
+<li class="task-item"><input type="checkbox"> <code>curl &quot;http://localhost:8000/orders?page=0&quot;</code> 返回 422</li>
+<li class="task-item"><input type="checkbox"> <code>curl &quot;http://localhost:8000/stats/gmv?start=2025-06-01&amp;end=2025-06-03&quot;</code> 按天分组、gmv 数值与手工 SQL 核算一致、不含 refunded 订单</li>
+<li class="task-item"><input type="checkbox"> <code>curl http://localhost:8000/health</code> 返回 <code>{&quot;status&quot;:&quot;ok&quot;}</code></li>
+<li class="task-item"><input type="checkbox"> 每次请求在终端输出一条 JSON 访问日志，含路径与耗时</li>
+<li class="task-item"><input type="checkbox"> <code>git log --oneline</code> 至少 3 次有意义的提交，仓库中无 <code>.db</code> 文件</li>
+<li class="task-item"><input type="checkbox"> README 里的启动步骤在一台干净虚拟环境中可原样跑通</li>
+<li class="task-item"><input type="checkbox"> <code>docs/adr/0001</code> 记录了 GMV 口径决策</li>
+</ul>
+<hr>
+<h2 id="9-常见误区">9. 常见误区</h2>
+<ol>
+<li><strong>一切错误都返回 200</strong>：错误码塞进响应体自定义字段。监控和前端全部失明，问题永远发现得太晚。</li>
+<li><strong>在循环里查数据库（N+1 不自知）</strong>：本地 4 条数据测不出来，上线后随数据量线性恶化。</li>
+<li><strong>把 SQLite 当 MySQL 用</strong>：上线后并发写直接锁库报错；本卷用 SQLite 是学习简化，不是选型结论。</li>
+<li><strong>异常时不回滚事务</strong>：一次失败后连接里挂着半个事务，后续写入全乱。<code>try/except/rollback/finally/close</code> 缺一不可。</li>
+<li><strong>用 print 当日志</strong>：没有时间、没有级别、不能关闭，出问题等于裸奔。</li>
+<li><strong>把数据库文件提交进 Git</strong>：仓库膨胀、数据泄露风险、多人协作必然冲突。</li>
+<li><strong>URL 里写动词</strong>（<code>/getOrderList</code>）：接口一多就乱成一锅粥，REST 的约束是帮你管理复杂度的。</li>
+<li><strong>在 async 路由里写同步阻塞代码</strong>：一个 <code>time.sleep</code> 或同步大计算卡死整个事件循环，全场请求陪葬（见 3.2 节）。要么用 <code>asyncio.sleep</code> 与非阻塞库，要么把重活交给线程池。</li>
+</ol>
+<h2 id="10-自测清单">10. 自测清单</h2>
+<p>不看教程回答或完成以下 10 项，全部通过才可进入卷02：</p>
+<ul>
+<li class="task-item"><input type="checkbox"> 画出一次 HTTP 请求从 curl 到数据库再返回的完整时序（不看书）</li>
+<li class="task-item"><input type="checkbox"> 解释 404 / 422 / 500 的含义与各自该由谁负责</li>
+<li class="task-item"><input type="checkbox"> 说出 GET/POST/PUT/DELETE 中哪个不幂等，以及重试会带来什么后果</li>
+<li class="task-item"><input type="checkbox"> 解释三次握手为什么不能是两次、四次挥手为什么比握手多一次、TIME_WAIT 在等什么</li>
+<li class="task-item"><input type="checkbox"> 说出 REST 的两条核心约定，并把 <code>POST /createNewOrder</code> 改成 REST 风格</li>
+<li class="task-item"><input type="checkbox"> 解释 <code>response_model</code> 的作用和&quot;契约&quot;的含义</li>
+<li class="task-item"><input type="checkbox"> 说出进程/线程/协程的三组差异（谁调度、切换成本、隔离性），以及 GIL 对 Python 多线程意味着什么</li>
+<li class="task-item"><input type="checkbox"> 说清阻塞/非阻塞/IO 多路复用三种模型的差别，以及 epoll 比 select 省在哪</li>
+<li class="task-item"><input type="checkbox"> 说出 SQLite 与 MySQL 在并发写上的本质差异，用自己的话解释连接池解决什么问题、池该多大</li>
+<li class="task-item"><input type="checkbox"> 解释 N+1 问题的成因与 JOIN 解法；说出结构化日志比 print 多出的三个关键能力；说出 systemd 和 Nginx 各自解决什么问题</li>
+</ul>
+<h2 id="参考与脚注">参考与脚注</h2>
+<h2 id="下卷预告">下卷预告</h2>
+<p><a href="vol-02-1.html">卷02《服务端架构演进》</a>：你的 RetailHub 火了，老板模拟了一次&quot;大促流量&quot;。你将亲手撞上单体的一切天花板——慢查询拖垮全站、刚下的订单查不到、一个模块挂掉全站陪葬。为了活下来，你将引入缓存、消息队列、读写分离，并做出第一次服务拆分。每一个今天觉得&quot;没必要&quot;的组件，卷02 都会让你体会到&quot;没它不行&quot;。</p>
+<p>➡️ 下一页：卷02-1 · 缓存、读写分离与分库分表</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-ddia-ch3">Martin Kleppmann《数据密集型应用系统设计》（DDIA），第 3 章「存储与检索」。 <a class="fn-back" href="#ref-ddia-ch3" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-01-1.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷01-1 · HTTP 与网络基础</span></a>
+      <a class="next" href="vol-02-1.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷02-1 · 缓存与读写分离</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#4-sqlite-与-mysql-差异-连接池-以及-n-1">4. SQLite 与 MySQL：差异、连接池，以及 N+1</a>
+    <a class="toc-h3" href="#4-1-为什么先用-sqlite-以及它和-mysql-的真实差异">4.1 为什么先用 SQLite，以及它和 MySQL 的真实差异</a>
+    <a class="toc-h3" href="#4-2-连接与连接池">4.2 连接与连接池</a>
+    <a class="toc-h3" href="#4-3-n-1-问题-性能杀手的最小样本">4.3 N+1 问题：性能杀手的最小样本</a>
+    <a class="toc-h2" href="#5-日志与最简单的监控">5. 日志与最简单的监控</a>
+    <a class="toc-h3" href="#5-1-日志-出事时你唯一的证人">5.1 日志：出事时你唯一的证人</a>
+    <a class="toc-h3" href="#5-2-监控的最小集">5.2 监控的最小集</a>
+    <a class="toc-h2" href="#6-git-协作基本功">6. Git 协作基本功</a>
+    <a class="toc-h2" href="#7-linux-部署最小集-概念级">7. Linux 部署最小集（概念级）</a>
+    <a class="toc-h2" href="#8-本卷实战-retailhub-演进第-1-步">8. 本卷实战：RetailHub 演进第 1 步</a>
+    <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
+    <a class="toc-h2" href="#9-常见误区">9. 常见误区</a>
+    <a class="toc-h2" href="#10-自测清单">10. 自测清单</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+    <a class="toc-h2" href="#下卷预告">下卷预告</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-01-2:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

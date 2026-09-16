@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷02-1：缓存、读写分离与分库分表——症状驱动的第一刀与第二刀 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷02-1：缓存、读写分离与分库分表——症状驱动的第一刀与第二刀 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html" class="active">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷02-1-缓存-读写分离与分库分表-症状驱动的第一刀与第二刀">卷02-1：缓存、读写分离与分库分表——症状驱动的第一刀与第二刀</h1>
+<blockquote>
+<p>导语：卷01 结束时，RetailHub 还是一个&quot;最简单体&quot;：一个 FastAPI 进程、一个 SQLite 文件、3 个查询端点。本卷要回答的问题是：**当真实业务增长压过来时，这个单体会在哪里先断、断之前有什么症状、每种症状对应的正确手术是什么。**本页先看清单体的三堵墙与&quot;症状驱动&quot;的演进地图，然后动前两刀——缓存（Cache-Aside 模式与穿透/击穿/雪崩三大事故）和读写分离（binlog 复制延迟与&quot;刚写完读不到&quot;的经典坑），并对分库分表做出&quot;留门不进&quot;的明确判断。学完本页，你将建立本卷的核心直觉：演进由症状触发，由验收标准收口。</p>
+</blockquote>
+<hr>
+<h2 id="1-单体的极限-它会在三个方向先后顶不住">1. 单体的极限：它会在三个方向先后顶不住</h2>
+<p>先给单体一个公正的评价：<strong>单体是绝大多数系统的正确起点</strong>。部署简单、事务本地、调试方便、没有分布式问题。卷01 选单体不是偷懒，是判断。但单体有三堵墙，业务增长会依次撞上它们。</p>
+<h3 id="1-1-三堵墙与它们的症状-凤凰架构演进视角">1.1 三堵墙与它们的症状（凤凰架构演进视角）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>墙</th>
+<th>典型症状（可观测）</th>
+<th>本质</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>性能墙</td>
+<td>P99 延迟从 50ms 涨到 2s；数据库 CPU 长期 90%；大促时接口超时</td>
+<td>单机资源（CPU/连接/IO）是硬上限</td>
+</tr>
+<tr>
+<td>协作墙</td>
+<td>5 个人改同一个仓库，天天合并冲突；改报表逻辑要重新发布订单接口</td>
+<td>代码边界 ≠ 团队边界（康威定律）</td>
+</tr>
+<tr>
+<td>发布墙</td>
+<td>上线频率被拉低到两周一次；一个小改动要全量回归；回滚等于回滚所有人</td>
+<td>部署单元过大，变更爆炸半径 = 整个系统</td>
+</tr>
+</tbody>
+</table></div>
+<p>凤凰架构的史观提醒我们：<strong>单体不是&quot;错误&quot;，它是&quot;上一个约束条件下的最优解&quot;</strong>。当约束（流量、团队规模、变更频率）变化，最优解跟着变。所以本卷的叙事主线只有一句话：</p>
+<blockquote>
+<p><strong>不要问&quot;微服务好不好&quot;，要问&quot;我现在疼在哪，这个手术治不治这个疼&quot;。</strong></p>
+</blockquote>
+<h3 id="1-2-症状驱动的演进地图">1.2 症状驱动的演进地图</h3>
+<pre class="mermaid">flowchart TD
+    A[单体 FastAPI+SQLite&lt;br/&gt;卷01 末状态] --&gt;|症状1: 热点查询打爆DB&lt;br/&gt;P99飙升| B[引入Redis缓存]
+    B --&gt;|症状2: 报表大查询拖慢下单&lt;br/&gt;读写互相抢资源| C[MySQL主从 读写分离]
+    C --&gt;|症状3: 下单链路串行太长&lt;br/&gt;大促流量尖峰打穿DB| D[RocketMQ异步化 削峰]
+    D --&gt;|症状4: 团队扩张 发布互相阻塞| E[拆出订单服务/报表服务]
+    E --&gt; F[卷02末状态]
+</pre>
+<p>注意这张图里没有任何一步是&quot;为了架构而架构&quot;：每条边上都写着一个症状。这就是本卷要反复训练的直觉——<strong>演进由症状触发，由验收标准收口</strong>。</p>
+<hr>
+<h2 id="2-第一刀-缓存-症状是-数据库被同样的查询反复打">2. 第一刀：缓存——症状是&quot;数据库被同样的查询反复打&quot;</h2>
+<h3 id="2-1-什么症状逼你上缓存">2.1 什么症状逼你上缓存</h3>
+<p>RetailHub 上线一个月后，运营同学有个高频动作：刷订单详情页。监控显示 <code>/orders/{id}</code> 这一个端点占了全部流量的 62%，其中 90% 是重复查询同一批&quot;今日新订单&quot;。数据库 CPU 60% 都花在一遍遍执行结果完全相同的 SELECT 上。</p>
+<p>这就是缓存的标准适应症：<strong>读多写少、读有明显热点、数据允许短暂不一致</strong>。订单详情恰好全中——订单创建后极少修改，晚 1 秒看到也不影响业务。</p>
+<h3 id="2-2-cache-aside-模式与代码骨架">2.2 Cache-Aside 模式与代码骨架</h3>
+<p>业界最通用的读缓存模式是 <strong>Cache-Aside（旁路缓存）</strong>：读先查缓存， miss 再查库并回填；写先写库，再删缓存。</p>
+<pre><code class="language-python"># order_service.py —— Cache-Aside 读路径骨架
+import json
+import redis.asyncio as redis
+from sqlalchemy.ext.asyncio import AsyncSession
+
+rds = redis.Redis(host=&quot;redis&quot;, port=6379, decode_responses=True)
+CACHE_TTL = 300  # 秒
+
+async def get_order(order_id: int, db: AsyncSession) -&gt; dict:
+    key = f&quot;order:{order_id}&quot;
+    # 1) 先查缓存
+    cached = await rds.get(key)
+    if cached is not None:
+        if cached == &quot;NULL&quot;:            # 空值缓存，防穿透
+            raise OrderNotFound(order_id)
+        return json.loads(cached)
+    # 2) 缓存 miss，查库
+    order = await db.get(Order, order_id)
+    if order is None:
+        await rds.setex(key, 60, &quot;NULL&quot;)  # 空值短 TTL
+        raise OrderNotFound(order_id)
+    # 3) 回填缓存
+    await rds.setex(key, CACHE_TTL, json.dumps(order.to_dict()))
+    return order.to_dict()
+
+async def update_order(order_id: int, data: dict, db: AsyncSession) -&gt; None:
+    # 写路径：先写库，再删缓存（不是更新缓存！）
+    await db.execute(update(Order).where(Order.id == order_id).values(**data))
+    await db.commit()
+    await rds.delete(f&quot;order:{order_id}&quot;)
+</code></pre>
+<p>为什么写后是&quot;删缓存&quot;而不是&quot;改缓存&quot;？因为改缓存在并发下会出现&quot;旧值覆盖新值&quot;的经典竞态：线程 A 写库 → 线程 B 写库 → B 改缓存 → A 改缓存，缓存里留下 A 的旧值。删缓存把&quot;最后一次写生效&quot;的问题简化成&quot;下一次读回填&quot;，竞态窗口小得多。</p>
+<p>**顺带回答一个绕不开的问题：Redis 凭什么这么快？**三个原因：① 数据全在内存——一次 GET 是内存寻址（纳秒级）而不是磁盘读取（毫秒级），差了约六个数量级；② 核心命令单线程执行，没有锁竞争，每条命令天然原子；③ 网络层用 IO 多路复用（正是卷01 §3.3 讲的 epoll），一个线程伺候上万个连接。所以&quot;加一层 Redis&quot;的本质，是把最热的读从&quot;磁盘 + 行锁&quot;搬到&quot;内存 + 单线程&quot;。</p>
+<p>Cache-Aside 也不是唯一的缓存模式，但它是默认答案。四种模式对照：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>读写规则</th>
+<th>优点</th>
+<th>代价</th>
+<th>何时用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cache-Aside 旁路</td>
+<td>应用自己管缓存：读 miss 回填，写后删</td>
+<td>简单；缓存挂了只降级、不致命</td>
+<td>有一致性小窗口；冷数据首读必 miss</td>
+<td>默认选择，本卷采用</td>
+</tr>
+<tr>
+<td>Read-Through 读穿透</td>
+<td>应用只问缓存，miss 由缓存层负责回源</td>
+<td>应用代码更薄</td>
+<td>缓存层要实现回源逻辑，耦合上移</td>
+<td>有成熟缓存中间件托管时</td>
+</tr>
+<tr>
+<td>Write-Through 写穿透</td>
+<td>写操作同步落缓存和库</td>
+<td>缓存永远是热的</td>
+<td>写延迟翻倍；写多场景浪费</td>
+<td>写后立刻必读的少量数据</td>
+</tr>
+<tr>
+<td>Write-Behind 写回</td>
+<td>先写缓存，异步批量落库</td>
+<td>写极快，还能合并多次写</td>
+<td>宕机有丢数据窗口</td>
+<td>可丢的计数/行为日志类</td>
+</tr>
+</tbody>
+</table></div>
+<p>把读写两条路径画在一张时序图里，Cache-Aside 的全部规则就齐了：</p>
+<pre class="mermaid">sequenceDiagram
+    participant C as 客户端
+    participant A as 应用
+    participant R as Redis
+    participant D as MySQL
+    rect rgb(240, 250, 248)
+    Note over C,D: 读路径
+    C-&gt;&gt;A: GET /orders/42
+    A-&gt;&gt;R: GET order:42
+    alt 命中
+        R--&gt;&gt;A: 订单 JSON
+    else 未命中
+        R--&gt;&gt;A: nil
+        A-&gt;&gt;D: SELECT ... WHERE id=42
+        D--&gt;&gt;A: 行数据
+        A-&gt;&gt;R: SETEX order:42 300±60s
+    end
+    A--&gt;&gt;C: 200 + 订单
+    end
+    rect rgb(255, 248, 240)
+    Note over C,D: 写路径：先写库，再删缓存
+    C-&gt;&gt;A: PUT /orders/42
+    A-&gt;&gt;D: UPDATE ... (提交事务)
+    A-&gt;&gt;R: DEL order:42
+    A--&gt;&gt;C: 200
+    Note over A,R: 下一次读 miss 时回填新值&lt;br/&gt;空值缓存(短TTL)防穿透
+    end
+</pre>
+<h3 id="2-3-缓存三大经典事故-穿透-击穿-雪崩">2.3 缓存三大经典事故：穿透、击穿、雪崩</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>事故</th>
+<th>一句话定义</th>
+<th>RetailHub 里的样子</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>穿透</td>
+<td>查询<strong>不存在</strong>的数据，缓存永远 miss，全打 DB</td>
+<td>爬虫遍历不存在的订单号</td>
+<td>缓存空值（短 TTL）+ 布隆过滤器</td>
+</tr>
+<tr>
+<td>击穿</td>
+<td>一个<strong>热点 key 恰好过期</strong>，瞬时几百个请求同时回源</td>
+<td>整点大促开始，&quot;今日爆款订单&quot;key 到期</td>
+<td>互斥锁（singleflight）只放一个请求回源</td>
+</tr>
+<tr>
+<td>雪崩</td>
+<td><strong>大量 key 同时过期</strong>，DB 被集体回源压垮</td>
+<td>昨晚批量预热缓存，TTL 全是 300s，今晚同一秒全部过期</td>
+<td>TTL 加随机抖动（如 300±60s）；多级缓存</td>
+</tr>
+</tbody>
+</table></div>
+<p>击穿的互斥锁写法（singleflight 思想）：</p>
+<pre><code class="language-python">import asyncio
+import random
+
+_locks: dict[str, asyncio.Lock] = {}
+
+async def get_order_safe(order_id: int, db: AsyncSession) -&gt; dict:
+    key = f&quot;order:{order_id}&quot;
+    cached = await rds.get(key)
+    if cached is not None:
+        return json.loads(cached)
+    # 每个 key 一把锁：miss 时只放行一个请求回源
+    lock = _locks.setdefault(key, asyncio.Lock())
+    async with lock:
+        cached = await rds.get(key)   # 拿到锁后再查一次（double-check）
+        if cached is not None:
+            return json.loads(cached)
+        order = await db.get(Order, order_id)
+        if order is None:
+            raise OrderNotFound(order_id)
+        await rds.setex(key, 300 + random.randint(0, 60), json.dumps(order.to_dict()))
+        return order.to_dict()
+</code></pre>
+<p><strong>动手玩一玩</strong>：下面的「Cache-Aside 模拟器」分两块。左边演练读写路径——连点两次&quot;读请求&quot;看命中，点&quot;读不存在的订单&quot;看空值缓存如何防穿透，点&quot;写请求&quot;观察为什么写后是删缓存；右边复现缓存雪崩——先&quot;批量预热 100 个 key&quot;再&quot;快进 600 秒&quot;，看 t=300s 处 DB QPS 的尖峰，然后打开&quot;TTL 加随机抖动&quot;重放，对比曲线被摊平的效果。观察重点：<strong>雪崩不是 Redis 挂了，而是大量 key 约好同一秒过期</strong>。</p>
+<div class="demo-embed" data-demo="cache-aside"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>连续点两次&quot;读请求&quot;，对比第二次的响应来源与耗时——命中和回源差多少倍？</li>
+<li>点两次&quot;读不存在的订单&quot;，盯住 DB 查询计数：第二次是否停止增长？这就是空值缓存生效的标志。</li>
+<li>先读一次订单 42，点&quot;写请求&quot;修改它，紧接着再读——回答：写后为什么是&quot;删&quot;缓存而不是&quot;改&quot;？竞态发生在哪一步？</li>
+<li>右侧&quot;批量预热 100 个 key&quot;后点&quot;快进 600 秒&quot;，记下 t=300s 处 DB QPS 峰值；打开&quot;TTL 随机抖动&quot;重放，峰值降到多少？用一句话向同事解释雪崩的成因与对策。</li>
+</ol>
+<h3 id="2-4-缓存一致性-能容忍多久的不一致是业务问题">2.4 缓存一致性：能容忍多久的不一致是业务问题</h3>
+<p>&quot;先写库再删缓存&quot;仍有小窗口：删缓存失败，或删除与并发读回填交错。要承认一个事实：<strong>Cache-Aside 提供的是最终一致，不是强一致</strong>。工程上的正确做法不是追求绝对一致，而是：</p>
+<ol>
+<li>用监控量出实际不一致窗口（通常毫秒级）；</li>
+<li>让业务确认这个窗口可接受（订单详情页可以，库存扣减不可以——所以库存不走这条路，见卷03 事务章）；</li>
+<li>删缓存失败时投递到 MQ 重试（这正是第 4 节消息队列的第一个用武之地）。</li>
+</ol>
+<blockquote>
+<p>融合来源：本节对应&quot;小白服务端架构演进&quot;叙事的缓存一章，以及凤凰架构对&quot;缓存不是银弹，是一致性与性能的再平衡&quot;的论述。<sup class="fn-ref"><a href="#fn-fenix" id="ref-fenix">[1]</a></sup></p>
+</blockquote>
+<hr>
+<h2 id="3-第二刀-读写分离与分库分表-症状是-读和写在抢同一台机器">3. 第二刀：读写分离与分库分表——症状是&quot;读和写在抢同一台机器&quot;</h2>
+<h3 id="3-1-什么症状逼你做读写分离">3.1 什么症状逼你做读写分离</h3>
+<p>缓存上了两周，新的症状出现了：每天上午 10 点，运营集中刷报表（大 JOIN、全表扫描、GROUP BY 百万行），同一时刻下单接口 P99 从 80ms 飙到 1.5s。<strong>报表是重读，下单是重写，它们在同一台 MySQL 上抢 Buffer Pool、抢 IO、抢 CPU。</strong></p>
+<p>缓存治不了这个症状——报表查询每次条件都不同，缓存命中率趋近于零。手术方案：<strong>MySQL 主从复制，写走主库，报表类重读走从库</strong>。</p>
+<pre class="mermaid">flowchart LR
+    subgraph 应用层
+        API1[订单接口&lt;br/&gt;写+强一致读] 
+        API2[报表接口&lt;br/&gt;重读 可容忍延迟]
+    end
+    API1 --&gt;|写 / 刚写完的读| M[(MySQL 主库)]
+    API2 --&gt;|分析型大查询| S1[(MySQL 从库1)]
+    API2 --&gt; S2[(MySQL 从库2)]
+    M --&gt;|binlog 异步复制| S1
+    M --&gt;|binlog 异步复制| S2
+</pre>
+<h3 id="3-2-读写分离的代价-复制延迟">3.2 读写分离的代价：复制延迟</h3>
+<p>先搞懂复制是怎么工作的：主库把每笔变更追加到 <strong>binlog</strong>（变更日志），从库的 IO 线程拉取 binlog 到本地，SQL 线程再逐条重放——整条链路是&quot;<strong>主库写完就走，从库在后面慢慢追</strong>&quot;。所以从库数据天然落后主库（通常毫秒到秒级，大事务时可达分钟级）。</p>
+<p>为什么非要异步？改成同步（主库等从库确认落盘再返回客户端）行不行？行，但代价是：每次写延迟 = 主库执行 + 网络往返 + 从库重放，可用性还多绑一台机器——从库一抖，全站写入卡住。<strong>主从异步复制，本质是拿&quot;秒级旧数据&quot;换&quot;写入不被拖垮&quot;</strong>，这是复制拓扑里最经典的取舍。<sup class="fn-ref"><a href="#fn-ddia-ch5" id="ref-ddia-ch5">[2]</a></sup></p>
+<p>于是有了教科书级的坑：<strong>用户刚下完单，跳转订单列表，列表查的是从库——订单&quot;消失&quot;了</strong>。</p>
+<p>对策有三种，按实现成本排序：</p>
+<ol>
+<li><strong>写后读主</strong>：写完后的 N 秒内（或当前会话内）强制读主库。简单，覆盖 90% 场景。</li>
+<li><strong>判断复制位点</strong>：读从库前确认从库已应用到写入时的 binlog 位点（GTID 等待）。精确但复杂。</li>
+<li><strong>业务规避</strong>：下单成功页直接展示下单接口的返回值，不再查一次列表。零成本，优先选它。</li>
+</ol>
+<h3 id="3-3-分库分表-先知道动机-再决定什么时候忍不了">3.3 分库分表：先知道动机，再决定什么时候忍不了</h3>
+<p>分库分表解决的是<strong>单机写容量和单表体积</strong>的硬上限。它的典型症状是：单表过亿行后 DDL 一次要几个小时、备份恢复以天计、写入 TPS 逼近单机磁盘 IO 上限。</p>
+<p><strong>RetailHub 当前不需要分库分表</strong>——日单量几万级，单表千万行以内 MySQL 完全扛得住。这里明确说&quot;不演进&quot;和说&quot;演进&quot;同样重要：分库分表引入分布式事务、跨库 JOIN、全局 ID、扩容再均衡一大堆问题（卷03 第 6 章分区会系统讲），<strong>在症状出现之前做，是纯负债</strong>。正确的动作是：现在就把订单表设计成&quot;可按 tenant_id 拆分&quot;的形态（无主键跨表自增依赖、无外键横跨、查询必带租户条件），为未来留门，但不进门。</p>
+<p>虽然&quot;留门不进&quot;，但分片的两个基本决策现在就该建立直觉——<strong>选什么当分片键、按哈希还是按范围路由</strong>，它俩决定了未来所有查询的命运：</p>
+<pre class="mermaid">flowchart LR
+    Q[&quot;查询请求&quot;] --&gt; R{&quot;分片路由&quot;}
+    R --&gt;|&quot;hash（分片键）% N&lt;br/&gt;数据均匀&quot;| H[&quot;单点查询命中 1 个分片&lt;br/&gt;范围/跨键查询要广播全部 N 个&quot;]
+    R --&gt;|&quot;range（时间/ID 区间）&lt;br/&gt;范围查询友好&quot;| G[&quot;新数据全写最新分片&lt;br/&gt;= 写入热点&quot;]
+</pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>治什么症状</th>
+<th>引入的代价</th>
+<th>RetailHub 决策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缓存</td>
+<td>重复读热点</td>
+<td>一致性窗口、三事故</td>
+<td>本卷实施</td>
+</tr>
+<tr>
+<td>读写分离</td>
+<td>读写互抢资源</td>
+<td>复制延迟、写后读问题</td>
+<td>本卷实施</td>
+</tr>
+<tr>
+<td>分库分表</td>
+<td>写容量/单表体积上限</td>
+<td>分布式事务、运维复杂度</td>
+<td>留门不进</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>动手玩一玩</strong>：下面的「分库分表路由模拟器」有 4 个分片和一批带&quot;订单号 / 租户 / 日期&quot;三属性的订单。切换三种分片键策略，分别执行&quot;查单个订单&quot;和&quot;查某租户全部订单&quot;两种查询，观察：数据是否均匀、查询是命中单分片还是被迫广播。想一想：为什么&quot;按租户分片&quot;对 SaaS 系统既诱人又危险？</p>
+<div class="demo-embed" data-demo="sharding-route"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>选「按订单号取模」，执行&quot;查租户 T1 的全部订单&quot;——注意需要广播到几个分片，代价是什么。</li>
+<li>切到「按租户取模」，同一个查询命中几个分片？再看各分片数据量柱图，找出新问题的名字（热点/数据倾斜）。</li>
+<li>切到「按日期范围」，点&quot;插入一批新订单&quot;，观察写入全部落到了哪个分片。</li>
+<li>用&quot;均匀性 vs 查询模式&quot;这把尺，给三种策略各写一句适用场景结论。</li>
+</ol>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<p>➡️ 下一页：卷02-2 · 消息队列与服务拆分</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-fenix">周志明《凤凰架构：构建可靠的大型分布式系统》，在线版 <a href="https://icyfenix.cn"><a href="https://icyfenix.cn">https://icyfenix.cn</a></a>（&quot;演进史观&quot;见导言及第一部分）。 <a class="fn-back" href="#ref-fenix" aria-label="回到正文">↩</a></li>
+<li id="fn-ddia-ch5">Martin Kleppmann《数据密集型应用系统设计》（Designing Data-Intensive Applications，DDIA），第 5 章「复制」。 <a class="fn-back" href="#ref-ddia-ch5" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-01-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷01-2 · 数据库与部署实战</span></a>
+      <a class="next" href="vol-02-2.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷02-2 · 消息队列与服务拆分</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-单体的极限-它会在三个方向先后顶不住">1. 单体的极限：它会在三个方向先后顶不住</a>
+    <a class="toc-h3" href="#1-1-三堵墙与它们的症状-凤凰架构演进视角">1.1 三堵墙与它们的症状（凤凰架构演进视角）</a>
+    <a class="toc-h3" href="#1-2-症状驱动的演进地图">1.2 症状驱动的演进地图</a>
+    <a class="toc-h2" href="#2-第一刀-缓存-症状是-数据库被同样的查询反复打">2. 第一刀：缓存——症状是"数据库被同样的查询反复打"</a>
+    <a class="toc-h3" href="#2-1-什么症状逼你上缓存">2.1 什么症状逼你上缓存</a>
+    <a class="toc-h3" href="#2-2-cache-aside-模式与代码骨架">2.2 Cache-Aside 模式与代码骨架</a>
+    <a class="toc-h3" href="#2-3-缓存三大经典事故-穿透-击穿-雪崩">2.3 缓存三大经典事故：穿透、击穿、雪崩</a>
+    <a class="toc-h3" href="#2-4-缓存一致性-能容忍多久的不一致是业务问题">2.4 缓存一致性：能容忍多久的不一致是业务问题</a>
+    <a class="toc-h2" href="#3-第二刀-读写分离与分库分表-症状是-读和写在抢同一台机器">3. 第二刀：读写分离与分库分表——症状是"读和写在抢同一台机器"</a>
+    <a class="toc-h3" href="#3-1-什么症状逼你做读写分离">3.1 什么症状逼你做读写分离</a>
+    <a class="toc-h3" href="#3-2-读写分离的代价-复制延迟">3.2 读写分离的代价：复制延迟</a>
+    <a class="toc-h3" href="#3-3-分库分表-先知道动机-再决定什么时候忍不了">3.3 分库分表：先知道动机，再决定什么时候忍不了</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-02-1:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

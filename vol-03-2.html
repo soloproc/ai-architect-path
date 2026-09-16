@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷03-2：事务、一致性与批流处理——DDIA 核心思想（下）与 RetailHub 实战 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷03-2：事务、一致性与批流处理——DDIA 核心思想（下）与 RetailHub 实战 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html" class="active">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷03-2-事务-一致性与批流处理-ddia-核心思想-下-与-retailhub-实战">卷03-2：事务、一致性与批流处理——DDIA 核心思想（下）与 RetailHub 实战</h1>
+<blockquote>
+<p>导语：上一页解决了&quot;数据怎么存、怎么复制、怎么拆分&quot;，本页回答&quot;并发与故障之下，数据还对不对&quot;：事务与隔离级别（用下单超卖讲透）、分布式系统的时钟/网络/故障检测、线性一致与 CAP 的真实含义、批处理与流处理的分工（对应 DDIA 第 7-11 章）。随后是本卷实战：产出一份《数据架构设计文档》和一个可运行的&quot;防超卖隔离级别对比实验&quot;，文末附常见误区与自测清单（两者覆盖卷03 全卷两页内容）。提醒：§9 的线性一致/CAP 与卷04-2 的 Raft 是全路径的理论高点，标注&quot;可二刷&quot;——第一遍建立直觉即可，卷04-2 会把它落到工程机制上。学完本页即达成卷03 末状态：你为 RetailHub 数据规模增长重做了一套有论证、有取舍的存储/复制/分区/一致性设计。</p>
+</blockquote>
+<hr>
+<h2 id="7-事务与隔离级别-用-下单超卖-讲透">7. 事务与隔离级别：用&quot;下单超卖&quot;讲透<sup class="fn-ref"><a href="#fn-7" id="ref-7">[1]</a></sup></h2>
+<p>事务是数据库给你的&quot;把多个读写打包成一个可靠单元&quot;的承诺。但完全的串行化太贵，于是有了隔离级别的妥协阶梯：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>防住的异常</th>
+<th>防不住的</th>
+<th>MySQL(InnoDB)</th>
+<th>PG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读已提交 RC</td>
+<td>脏读、脏写</td>
+<td>不可重复读、丢失更新</td>
+<td>可选</td>
+<td>默认</td>
+</tr>
+<tr>
+<td>可重复读 RR</td>
+<td>+ 不可重复读（快照）</td>
+<td>写倾斜（write skew）</td>
+<td><strong>默认</strong></td>
+<td>可选</td>
+</tr>
+<tr>
+<td>可串行化</td>
+<td>全部</td>
+<td>——（性能代价）</td>
+<td>可选</td>
+<td>SSI 实现</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>先把&quot;异常图鉴&quot;认全，再谈防法。</strong> 隔离级别防的是下面这些&quot;并发事故类型&quot;，每种都有明确的案发现场：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>异常</th>
+<th>一句话案发现场</th>
+<th>零售版举例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>脏读</td>
+<td>读到别人<strong>还没提交</strong>的数据</td>
+<td>看到对方事务中&quot;已取消的订单&quot;并据此发货</td>
+</tr>
+<tr>
+<td>脏写</td>
+<td>覆盖别人还没提交的写入</td>
+<td>两个事务同改库存行，前一个的扣减被直接抹掉</td>
+</tr>
+<tr>
+<td>不可重复读</td>
+<td>同一事务内两次读同一行，值变了</td>
+<td>下单事务里先读库存 10，复核时变 3，前后口径对不上</td>
+</tr>
+<tr>
+<td>幻读</td>
+<td>同一事务内两次范围查询，<strong>行数</strong>变了</td>
+<td>&quot;统计今日订单数&quot;两次结果不同，因为别的事务刚插了新单</td>
+</tr>
+<tr>
+<td>丢失更新</td>
+<td>两个事务&quot;读-改-写&quot;同一行，后写覆盖先写</td>
+<td>本节主角：超卖</td>
+</tr>
+<tr>
+<td>写倾斜</td>
+<td>各自读取的数据决定写入合法性，读都合法、合起来违规</td>
+<td>两个客服同时&quot;关掉最后一个营业门店&quot;（见本节末）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>RR 是怎么做到&quot;不加锁还能重复读&quot;的？答案：MVCC（多版本并发控制）。</strong> InnoDB 给每行数据挂着一条版本链（配合 undo log），事务开启时拿到一个&quot;快照点&quot;：之后所有读都只看得见<strong>快照点之前已提交</strong>的版本，别的事务随后怎么改都与你无关。写操作则走当前最新版本并加行锁。这套&quot;读走快照、写走加锁&quot;的分离，让普通 SELECT 完全不阻塞写——这是 MySQL 高并发读性能的根基。代价也写在设计里：<strong>快照读解决的是&quot;看到的口径一致&quot;，解决不了&quot;写的时候撞上别人也在写&quot;</strong>——所以丢失更新、写倾斜在 RR 下照样发生，必须靠原子操作、显式锁或串行化补位。PG 的可串行化（SSI）更聪明：不是真串行执行，而是让事务跑在快照上、<strong>检测读写依赖形成的危险环</strong>再回滚其中一个，用&quot;乐观检测&quot;逼近串行的正确性。</p>
+<p><strong>零售超卖场景</strong>：下单扣库存是&quot;读库存 → 判断 → 写回&quot;三步。两个并发事务各读到 stock=1，都判断通过，都写回——卖出 2 件，库存只剩 1。这是<strong>丢失更新</strong>异常。用时序图把&quot;灾难发生的瞬间&quot;定格：</p>
+<pre class="mermaid">sequenceDiagram
+    participant T1 as 事务 A（买家甲）
+    participant DB as 库存行 stock=1
+    participant T2 as 事务 B（买家乙）
+    T1-&gt;&gt;DB: SELECT stock → 读到 1
+    T2-&gt;&gt;DB: SELECT stock → 读到 1
+    Note over T1,T2: 两个事务都判断 stock ≥ 1 通过
+    T1-&gt;&gt;DB: UPDATE stock = stock - 1 → 0
+    T2-&gt;&gt;DB: UPDATE stock = stock - 1 → -1
+    Note over DB: 卖出 2 件，实际只有 1 件：丢失更新（超卖）
+</pre>
+<p>防法有三：</p>
+<ol>
+<li><strong>原子操作</strong>（首选，最简单）：<code>UPDATE sku SET stock = stock - ? WHERE id = ? AND stock &gt;= ?</code>，影响行数为 0 即失败。让数据库的单行锁帮你串行化，甚至不依赖隔离级别。</li>
+<li><strong>显式锁</strong>：<code>SELECT ... FOR UPDATE</code> 锁住库存行再走逻辑。灵活但锁持有时间长，吞吐差。</li>
+<li><strong>可串行化隔离</strong>：数据库兜底检测冲突并回滚一个事务。正确但要处理重试，且吞吐最低。</li>
+</ol>
+<p>工程排序：<strong>能用原子操作就不用锁，能用锁就不上串行化</strong>。本卷实战会用一个可运行实验亲眼看这三种写法在并发下的差别——读十遍&quot;丢失更新&quot;的定义，不如亲手让它发生一次再消灭它。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：隔离级别与超卖。</strong> 库存=1，两个并发事务同时抢。先用&quot;Read Committed · 先读后写&quot;模式<strong>单步执行</strong>，亲眼看两个事务都读到 stock=1、都通过判断、库存被扣成 -1（超卖发生）；再切到&quot;原子 UPDATE&quot;模式重放——第二个事务的 UPDATE 被行锁挡住，等锁释放后条件 <code>stock &gt;= 1</code> 不再成立，影响 0 行、安全失败。注意结论：防住超卖的是<strong>原子操作带来的单行互斥</strong>，与数据库默认隔离级别无关。</p>
+</blockquote>
+<div class="demo-embed" data-demo="isolation-oversell"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>选&quot;Read Committed · 先读后写&quot;模式，用&quot;单步执行&quot;逐步走：在第几步时两个事务都读到了 stock=1？灾难在哪一步变得不可挽回？</li>
+<li>继续单步到结束：库存最终是几？<code>order_log</code> 里有几条订单？这正是哪种并发异常（对照上文异常图鉴）？</li>
+<li>点&quot;重置&quot;，切到&quot;原子 UPDATE · 串行化效果&quot;模式再单步走：第二个事务的 UPDATE 卡在哪一步？等锁释放后 <code>stock &gt;= 1</code> 条件还成立吗？</li>
+<li>对比两种模式的最终库存与成功订单数，回答：防住超卖的是&quot;更高的隔离级别&quot;还是别的什么机制？</li>
+<li>思考题：如果把 naive 模式的 SELECT 改成 <code>SELECT ... FOR UPDATE</code>（课文 §7 防法二），Demo 里哪个环节会发生变化？吞吐会怎样？</li>
+</ol>
+<blockquote>
+<p>另一个零售经典异常是<strong>写倾斜</strong>：两个客服同时给同一店铺&quot;关闭最后一个营业中的门店&quot;，各自检查&quot;还有其他门店营业中&quot;都通过——这不是单行问题，是&quot;读取的数据决定写入的合法性&quot;问题，串行化或物化冲突（锁一张汇总行）才能解。设计文档中要为这类场景列出清单。</p>
+</blockquote>
+<p>把写倾斜也用时序图定格，对比它和丢失更新的差别——<strong>丢失更新撞的是同一行，写倾斜撞的是&quot;同一个前提&quot;</strong>：</p>
+<pre class="mermaid">sequenceDiagram
+    participant T1 as 事务 A（客服甲）
+    participant DB as 门店表（营业中：店1、店2）
+    participant T2 as 事务 B（客服乙）
+    T1-&gt;&gt;DB: SELECT COUNT(*) WHERE 状态=营业中 → 2
+    T2-&gt;&gt;DB: SELECT COUNT(*) WHERE 状态=营业中 → 2
+    Note over T1,T2: 各自判断&quot;关掉一家还剩一家&quot;&lt;br/&gt;前提都成立
+    T1-&gt;&gt;DB: UPDATE 店1 状态=已关闭
+    T2-&gt;&gt;DB: UPDATE 店2 状态=已关闭
+    Note over DB: 两家全关了，店铺停业——&lt;br/&gt;任何单一行都没被两人同时写&lt;br/&gt;行锁防不住，这就是写倾斜
+</pre>
+<p>防写倾斜的本质手段只有两个：让前提也被锁住（物化冲突——额外维护一张&quot;营业中门店计数&quot;汇总行，更新前先锁它），或交给可串行化隔离去检测&quot;读写依赖成环&quot;后回滚一方。</p>
+<hr>
+<h2 id="8-分布式系统的麻烦-时钟-网络与故障检测">8. 分布式系统的麻烦：时钟、网络与故障检测<sup class="fn-ref"><a href="#fn-8" id="ref-8">[2]</a></sup></h2>
+<p>一旦数据跨机器，三个坏消息等着：</p>
+<ul>
+<li><strong>网络是不可靠的</strong>：请求丢了、响应丢了、只是慢了，调用方<strong>无法区分</strong>。超时不是答案，只是赌注。</li>
+<li><strong>时钟是不可信的</strong>：机器时钟会跳变（NTP 校正）、会漂移。用墙上时钟给跨机器事件排序（&quot;后写胜出&quot;last-write-wins），时钟一歪，数据就&quot;安静地被覆盖&quot;。单调时钟只能测间隔，不能跨机器比先后。</li>
+<li><strong>故障检测是猜的</strong>：节点是死了还是只是 GC 停顿了 30 秒？心跳超时永远存在误判，于是有了&quot;脑裂&quot;——两个节点都以为自己是主。</li>
+</ul>
+<p><strong>落到 RetailHub</strong>：主从切换（failover）就是故障检测的实战场——<code>Seconds_Behind_Source</code> 监控 + 哨兵/MHA 自动切换，必须配置防脑裂（旧主降级为只读，fencing）；所有&quot;按时间戳取最新&quot;的逻辑（如商品价格版本）改用单调递增的版本号而非依赖机器时钟。</p>
+<hr>
+<h2 id="9-一致性与共识-线性一致与-cap-的真实含义">9. 一致性与共识：线性一致与 CAP 的真实含义<sup class="fn-ref"><a href="#fn-9" id="ref-9">[3]</a></sup></h2>
+<ul>
+<li><strong>线性一致性（Linearizability）</strong>：让系统表现得像只有一份数据、所有操作原子生效。它是最强的&quot;好用&quot;保证，但代价是协调与延迟；多数系统提供的是更弱的&quot;最终一致 + 若干会话级保证&quot;（读己之写、单调读——第 5 章那些补丁）。</li>
+<li><strong>CAP 的真实含义</strong>：常被误读为&quot;三选二&quot;。准确说法是——<strong>网络分区（P）无法避免，所以真正的选择只发生在分区发生时：保可用（A，继续服务但可能读到旧值）还是保一致（C，拒绝服务直到恢复）</strong>。没有分区时 CA 兼得，日常架构争论里拿 CAP 当&quot;不用追求一致性&quot;的挡箭牌是误用。</li>
+</ul>
+<p>把&quot;选择只在分区时发生&quot;画成决策图，贴在工位上比背定义有用：</p>
+<pre class="mermaid">flowchart TD
+    W[一次读写请求] --&gt; P{网络分区&lt;br/&gt;正在发生？}
+    P --&gt;|否 99.x% 的时间| CA[&quot;C 和 A 兼得&lt;br/&gt;正常追求强一致&quot;]
+    P --&gt;|是 故障窗口| CH{这个数据的取舍}
+    CH --&gt;|选 A：继续服务| AP[&quot;可能返回旧值&lt;br/&gt;事后修复/对账&lt;br/&gt;例：库存展示 行为日志&quot;]
+    CH --&gt;|选 C：拒绝/阻塞| CP[&quot;报错或等待恢复&lt;br/&gt;绝不出错&lt;br/&gt;例：支付状态 账务&quot;]
+    AP -.恢复后.-&gt; REC[对账与补偿机制兜底]
+    CP -.恢复后.-&gt; REC
+</pre>
+<p>注意图里没有一个分支叫&quot;放弃 P&quot;——分区不是你的选择，只是你的处境。</p>
+<ul>
+<li><strong>共识与全序广播</strong>：让一群节点对&quot;值的顺序&quot;达成一致（Raft/Paxos），它是主选举、分布式锁、事务提交的公共内核。</li>
+</ul>
+<p><strong>落到 RetailHub</strong>：订单支付状态要求线性一致语义（用户看到&quot;已支付&quot;就必须是真的已支付）——走主库强读；库存展示页可以是最终一致（&quot;仅剩 3 件&quot;晚几秒没关系）；RocketMQ 本身的 NameServer 与主从复制，正好是观察&quot;共识在真实产品里怎么落地&quot;的案例。</p>
+<hr>
+<h2 id="10-批处理与流处理-gmv-报表的两条路">10. 批处理与流处理：GMV 报表的两条路<sup class="fn-ref"><a href="#fn-10" id="ref-10">[4]</a></sup></h2>
+<ul>
+<li><strong>批处理（第 10 章）</strong>：有界输入，全量计算。MapReduce 的思想内核只有一句话：<strong>把&quot;移动计算到数据&quot;替代&quot;移动数据到计算&quot;，用分治换取对任意大数据量的线性扩展能力</strong>。优点：可重跑、结果确定、错误可重放——算错了，改代码重跑一遍即可。</li>
+<li><strong>流处理（第 11 章）</strong>：无界输入，持续计算。事件流（broker 做日志存储）+ 消费者持续物化出结果。优点：低延迟；难点：Exactly-once 语义要靠幂等 + 事务性写出拼出来，窗口与乱序要显式处理。</li>
+</ul>
+<p><strong>落到 RetailHub 的&quot;批还是流&quot;决策</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>报表</th>
+<th>决策</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>日报/周报（T+1）</td>
+<td>批：每日凌晨重算全量</td>
+<td>口径改了就重跑，天然自愈</td>
+</tr>
+<tr>
+<td>实时大屏（分钟级 GMV）</td>
+<td>流：消费 order_created 持续聚合</td>
+<td>延迟是卖点，允许小误差</td>
+</tr>
+<tr>
+<td>口径验收</td>
+<td>批结果为准绳，校准流结果</td>
+<td>Lambda 思想的简化版</td>
+</tr>
+</tbody>
+</table></div>
+<p>这就是著名的&quot;批流一体&quot;争论在中小团队的务实答案：<strong>批做基准、流做预览，别一开始就追两套结果完全一致的乌托邦</strong>。</p>
+<pre class="mermaid">flowchart LR
+    O[订单服务] --&gt; MQ[RocketMQ 事件流]
+    MQ --&gt; S[流消费者&lt;br/&gt;分钟级GMV大屏]
+    DB[(订单库)] --&gt;|每日凌晨全量| B[批处理&lt;br/&gt;T+1日报表]
+    S --&gt; C{对账}
+    B --&gt; C
+    C --&gt;|流偏差&gt;阈值| AL[告警+以批为准修正]
+</pre>
+<hr>
+<h2 id="11-本卷实战-retailhub-演进第-3-步">11. 本卷实战：RetailHub 演进第 3 步</h2>
+<h3 id="11-1-背景">11.1 背景</h3>
+<p>卷02 末状态的 RetailHub 跑得不错，但三个增长信号出现了：订单表预计一年内过 5000 万行；商品属性随品类扩张频繁变更 schema；行为日志（埋点）每天 3000 万条无处安放。本步不写新功能，产出两件东西：<strong>一份《数据架构设计文档》<strong>和</strong>一个防超卖隔离级别实验</strong>。</p>
+<h3 id="11-2-任务一-数据架构设计文档">11.2 任务一：《数据架构设计文档》</h3>
+<p>按下面的论证框架，为<strong>订单、商品、行为日志</strong>三类数据各写一节（每节 1-2 页）。写作也分三步递进：<strong>先填画像（第 1 节）→ 再做选型论证（第 2-7 节，每节必须写&quot;被淘汰方案+理由&quot;）→ 最后过三目标评审（第 8 节）</strong>。不要跳步——画像没定量，后面的论证全是空话。文档模板：</p>
+<pre><code class="language-markdown"># 数据类别：&lt;订单 / 商品 / 行为日志&gt;
+## 1. 访问模式画像
+- 数据量与增速：____ ；读写比：____ ；Top-5 查询：____
+## 2. 数据模型选择（DDIA 第2章）
+- 选择：____ ；被淘汰的方案与理由：____
+## 3. 存储引擎取向（DDIA 第3章）
+- B-Tree / LSM-Tree / 列存：____ ；依据（读写模式）：____
+## 4. 复制方案（DDIA 第5章）
+- 单主 / 多主 / 无主：____
+- 一致性承诺（读己之写? 单调读? 线性一致?）：____
+- 故障时的取舍（CAP 的 P 发生时选 A 还是 C）：____
+## 5. 分区方案（DDIA 第6章）
+- 分区键：____ ；哈希/范围：____ ；再均衡策略：____
+- 已知热点风险与对策：____
+## 6. 一致性与事务要求（DDIA 第7/9章）
+- 关键事务场景：____ ；需要的隔离级别：____ ；异常清单：____
+## 7. 批/流处理定位（DDIA 第10/11章）
+- 该数据进批 / 流 / 两者：____ ；以谁为准绳：____
+## 8. 三目标评审（DDIA 第1章）
+- 可靠性增进/牺牲：____ ；可扩展性：____ ；可维护性：____
+</code></pre>
+<p>参考结论方向（文档中要自行论证，不许照抄）：订单——关系模型、InnoDB、单主半同步、按 tenant_id 分区预留、原子扣减防超卖；商品——JSON 文档取向、读缓存扛流量；行为日志——LSM/列存、无主高写可用、按天范围分区、批流两用。</p>
+<h3 id="11-3-任务二-防超卖隔离级别对比实验-可运行">11.3 任务二：防超卖隔离级别对比实验（可运行）</h3>
+<p>准备一张库存表和两种扣减写法，用并发脚本亲眼看超卖发生与消失：</p>
+<pre><code class="language-sql">-- setup.sql：准备实验数据
+CREATE TABLE IF NOT EXISTS sku (
+  id INT PRIMARY KEY,
+  name VARCHAR(64),
+  stock INT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS order_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  sku_id INT,
+  qty INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO sku (id, name, stock) VALUES (1, &#x27;爆款卫衣&#x27;, 1)
+  ON DUPLICATE KEY UPDATE stock = 1;
+TRUNCATE TABLE order_log;
+</code></pre>
+<pre><code class="language-python"># oversell_lab.py —— 并发下单实验，亲眼看超卖
+# 用法: python oversell_lab.py naive   （先读后写，会超卖）
+#       python oversell_lab.py atomic  （原子扣减，不超卖）
+import sys
+import threading
+import pymysql
+
+DB = dict(host=&quot;127.0.0.1&quot;, port=3306, user=&quot;root&quot;, password=&quot;root&quot;, database=&quot;retailhub&quot;)
+
+def naive_buy(sku_id: int) -&gt; bool:
+    &quot;&quot;&quot;危险写法：先 SELECT 判断，再 UPDATE 写回（丢失更新）。&quot;&quot;&quot;
+    conn = pymysql.connect(**DB, autocommit=True)
+    cur = conn.cursor()
+    cur.execute(&quot;SELECT stock FROM sku WHERE id = %s&quot;, (sku_id,))
+    stock = cur.fetchone()[0]
+    if stock &gt;= 1:
+        cur.execute(&quot;UPDATE sku SET stock = stock - 1 WHERE id = %s&quot;, (sku_id,))
+        cur.execute(&quot;INSERT INTO order_log (sku_id, qty) VALUES (%s, 1)&quot;, (sku_id,))
+        conn.close()
+        return True
+    conn.close()
+    return False
+
+def atomic_buy(sku_id: int) -&gt; bool:
+    &quot;&quot;&quot;正确写法：原子扣减，让影响行数告诉你成败。&quot;&quot;&quot;
+    conn = pymysql.connect(**DB, autocommit=True)
+    cur = conn.cursor()
+    cur.execute(
+        &quot;UPDATE sku SET stock = stock - 1 WHERE id = %s AND stock &gt;= 1&quot;,
+        (sku_id,),
+    )
+    ok = cur.rowcount == 1
+    if ok:
+        cur.execute(&quot;INSERT INTO order_log (sku_id, qty) VALUES (%s, 1)&quot;, (sku_id,))
+    conn.close()
+    return ok
+
+def run(mode: str, workers: int = 20) -&gt; None:
+    buy = naive_buy if mode == &quot;naive&quot; else atomic_buy
+    results = []
+    def worker():
+        results.append(buy(1))
+    threads = [threading.Thread(target=worker) for _ in range(workers)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    sold = sum(results)
+    print(f&quot;模式={mode} 并发={workers} 成功下单={sold} （库存只有1，sold&gt;1 即超卖）&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    run(sys.argv[1] if len(sys.argv) &gt; 1 else &quot;naive&quot;)
+</code></pre>
+<p>实验按三步递进，<strong>每步验收通过再进下一步</strong>：</p>
+<p><strong>第 1 步：复现超卖（让灾难发生一次）</strong></p>
+<ul>
+<li>目标：亲眼看到丢失更新，而不是背定义。</li>
+<li>操作：执行 <code>setup.sql</code> 复位库存为 1，跑 <code>python oversell_lab.py naive</code>（20 并发）。</li>
+<li>验收：输出 <code>成功下单 &gt; 1</code>，且数据库里 <code>stock = -1</code> 或更小；截图保存运行输出。</li>
+</ul>
+<p><strong>第 2 步：原子扣减修复（消灭灾难）</strong></p>
+<ul>
+<li>目标：理解&quot;原子操作带来的单行互斥&quot;与隔离级别无关。</li>
+<li>操作：复位库存，跑 <code>python oversell_lab.py atomic</code>，分别用 20 和 100 并发各跑 3 次。</li>
+<li>验收：6 次运行 <code>成功下单</code> 恒等于 1，<code>stock</code> 恒等于 0。</li>
+</ul>
+<p><strong>第 3 步：显式锁进阶（对比第三种防法）</strong></p>
+<ul>
+<li>目标：体会&quot;能用原子操作就不用锁&quot;的代价差异。</li>
+<li>操作：把 naive 版的 SELECT 改成 <code>SELECT ... FOR UPDATE</code> 并包在显式事务里（<code>BEGIN ... COMMIT</code>），复位后同压对比。</li>
+<li>验收：超卖消失（sold=1），但 100 并发下总耗时显著高于 atomic 版；在实验报告中用&quot;锁持有时间&quot;解释差距来源。</li>
+</ul>
+<h3 id="11-4-ai-coding-实操模式">11.4 AI Coding 实操模式</h3>
+<p>本任务的 SQL 与并发脚本结构简单，但<strong>并发正确性</strong>恰恰是 AI 最容易&quot;看起来对、实际错&quot;的领域，适合练&quot;AI 生成 + 人评审&quot;的完整闭环。</p>
+<p><strong>① 可直接复制的提示词模板</strong></p>
+<pre><code class="language-text">背景：MySQL 8，库存表 sku(id, name, stock)，Python 3.12 + pymysql。
+任务：写一个并发下单实验脚本，对比三种扣库存写法在 20 线程并发下的正确性：
+1) naive：先 SELECT 判断 stock&gt;=1 再 UPDATE（应复现超卖）
+2) atomic：UPDATE ... SET stock=stock-1 WHERE id=? AND stock&gt;=1，按 rowcount 判成败
+3) locked：显式事务内 SELECT ... FOR UPDATE 再扣减
+约束：每轮实验前自动复位 stock=1 并清空订单日志表；输出三种模式的成功下单数与总耗时；
+线程安全收集结果；代码 100 行内。
+交付：完整脚本 + 每种模式预期的运行结果与原因解释。
+</code></pre>
+<p><strong>② AI 生成初版后的人工评审清单</strong>：</p>
+<ul>
+<li class="task-item"><input type="checkbox"> <strong>连接管理</strong>：是否每个线程独立建连接？AI 常图省事共享一个连接——pymysql 连接非线程安全，实验结论会失真</li>
+<li class="task-item"><input type="checkbox"> <strong>复位正确性</strong>：<code>stock</code> 复位与 <code>order_log</code> 清空是否在同一轮实验前原子完成？多线程残留会导致假超卖</li>
+<li class="task-item"><input type="checkbox"> <strong>事务边界</strong>：locked 版是否忘记 <code>COMMIT</code>（或 autocommit 误开导致 FOR UPDATE 锁立即释放）？这是 AI 写锁代码的高发错误</li>
+<li class="task-item"><input type="checkbox"> <strong>结果统计</strong>：<code>results.append</code> 的线程安全性（本例 OK，因为 list.append 原子），以及耗时统计是否含线程启动开销</li>
+<li class="task-item"><input type="checkbox"> <strong>语义对齐</strong>：AI 若&quot;贴心地&quot;给 naive 版也加了事务或锁，实验就废了——naive 版必须保持天真</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox"> AI 生成脚本<strong>不加人工修改</strong>即可完成第 1、2 步验收</li>
+<li class="task-item"><input type="checkbox"> 评审清单中发现的每一处问题都记录&quot;AI 犯了什么错、错因是什么、如何修复&quot;——写进实验报告，这是本任务最有价值的产出</li>
+</ul>
+<h3 id="11-5-验收标准">11.5 验收标准</h3>
+<ul>
+<li class="task-item"><input type="checkbox"> 设计文档覆盖订单/商品/行为日志三类数据，每类都完整走一遍 8 节论证框架</li>
+<li class="task-item"><input type="checkbox"> 每个选型都写出&quot;被淘汰方案 + 淘汰理由&quot;，无一拍脑袋结论</li>
+<li class="task-item"><input type="checkbox"> 文档显式声明各数据类别在分区故障时的 A/C 取舍</li>
+<li class="task-item"><input type="checkbox"> <code>oversell_lab.py naive</code> 在 20 并发下复现 sold &gt; 1（附运行输出）</li>
+<li class="task-item"><input type="checkbox"> 复位后 <code>oversell_lab.py atomic</code> 在 20/100 并发下 sold 恒等于 1</li>
+<li class="task-item"><input type="checkbox"> 提交实验报告：解释 naive 版超卖对应哪种并发异常（丢失更新），以及 atomic 版为何与隔离级别无关也能防住</li>
+<li class="task-item"><input type="checkbox"> 文档中订单分区键选择附带&quot;大租户热点&quot;对策一节</li>
+<li class="task-item"><input type="checkbox"> GMV 报表的批/流分工与对账机制写入文档第 7 节</li>
+</ul>
+<hr>
+<h2 id="12-常见误区">12. 常见误区</h2>
+<ol>
+<li><strong>用平均延迟看性能</strong> —— P99 才代表真实受害用户；平均值漂亮时可能 1% 的用户正在超时。</li>
+<li><strong>&quot;NoSQL 就是快，关系库过时了&quot;</strong> —— 模型之争是访问模式之争，不是新旧之争；订单这种强事务场景用文档库是自找苦吃。</li>
+<li><strong>拿 CAP 当&quot;放弃一致性&quot;的许可证</strong> —— CAP 只在分区发生时做选择；平时该强一致就强一致。</li>
+<li><strong>以为数据库默认隔离级别能防超卖</strong> —— MySQL 默认 RR 防不住丢失更新；防超卖靠原子操作/锁/串行化，不靠默认。</li>
+<li><strong>用机器时间戳做&quot;后写胜出&quot;</strong> —— 时钟漂移会让旧数据安静覆盖新数据，用版本号。</li>
+<li><strong>消息/接口编码想改就改</strong> —— 滚动升级期新旧代码共存，破坏向前兼容的字段改名就是线上事故。</li>
+<li><strong>分区键随手选自增 ID</strong> —— 多租户 SaaS 不携带租户信息的分区键，等于放弃了租户口径的全部查询与隔离能力。</li>
+<li><strong>流处理结果当唯一真相</strong> —— 流会重复、会乱序、会有窗口边界问题；中小团队务必保留批处理准绳做对账。</li>
+</ol>
+<hr>
+<h2 id="13-自测清单-10-项">13. 自测清单（10 项）</h2>
+<ol>
+<li>数据系统三大目标各是什么？为什么延迟要看 P99 而非平均值？</li>
+<li>订单、商品、行为日志分别匹配哪种数据模型？论据是访问模式里的什么特征？</li>
+<li>B-Tree 与 LSM-Tree 的写路径差异是什么？各适合什么读写比？</li>
+<li>向后兼容与向前兼容的区别？滚动升级期哪个是刚需？</li>
+<li>单主/多主/无主复制各自的一致性承诺与代价？订单库为什么选单主？</li>
+<li>按键哈希分区解决了什么、牺牲了什么？大租户热点怎么破？</li>
+<li>丢失更新与写倾斜的区别？各自的防法？</li>
+<li>为什么&quot;超时&quot;不能告诉你请求到底成功没有？脑裂怎么产生、怎么防？</li>
+<li>CAP 的准确含义是什么？为什么&quot;三选二&quot;是误读？</li>
+<li>GMV 报表&quot;批做准绳、流做预览&quot;的分工理由？流结果为什么不能单独信？</li>
+</ol>
+<hr>
+<h2 id="14-下卷预告">14. 下卷预告</h2>
+<p>至此，RetailHub 有了服务骨架（卷02）和数据骨架（卷03），但它们还跑在你笔记本的 docker-compose 里。卷04 进入分布式与平台工程：容器化与编排、服务发现与配置中心、可观测性三板斧（指标/日志/追踪）、CI/CD 与发布策略——把&quot;能跑&quot;变成&quot;能持续、可运维地跑&quot;，并为后半程的 AI 平台（PI）工程打底。当平台足够稳，我们才会把第一个 AI 能力接进 RetailHub——那就是 DataAgent 故事的真正开场。</p>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：<a href="vol-04-1.html">卷04-1：服务间通信与流量治理——分布式架构与平台工程（上）</a></p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-7">同上，第 7 章&quot;事务&quot;——隔离级别、MVCC 快照隔离、丢失更新与写倾斜。 <a class="fn-back" href="#ref-7" aria-label="回到正文">↩</a></li>
+<li id="fn-8">同上，第 8 章&quot;分布式系统的麻烦&quot;——不可靠的网络、不可信的时钟与故障检测。 <a class="fn-back" href="#ref-8" aria-label="回到正文">↩</a></li>
+<li id="fn-9">同上，第 9 章&quot;一致性与共识&quot;——线性一致、CAP 的准确含义与全序广播。 <a class="fn-back" href="#ref-9" aria-label="回到正文">↩</a></li>
+<li id="fn-10">同上，第 10 章&quot;批处理&quot;与第 11 章&quot;流处理&quot;——批做准绳、流做预览的分工依据。 <a class="fn-back" href="#ref-10" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-03-1.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷03-1 · 存储复制与分区</span></a>
+      <a class="next" href="vol-04-1.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷04-1 · 通信与流量治理</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#7-事务与隔离级别-用-下单超卖-讲透">7. 事务与隔离级别：用"下单超卖"讲透</a>
+    <a class="toc-h2" href="#8-分布式系统的麻烦-时钟-网络与故障检测">8. 分布式系统的麻烦：时钟、网络与故障检测</a>
+    <a class="toc-h2" href="#9-一致性与共识-线性一致与-cap-的真实含义">9. 一致性与共识：线性一致与 CAP 的真实含义</a>
+    <a class="toc-h2" href="#10-批处理与流处理-gmv-报表的两条路">10. 批处理与流处理：GMV 报表的两条路</a>
+    <a class="toc-h2" href="#11-本卷实战-retailhub-演进第-3-步">11. 本卷实战：RetailHub 演进第 3 步</a>
+    <a class="toc-h3" href="#11-1-背景">11.1 背景</a>
+    <a class="toc-h3" href="#11-2-任务一-数据架构设计文档">11.2 任务一：《数据架构设计文档》</a>
+    <a class="toc-h3" href="#11-3-任务二-防超卖隔离级别对比实验-可运行">11.3 任务二：防超卖隔离级别对比实验（可运行）</a>
+    <a class="toc-h3" href="#11-4-ai-coding-实操模式">11.4 AI Coding 实操模式</a>
+    <a class="toc-h3" href="#11-5-验收标准">11.5 验收标准</a>
+    <a class="toc-h2" href="#12-常见误区">12. 常见误区</a>
+    <a class="toc-h2" href="#13-自测清单-10-项">13. 自测清单（10 项）</a>
+    <a class="toc-h2" href="#14-下卷预告">14. 下卷预告</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-03-2:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>
