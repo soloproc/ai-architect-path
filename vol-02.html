@@ -45,6 +45,14 @@
     <a href="chapter-08.html">篇08 · 记忆治理</a>
     <a href="chapter-09.html">篇09 · 评测与受控进化</a>
     <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">参考资料原文存档</div>
+    <a href="ref-01.html">资料01 · 服务端架构演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
     <div class="nav-group">附录</div>
     <a href="report.html">课程分析报告</a>
   </nav>
@@ -666,7 +674,7 @@ def place_order(order: Order, db, producer) -&gt; int:
 <li><strong>&quot;去 IOE&quot;值得单独说一句</strong>：它不是&quot;国产替代&quot;的口号，而是一笔经济账加一笔可控账——Oracle  license 与小型机按规模线性涨价，且黑盒出问题只能等厂商；换成 MySQL 集群 + PC 服务器后，单位成本降一个数量级，源码级问题自己能修。代价是要自建整套运维与高可用能力。<strong>架构决策到了一定规模，本质是成本与控制权决策。</strong></li>
 </ul>
 <h3 id="6-2-网络热文的-14-次演进-一张有用的教学模型-但不是淘宝史">6.2 网络热文的&quot;14 次演进&quot;：一张有用的教学模型，但不是淘宝史</h3>
-<p>你可能读过那篇流传极广的《淘宝 10 年，高并发分布式架构演进之路》<sup class="fn-ref"><a href="#fn-zhihu-arch" id="ref-zhihu-arch">[5]</a></sup>，里面把架构演进讲成平滑的 14 步阶梯：</p>
+<p>你可能读过那篇流传极广的《淘宝 10 年，高并发分布式架构演进之路》<sup class="fn-ref"><a href="#fn-arch14" id="ref-arch14">[5]</a></sup>，里面把架构演进讲成平滑的 14 步阶梯：</p>
 <blockquote>
 <p>应用与 DB 分离 → 本地/分布式缓存 → 反向代理负载均衡 → 读写分离 → 按业务分库 → 大表拆小表 → LVS/F5 多级负载均衡 → DNS 轮询多机房 → NoSQL 与搜索引擎 → 大应用拆小应用 → 微服务抽离 → ESB → 容器化 → 云平台</p>
 </blockquote>
@@ -970,10 +978,10 @@ services:
 <li id="fn-fenix">周志明《凤凰架构：构建可靠的大型分布式系统》，在线版 <a href="https://icyfenix.cn">https://icyfenix.cn</a> （&quot;演进史观&quot;见导言及第一部分）。 <a class="fn-back" href="#ref-fenix" aria-label="回到正文">↩</a></li>
 <li id="fn-ddia-ch5">Martin Kleppmann《数据密集型应用系统设计》（Designing Data-Intensive Applications，DDIA），第 5 章「复制」。 <a class="fn-back" href="#ref-ddia-ch5" aria-label="回到正文">↩</a></li>
 <li id="fn-taobao10">子柳《淘宝技术这十年》，电子工业出版社，2013。 <a class="fn-back" href="#ref-taobao10" aria-label="回到正文">↩</a></li>
-<li id="fn-ali-arch">阿里云开发者社区《淘宝技术架构从 1.0 到 4.0 的架构变迁》，<a href="https://developer.aliyun.com/article/660518。">https://developer.aliyun.com/article/660518。</a> <a class="fn-back" href="#ref-ali-arch" aria-label="回到正文">↩</a></li>
-<li id="fn-zhihu-arch">知乎技术稿 <a href="https://zhuanlan.zhihu.com/p/505738524">https://zhuanlan.zhihu.com/p/505738524</a> （编辑注：原文抓取受限，待确认主题后补充精要）。 <a class="fn-back" href="#ref-zhihu-arch" aria-label="回到正文">↩</a></li>
+<li id="fn-ali-arch">阿里云开发者社区《淘宝技术架构从 1.0 到 4.0 的架构变迁》，<a href="https://developer.aliyun.com/article/660518。本站存档见">https://developer.aliyun.com/article/660518。本站存档见</a><a href="ref-02.html">资料02</a>。 <a class="fn-back" href="#ref-ali-arch" aria-label="回到正文">↩</a></li>
+<li id="fn-arch14">huashiou《服务端高并发分布式架构演进之路》，腾讯云社区转载，<a href="https://cloud.tencent.com/developer/article/1511775">https://cloud.tencent.com/developer/article/1511775</a> ，本站存档见<a href="ref-01.html">资料01</a>。 <a class="fn-back" href="#ref-arch14" aria-label="回到正文">↩</a></li>
 <li id="fn-paicoding">paicoding.com 分布式架构教学模型《淘宝 10 年，高并发分布式架构演进之路》——注意：这是&quot;以淘宝为例的教学化演进模型&quot;，并非淘宝真实路径。 <a class="fn-back" href="#ref-paicoding" aria-label="回到正文">↩</a></li>
-<li id="fn-infoq-wps">InfoQ《超 1500 亿个文档，文档云原生时代的&quot;规模之道&quot;》（2022，金山办公技术分享）。 <a class="fn-back" href="#ref-infoq-wps" aria-label="回到正文">↩</a></li>
+<li id="fn-infoq-wps">InfoQ《超 1500 亿个文档，文档云原生时代的&quot;规模之道&quot;》（2022，金山办公技术分享）。本站存档见<a href="ref-03.html">资料03</a>。 <a class="fn-back" href="#ref-infoq-wps" aria-label="回到正文">↩</a></li>
 </ol>
 </section>
 
