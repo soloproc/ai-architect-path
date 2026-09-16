@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+fakeredis  # 内存版 Redis，学习者无需安装 Redis 即可体验缓存
+httpx      # 测试用（TestClient 依赖）
+pytest     # 测试用

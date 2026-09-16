@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+fakeredis==2.38.0  # M1 未使用，为保持两个里程碑 requirements 一致预置；可删
+httpx   # 测试用（TestClient 依赖）
+pytest  # 测试用
