@@ -7,7 +7,7 @@
 - **Agent Harness（智能体挽具）**：包裹在模型外面的那层控制结构——计划、验证、停止条件、预算、人工关卡。它决定"模型什么时候能自主、自主到什么程度、什么时候必须停"。
 - **Agent Runtime（运行时）**：承载 Harness 执行的分布式系统——Run/Step 的统一执行模型、Checkpoint 与恢复、调度队列、故障接管、多租户资源治理。它决定"任务崩了能不能续、多人同时用会不会互相踩踏"。
 
-很多团队的 Agent 项目死在同一个地方：Demo 阶段一个 `while` 循环加几行 `messages.append()` 跑得很欢，一进生产就被无限循环、状态丢失、重复扣款、审批缺失打死。本篇的目标就是把 DataAgent 中那条"GMV 下滑诊断 → 证据链 → 行动建议 → 预算审批"的核心链路，从单进程同步 Demo 演进为支持 Autonomous Analysis Loop、Durable Workflow、统一 Run 模型、异步长任务、Checkpoint/Resume、Human Approval、副作用幂等和多租户治理的企业级执行系统。
+很多团队的 Agent 项目死在同一个地方：Demo 阶段一个 `while` 循环加几行 `messages.append()` 跑得很欢，一进生产就被无限循环、状态丢失、重复扣款、审批缺失打死。本篇的目标就是把 DataAgent 中那条"GMV 下滑诊断 → 证据链 → 行动建议 → 预算审批"的核心链路，从单进程同步 Demo 演进为支持 Autonomous Analysis Loop、Durable Workflow、统一 Run 模型、异步长任务、Checkpoint/Resume、Human Approval、副作用幂等和多租户治理的企业级执行系统 [^geektime]。
 
 阅读本篇后，你应当能回答三个问题：我的任务该用哪种执行范式？我的 Agent 每一步状态存在哪里、崩了怎么续？我如何向审计和运维证明"这个 Agent 是可控的"？
 
@@ -112,13 +112,88 @@ AutonomyBudget {
 
 一句话：**Loop 是模型的思考节奏，Harness 是组织对模型的管理制度。** Demo 能跑是因为你在旁边盯着当 Harness；生产不能跑是因为你不在了。
 
-### 2.2 Plan / Replan / Verifier
+"Harness" 直译是**挽具**——套在马身上、让马力为人所用的那套皮带与缰绳。这个比喻精确得可怕：马提供动力和方向感，挽具提供约束、转向和刹车；没有挽具的马不是自由，是失控。三层关系可以再说透一层：
+
+| 层 | 类比 | 回答的核心问题 |
+| --- | --- | --- |
+| 模型（Loop 的大脑） | 马 | "下一步做什么" |
+| **Agent Harness** | 挽具 | "允许做什么、何时停、做偏了怎么纠正" |
+| Agent Runtime | 马场与道路系统 | "很多匹马同时跑，如何不撞车、不丢马" |
+
+Harness 各组件并非彼此独立，它们以 Task Contract 为共同依据协同——计划对 Contract 负责，Verifier 拿 Contract 判定，预算从 Contract 的 constraints 换算，Human Gate 由 Contract 的 escalation 触发：
+
+```mermaid
+flowchart TB
+    TC["Task Contract<br/>目标/判据/约束/升级条件"] --> H
+    subgraph H["Agent Harness（管理外壳）"]
+        PL["Plan 管理<br/>计划生成与 Replan"]
+        VF["Verifier<br/>质量与方向校验"]
+        ST["Stop Condition<br/>五类停止条件"]
+        BG["Autonomy Budget<br/>预算计量与降级"]
+        HG["Human Gate<br/>超界升级转人工"]
+        subgraph L["Agent Loop（模型的思考节奏）"]
+            T["Think 推理"] --> A["Act 调工具"] --> O["Observe 读结果"] --> T
+        end
+    end
+    H --> EX["Agent Runtime<br/>Run / Step / Event / Checkpoint"]
+```
+
+读图要点：Loop 是被包围在最内层的——模型的一切"自主"都发生在 Harness 画好的圈里；Harness 自己不持久化任何东西，状态全部交给 Runtime（第 3 节）。这也是为什么"换更强的模型"治不了跑偏：马再强壮，挽具缺失照样翻车。
+
+### 2.2 ReAct 与规划循环：模型是怎么"边想边干"的
+
+ReAct（Reasoning + Acting）是 Agent Loop 最经典的范式：不让模型直接给答案，而是强制它**交错地**产生"思考（Thought）→ 行动（Action）→ 观察（Observation）"的三段式轨迹 [^react]。
+
+为什么"交错"比"直接回答"强？三个原因：
+
+- **思考显式化**：模型把中间推理写出来，既提升多步推理的准确率，也让"它当时在想什么"可审计、可回放；
+- **行动有据**：每一步 Action 都是对真实工具的调用，Observation 把真实世界的反馈接回推理链——幻觉没有藏身的缝隙；
+- **错误可恢复**：某一步观察推翻了前面的假设，下一步 Thought 可以显式纠偏，而不是一路错到底。
+
+```mermaid
+flowchart LR
+    Q["任务输入"] --> T["① Thought<br/>分析现状·规划下一步"]
+    T --> A["② Action<br/>选工具+构造参数"]
+    A --> O["③ Observation<br/>工具返回真实结果"]
+    O --> D{"信息足够?"}
+    D -- "否: 带新观察继续" --> T
+    D -- "是" --> ANS["产出结论"]
+    O -. "每轮追加进上下文" .-> T
+```
+
+工程上要保持清醒：这条循环在它的原始形态里是**裸的**——没有停止条件、没有预算、没有验证 [^react]。把它搬进生产，就是 2.1 节那句"在循环外面套上 Harness"：每一轮 T→A→O 是一个 Step，Verifier 在步间判定信息增益，Budget 在步前扣减，Stop Condition 在步后检查。
+
+规划模式的选型对比（从简到繁）：
+
+| 模式 | 结构 | 何时用 | 代价 |
+| --- | --- | --- | --- |
+| ReAct | 边想边做，无全局计划 | 探索路径短、工具少 | 缺乏全局观，易局部打转 |
+| Plan-and-Execute | 先出完整计划再逐步执行 | 步骤间有依赖、路径可预见 | 环境一变计划即废，需 Replan |
+| Reflexion | 失败后生成"反思"存入上下文重试 | 有可自动判定的成败信号 | 轮次与 token 消耗翻倍 |
+| 动态 Graph（1.4 节） | 代码定骨架、模型选分支 | 企业级主流 | 设计与验证成本最高 |
+
+DataAgent 的归因分析段用的是混合体："Plan-and-Execute 起头 + ReAct 执行 + Verifier 收尾"——先建假设树（全局计划），验证每个假设时走 ReAct 小循环，Verifier 在假设粒度判定生死。
+
+光看三段式不过瘾？下面这个交互 Demo 把同一个 GMV 归因任务跑两遍：默认"有 Harness"模式，每步后 Verifier 判定信息增益，done_criteria 一满足立即停；勾选「无 Harness」对照，裸 while 循环会礼貌地原地打转——"再看一个维度""再拉一个月数据"——直到预算烧穿。注意对照假设树面板：有 Harness 时假设被逐一证实/排除，无 Harness 时它们永远停在 pending：
+
+```demo react-loop
+```
+
+**Demo 导学单**
+
+1. 有 Harness 模式逐步执行，记录每步的信息增益标记。回答：第 3 步"客单价持平"为什么也算增益？（提示：排除假设同样是进展）
+2. 找出循环停止的决定是谁做的——模型说"我做完了"，还是 Verifier 确认 done_criteria？对应 3.2 节状态机旁的哪一句工程纪律？
+3. 切到无 Harness 对照，连续执行到第 3 步：停止条件面板上"无进展检测"亮起，循环为什么没停？这说明停止条件的存在与执行之间差着什么？
+4. 无 Harness 模式跑满 10 步，计算浪费了多少步预算，并指出哪一步属于"重复劳动"（提示：第 4 步重复查了 UV）。
+5. 对比两种模式下假设树的终态，解释 2.5 节为什么要求 Analysis State 是结构化对象而不是聊天记录。
+
+### 2.3 Plan / Replan / Verifier
 
 - **Plan**：开工前模型基于 Task Contract 生成显式计划（假设清单、取数步骤、验证方式），存进 State。计划的价值是让"跑偏"可检测——没有计划，就没有"偏离计划"这个概念。
 - **Verifier**：独立于生成模型的检查者（可以是规则、另一个模型调用或两者组合）。在 GMV 诊断中它检查：每个结论是否有证据引用？SQL 结果行数是否为 0（空结果不能当证据）？是否遗漏了 done_criteria 要求的因子？
 - **Replan**：Verifier 打回或环境变化（某数据源不可用）时，Harness 触发重计划，并记录"旧计划 → 触发原因 → 新计划"。**Replan 次数也计入预算**——无限 Replan 就是无限循环的文雅说法。
 
-### 2.3 Stop Condition：什么时候必须停
+### 2.4 Stop Condition：什么时候必须停
 
 一个健壮的 Harness 至少有五类停止条件，任一命中即停：
 
@@ -130,7 +205,7 @@ AutonomyBudget {
 
 每一类停止都产生一个带原因的终态事件——这是 Run Timeline 能解释"它为什么停"的前提。
 
-### 2.4 Analysis State：管理"分析过程"本身
+### 2.5 Analysis State：管理"分析过程"本身
 
 开放分析的状态不是聊天历史，而是一个结构化对象：
 
@@ -256,6 +331,14 @@ class Run:
 ```demo run-state-machine
 ```
 
+**Demo 导学单**
+
+1. 观察左侧事件按钮：哪些按钮在 PENDING 状态下可用？这与 3.3 节代码里的 `ALLOWED` 白名单如何一一对应？
+2. 走一条"RUNNING → WAITING_APPROVAL → RUNNING"的路径，在右侧事件日志里找出每一次状态迁移对应的事件类型，验证"状态即事件的结果"。
+3. 制造一次崩溃（SUSPENDED）再 Resume：观察恢复时加载的是哪个 Checkpoint、事件游标停在哪里，回答 4.2 节"Resume 三步"在这个 Demo 里各对应什么。
+4. 尝试点一个非法迁移（如 SUCCEEDED 后再审批）：按钮为什么直接禁用而不是报错？这对模型"建议完成"这类不可信输入意味着什么？
+5. 点「从事件流重放」：状态被清空后逐条重建，对比重放前后是否完全一致——这条性质在第 6 节的哪一条 Invariant 里被立法保护？
+
 ### 3.4 Run Timeline：可观测性的最终形态
 
 Timeline 是把 Event 流渲染成人能读懂的时间线：每个 Step 的开始结束、每次模型调用的 token 与成本、每次 Verifier 打回的理由、每次审批的等待时长。它的价值场景：
@@ -377,13 +460,13 @@ flowchart TB
 
 ### 5.3 Lease 与 Heartbeat：分布式下"只执行一次"的现实解
 
-分布式系统没有真正的 exactly-once 执行，只有"lease + 幂等"的组合逼近：
+分布式系统没有真正的 exactly-once 执行，只有"lease + 幂等"的组合逼近 [^ddia8]：
 
 1. Worker 领取 Run 时获得 Lease（如 60 秒），`lease_owner = worker_id`；
 2. 执行中周期性 Heartbeat 续租；Worker 宕机 → 心跳停止 → 租约过期；
 3. Scheduler 扫描到过期租约 → 将 Run 标记 `SUSPENDED` 并重新入队；
 4. 新 Worker 接管时从最近 Checkpoint 恢复；
-5. 旧 Worker 若"复活"（网络分区恢复），写状态时携带的 Lease 已失效，写入被拒绝（** fencing token**，租约版本号单调递增），防止脑裂双写。
+5. 旧 Worker 若"复活"（网络分区恢复），写状态时携带的 Lease 已失效，写入被拒绝（**fencing token**，租约版本号单调递增），防止脑裂双写 [^ddia9]。
 
 时序上完整走一遍"Worker 宕机 → 接管 → 旧主复活被拒"：
 
@@ -418,6 +501,54 @@ sequenceDiagram
 - **公平调度（Fair Scheduling）**：同优先级下按租户轮转，防单租户占满；
 - **背压（Backpressure）**：队列超水位时，API 层对新 Run 返回"排队中"而不是假装接收；
 - **每租户 Autonomy Budget**：把第 1 节的预算体系按租户实例化，超预算的 Run 走降级而非占用公共池空转。
+
+### 5.5 沙箱执行：把"模型写的代码"关进笼子
+
+架构图里的"Sandbox 集群"值得一节专门说。前提只有一个：**模型生成的 SQL 与代码是不可信输入**——倒不一定是恶意，而是它可能算错、可能扫全表、可能死循环，偶尔还可能被注入内容诱导着干坏事（第六篇）。
+
+隔离级别是一张阶梯，越高越安全、也越重：
+
+| 级别 | 手段 | 隔离强度 | 适用 |
+| --- | --- | --- | --- |
+| 语言级 | 禁用危险函数、AST 白名单 | 弱（同进程，逃逸面大） | 纯计算、无 I/O 的小片段 |
+| 进程级 | 独立进程 + rlimit 资源限制 + 超时强杀 | 中 | 单租户内部的受信任务 |
+| 容器级 | 独立容器 + 只读文件系统 + 网络策略 | 强 | 多租户环境的默认档 |
+| 微 VM 级 | Firecracker 类轻量虚拟机 | 最强 | 执行租户上传或外部来源的代码 |
+
+不管选哪一级，沙箱三件套缺一不可：
+
+1. **资源限制**：CPU、内存、运行时长、结果集行数全部设上限——一条忘加 WHERE 的 SQL 不该拖垮整个数仓；
+2. **出口管控**：默认无网络出站、无文件写权限；需要的数据源走代理白名单（SQL 只能经 Query Gateway，且 Gateway 强制只读与行列权限）；
+3. **边界即审计**：每次沙箱调用的输入、资源消耗、输出引用都落事件流——沙箱日志是 Run Timeline 的一部分。
+
+```mermaid
+flowchart TB
+    subgraph TRUSTED["受信区（Worker / Harness）"]
+        S["Step: 执行模型生成的 SQL / Python"]
+    end
+    subgraph SBX["沙箱边界（默认拒绝）"]
+        E["入口校验<br/>参数Schema·只读强制·行列权限"]
+        X["执行环境<br/>CPU/内存/时长/行数限额<br/>只读文件系统·无出站网络"]
+        O["出口检查<br/>结果集截断·敏感列脱敏·引用化"]
+        E --> X --> O
+    end
+    S -->|"代码+参数(不可信输入)"| E
+    O -->|"结果引用卡(artifact_id)"| S
+    X -.->|"唯一受控通道"| GW["Query Gateway / 数据源白名单"]
+    O -.-> LG["事件流: 输入·资源消耗·输出引用"]
+```
+
+一句话：**边界上一切默认拒绝——能进来的是声明过的输入，能出去的是检查过的结果。**
+
+### 5.6 并发与隔离：200 个租户同时跑，凭什么互不踩踏
+
+Worker 水平扩容解决了"跑得下"，没解决"跑得公平"。并发隔离要回答三个问题：
+
+- **执行模型怎么选**：LLM 调用是 I/O 密集，协程（asyncio）足够；沙箱里的 Python 是 CPU 密集，必须进程/容器隔离。混用准则：**协程管等待，进程管计算，容器管信任**。
+- **邻居吵闹（noisy neighbor）怎么办**：5.4 节的配额 + 独立队列是答案的一半；另一半是**沙箱资源也按租户计量**——A 租户一条跑飞的全表扫描，烧的必须是他自己的额度。
+- **故障怎么不传染**：单 Worker 宕机由 Lease 机制接管（5.3 节）；单租户故障（如某租户的数据源全挂）不能拖垮公共队列——按租户隔离的重试与熔断，让"他的雪崩只是他的"。
+
+这与卷04《分布式架构与平台工程》的多租户资源隔离一脉相承：Agent Runtime 只是把"请求"换成了"长任务"，隔离的功课一题都少不了 [^phoenix]。
 
 ---
 
@@ -486,6 +617,70 @@ Invariant 是恢复逻辑再花哨也不许违反的底线，典型清单：
 5. **先做分布式再补幂等**：上了多 Worker 才发现重复执行。顺序应反过来：单进程时就建好幂等键与事件流，分布式只是顺手的事。
 6. **故障注入当表演**：演示时 kill 一下就算验证。没有基线对比（中断 Run 与完整 Run 结论一致性校验）的故障注入只是行为艺术。
 
+## 本篇实战：把"退款率异常诊断"从 while 循环升级为可恢复的 Run
+
+目标：亲手走完"裸循环 → 套 Harness → 状态外置"的三级跳，体会每一层各解决什么死法。
+
+**Step 1：裸循环 baseline（约 30 分钟）**
+
+- 目标：用 ReAct 三段式写一个最简分析循环，跑通"退款率假设验证"（可用 mock 数据与 mock 模型）。
+- 操作：`while` 循环 + 每轮打印 Thought / Action / Observation。
+- 验收标准：循环在 mock 下能跑完；并且你亲眼确认——没有任何机制阻止它无限跑下去。
+
+**Step 2：套上 Harness 三件套（约 45 分钟）**
+
+- 目标：给循环加 Task Contract、Stop Condition、Autonomy Budget。
+- 操作：定义 done_criteria（每个假设都有证据结论）；实现"连续 2 步零信息增益即停"；步数预算 10。
+- 验收标准：mock 一个"永远查不到证据"的场景，循环在预算耗尽时走降级出口而非死循环；每次停止都输出带原因的终态事件。
+
+**Step 3：状态外置 + Checkpoint（约 45 分钟）**
+
+- 目标：把假设树从内存变量变成可序列化的 AnalysisState，实现崩溃恢复。
+- 操作：每个 Step 边界写 Checkpoint（SQLite 或 JSON 文件均可），实现 `resume()`。
+- 验收标准：第 3 步后 kill 进程，重启从 Checkpoint 续跑完成，且最终结论与不中断基线一致。
+
+**Step 4：加一个 Human Gate（约 30 分钟）**
+
+- 目标：把"建议上调退款审核阈值"做成持久化审批节点。
+- 操作：到达 Gate 时 Run 转 WAITING_APPROVAL 并落盘；外部写入审批结论文件后回调恢复。
+- 验收标准：审批等待期间重启程序，Run 仍能恢复并正确读取审批结论；审批拒绝走 CANCELLED 分支。
+
+### AI Coding 实操模式
+
+**① 可复制的 AI 提示词模板**
+
+```text
+你是资深分布式系统工程师。我们在给一个 ReAct 分析循环加企业级 Harness，请只完成当前步骤，不要提前实现后面的步骤。
+
+背景（我现有的裸循环）：
+[粘贴 Step 1 的循环代码]
+
+当前步骤：[粘贴 Step N 的目标与操作]
+
+硬性要求：
+1. 状态迁移必须走白名单，非法迁移直接抛异常；模型代码不允许直接改 Run 状态；
+2. 一切值得记录的事实都落成 append-only Event（step_started / tool_result / budget_exhausted…）；
+3. Checkpoint 只打在 Step 边界，Step 内部视为原子；
+4. Human Gate 必须持久化挂起，禁止用 sleep 或内存变量等待；
+5. 附带测试：[本步对应验收场景]。
+
+先给实现，再给测试，最后说明这个设计相比裸循环堵住了哪种死法。
+```
+
+**② AI 初版人工评审清单**
+
+- [ ] 循环停止的条件是"模型说做完了"还是"done_criteria 被满足"？（前者直接打回）
+- [ ] Replan / 反思循环有没有计入预算？（AI 很爱写一个不计成本的无限重试）
+- [ ] Checkpoint 恢复后是否重新校验了前置条件（权限、凭据），还是盲目继续？
+- [ ] Human Gate 是持久化挂起还是内存等待？进程重启场景下会发生什么？
+- [ ] 事件流是否真的 append-only？代码里有没有 update / delete 历史事件的写法？
+
+**③ 验收标准**
+
+四个 Step 各自验收通过；能用一份 Run Timeline（哪怕是文本日志）讲清"每一步为什么发生、Run 为什么停"；kill 进程故障注入后，恢复跑出的结论与基线一致。
+
+---
+
 ## 动手练习
 
 1. **Task Contract 设计**：为"退款率异常诊断"写一份完整 Task Contract，要求 done_criteria 全部可机器判定，并指出你的 Verifier 如何逐条检查。
@@ -506,3 +701,13 @@ Invariant 是恢复逻辑再花哨也不许违反的底线，典型清单：
 - [ ] 我能解释 Lease + Heartbeat + fencing token 如何协作防止脑裂
 - [ ] 我能区分 Retry / Resume / Replay / Fork 并各举一个使用场景
 - [ ] 我能列出至少五条 Runtime Invariant，并说明违反任意一条的后果
+
+---
+
+## 参考与脚注
+
+[^geektime]: 极客时间《企业级 Agent 工程化》课程——本篇混合架构选型、Harness 组件、Run 执行模型、Durable Workflow 与故障工程的主线来源。
+[^react]: Yao et al., "ReAct: Synergizing Reasoning and Acting in Language Models"（ICLR 2023）——Thought / Action / Observation 交错轨迹的原始论文。https://arxiv.org/abs/2210.03629
+[^ddia8]: Martin Kleppmann《数据密集型应用系统设计》（DDIA）第 8 章「分布式系统的麻烦」——部分失败与不可靠时钟的工程含义，Lease 与心跳设计的理论背景。
+[^ddia9]: Martin Kleppmann《数据密集型应用系统设计》（DDIA）第 9 章「一致性与共识」——fencing token 防止脑裂双写的经典论述（"领导者与锁"一节）。
+[^phoenix]: 周志明《凤凰架构：构建可靠的大型分布式系统》——服务治理、熔断与多租户资源隔离的体系化讨论。https://icyfenix.cn

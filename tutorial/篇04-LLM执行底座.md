@@ -1,6 +1,6 @@
 # 第四篇：LLM 执行底座篇——构建面向 Agent Harness 的可靠 LLM Runtime
 
-> 导语：DataAgent 立项之后，第一刀拆出去的不是 Agent 核心，而是**模型调用**。原因很简单：一次"GMV 异常诊断"可能产生几十次模型调用，涉及多个模型、多个租户、严格的成本预算和不容有失的输出格式——如果每个业务模块各自抱着 SDK 直接调，这个系统在第一周就会失控。本篇讲透企业级 LLM Runtime 的四个支柱：统一执行边界、多模型路由、可靠执行机制、模型治理。目标是让上层 Agent Harness 彻底忘记"模型"的存在，只面对一个稳定、可治理、可演进的执行底座。
+> 导语：DataAgent 立项之后，第一刀拆出去的不是 Agent 核心，而是**模型调用**。原因很简单：一次"GMV 异常诊断"可能产生几十次模型调用，涉及多个模型、多个租户、严格的成本预算和不容有失的输出格式——如果每个业务模块各自抱着 SDK 直接调，这个系统在第一周就会失控。本篇讲透企业级 LLM Runtime 的四个支柱：统一执行边界、多模型路由、可靠执行机制、模型治理。目标是让上层 Agent Harness 彻底忘记"模型"的存在，只面对一个稳定、可治理、可演进的执行底座 [^geektime]。
 
 ---
 
@@ -80,7 +80,60 @@ class ProviderAdapter:
     async def stream(self, req: ModelRequest) -> AsyncIterator[str]: ...
 ```
 
-### 1.4 Runtime 分层架构
+### 1.4 解剖一次 LLM API 调用：参数、计量与流式协议
+
+要设计 Runtime，先得看清"一次调用"这个原子操作内部到底发生了什么。很多线上事故——超时设置了却不生效、成本永远对不上账、流式中断留下半个 JSON——都源于对这一层的想当然 [^openai-api]。
+
+**请求侧：一次调用能拧的旋钮**
+
+| 参数 | 干什么 | 企业级要点 |
+| --- | --- | --- |
+| `messages` | 对话数组（system/user/assistant/tool 四种角色） | 角色边界就是信任边界，第六篇展开 |
+| `temperature` / `top_p` | 采样随机性 | 都管随机性，通常只调一个；SQL 生成等结构化任务压到 0~0.2，创意写作才放开 |
+| `max_tokens` | 输出长度上限 | 是**防爆阀不是省钱阀**——计费按实际生成量，设小了只会换来截断（`finish_reason=length`） |
+| `stop` | 停止序列 | 生成 SQL 时防止模型"好心"续写解释文字 |
+| `seed` | 采样种子 | 跨模型版本不保证可复现，回归测试别依赖它 |
+| `tools` / `tool_choice` | 函数调用声明 | 原理见 3.5 节 |
+| `response_format` | 结构化输出 Schema | 原理见 3.3 节 |
+| `stream` | 流式开关 | 机制见 3.4 节 |
+| `user` / 自定义元数据 | 终端用户标识 | 滥用追踪与审计的挂点 |
+
+**计量侧：账单是怎么算出来的**
+
+- 计费单位是 token，**输入与输出分开计价**（输出通常贵数倍），所以"让模型少说话"和"少给模型看"是两条独立的省钱路径；重复的前缀（系统指令、口径定义）可以靠 Provider 侧的前缀缓存显著降本——这也是"Prompt 结构稳定性"成为工程指标的 reason。
+- `usage` 字段（prompt_tokens / completion_tokens）是成本归集的**唯一事实源**，必须在 Attempt 级落进 Trace；事后想补算，是补不回来的。
+- 时延要拆成三段看：**TTFT**（首 token 时延，受排队与前缀长度影响）、**TPOT**（逐 token 生成间隔，决定流式体感）、**E2E**（总时延 ≈ TTFT + 生成长度 × TPOT）。"接口慢"先定位是哪一段慢——长上下文的慢（TTFT）和长输出的慢（生成段），解法完全不同。
+
+**传输侧：流式到底是什么协议**
+
+流式响应的本质是 HTTP 长连接上的 SSE（Server-Sent Events）：Provider 逐 chunk 推送 `data: {...}` 事件，以 `data: [DONE]` 收尾。这带来三个工程事实：① 连接可以在中途任何位置断开，且断开时你不知道还差多少；② 每个 chunk 只是"目前为止的部分结果"，语义上不可提交；③ **取消一次调用的方式是主动断连**——所以 Attempt 超时必须能传递到连接层，否则超时只是"不等了，但钱还在烧"。
+
+把上面三层合起来，一次 Logical Call 的完整请求生命周期如下：
+
+```mermaid
+sequenceDiagram
+    participant B as 业务层(Harness)
+    participant RT as LLM Runtime
+    participant AD as ProviderAdapter
+    participant P as Provider API
+    B->>RT: complete(ModelRequest)
+    RT->>RT: Registry 查能力清单<br/>Routing 选物理模型
+    RT->>AD: 统一契约 → Provider 方言
+    AD->>P: HTTPS 请求(鉴权+采样参数+工具声明)
+    Note over P: 排队 → 预填充 prompt(TTFT)<br/>→ 逐 token 解码(TPOT)
+    alt 非流式
+        P-->>AD: 完整响应 + usage + finish_reason
+    else 流式(SSE)
+        P-->>AD: chunk 1..N + data:[DONE]
+        AD-->>RT: 逐 chunk 转发(仅缓冲与预览)
+    end
+    AD-->>RT: ModelResponse(content+usage+finish_reason)
+    RT->>RT: Schema 校验 · 成本归集 · Trace 落盘
+    RT-->>B: COMMITTED 的 ModelResponse
+    Note over B,P: 全程共享一个 Deadline: 排队+TTFT+生成都在预算内
+```
+
+### 1.5 Runtime 分层架构
 
 ```mermaid
 flowchart TB
@@ -201,10 +254,59 @@ stateDiagram-v2
 
 常见错误：只有 Attempt 级超时、没有 Call 级 Deadline——高并发下每个请求都"努力重试到最后一刻"，故障期请求堆积，把小故障放大成雪崩。**Deadline 是可靠性的天花板，Timeout 只是地板。**
 
+**可重试错误的分类学**
+
+重试的前提是"这次失败是瞬时的"。先把错误按语义分三类，再谈策略 [^ddia8]：
+
+| 类别 | 典型信号 | 策略 |
+| --- | --- | --- |
+| 可重试（瞬时） | 连接超时、HTTP 429、500/502/503/504、SSE 中途断流 | 指数退避重试，计入 Attempt |
+| 不可重试（确定性） | 400 参数错、401/403 鉴权、404 模型不存在、内容安全拦截 | 立即失败或换目标——重试只会稳定地重现同一个错误 |
+| 容量信号（准瞬时） | 429 携带 `Retry-After`、队列溢出 | 尊重服务端给的时间 hint，同时触发降级评估 |
+
+**为什么退避要"指数 + 抖动"**
+
+故障期最致命的不是失败本身，而是**所有客户端在同一时刻重试**——刚缓过一口气的服务被齐刷刷的重试流量再次打垮（thundering herd，惊群效应）[^phoenix]。指数退避让重试节奏随失败次数自动稀疏，抖动（jitter）把不同客户端的重试时刻彼此错开：
+
+```text
+delay = min(base × 2^n, cap) + random(0, jitter)     # 例: base=1s, cap=8s
+第 1 次重试 ≈ 1~2s   第 2 次 ≈ 2~3s   第 3 次 ≈ 4~5s   第 4 次 ≈ 8~9s
+```
+
+把退避画成状态机，注意它每一步都被 Deadline 封顶——退避等待也要消耗总预算：
+
+```mermaid
+stateDiagram-v2
+    [*] --> ATTEMPT: 发起 Attempt n
+    ATTEMPT --> OK: 成功
+    ATTEMPT --> BACKOFF: 可重试错误
+    ATTEMPT --> DEAD: 不可重试错误(4xx/鉴权/拦截)
+    state BACKOFF {
+        [*] --> CALC: delay=min(base×2^n,cap)+jitter
+        CALC --> WAIT: sleep(delay)
+    }
+    BACKOFF --> CHECK: 退避结束醒来
+    CHECK --> ATTEMPT: 剩余预算>0 且未超 max_attempts
+    CHECK --> GIVEUP: Deadline 超期 / 次数耗尽
+    OK --> [*]
+    DEAD --> [*]: 立即失败或换目标
+    GIVEUP --> [*]: 聚合错误原因, 沿 Fallback 链下移
+```
+
+两个反直觉的要点：① **重试次数越多，系统越脆弱**——max_attempts × 并发数就是故障期的流量放大系数，它是容量规划参数，不是可靠性参数；② **`Retry-After` 是服务端的求生信号**，无视它等于参与围攻。
+
 下面这个交互 Demo 把四个机制的协同（与失控）做成可播放的时间线：调好失败率、重试次数、单次超时和总 Deadline 后点"执行一次调用"，对比"设了 Deadline"与"只重试不设 Deadline"两条时间线的总耗时差异——多跑几次高失败率的局，直观感受雪崩的成因：
 
 ```demo retry-timeout
 ```
+
+**Demo 导学单**
+
+1. 默认参数先跑 3 次，记录两条时间线的总耗时差异，指出差异发生在哪个阶段（连接、首 token、生成中）。
+2. 把失败率拉到 70% 以上、重试次数拉满，关闭 Deadline 再跑：观察"重试雪崩"形态——总耗时是单次超时的几倍？乘一下：如果并发 100 个这样的调用，故障期的流量放大系数是多少？
+3. 保持高失败率，打开 Deadline 对比：找出"主动放弃"发生的时间点，解释为什么这是保护系统而不是牺牲用户。
+4. 观察退避间隔序列（1s→2s→4s…），对照正文退避状态机，指出 jitter 在图上的体现。
+5. 思考：为什么 400/401 类错误在 Demo 里不重试？如果把它们也纳入重试，会污染哪一个指标？
 
 ### 3.3 Structured Output / Schema Validation / Output Contract
 
@@ -215,6 +317,34 @@ stateDiagram-v2
 3. **Output Contract**：校验失败不是直接报错，而是进入**修复循环**——把校验错误作为反馈追加进上下文重问模型（通常 1-2 次内收敛），重问耗尽才判 Logical Call 失败。
 
 契约的本质：**无效输出永远不许越过 Runtime 边界进入业务层**。业务代码拿到的 `ModelResponse.parsed` 是校验通过的结构化对象，不是一段"希望它是 JSON"的字符串。
+
+**三道防线的成本-强度对比**
+
+| 手段 | 强制力 | 成本 | 局限 |
+| --- | --- | --- | --- |
+| 裸 Prompt 约定（"请返回 JSON"） | 无 | 零 | 模型随时自由发挥：代码围栏、解释废话、缺字段样样来 |
+| JSON Mode | 保证输出是合法 JSON | 低 | 只保语法不保语义：字段、类型、枚举仍可能错 |
+| Structured Output（约束解码） | 按 Schema 逐 token 约束解码 | 低 | 保格式不保语义正确；`max_tokens` 截断仍会发生 |
+| 后置解析 + 正则/修复库 | 事后补救 | 中 | 把格式问题拖成概率问题，补丁摞补丁越修越脆 |
+
+**约束解码为什么近乎零成本又近乎必对**：模型生成是逐 token 采样，约束解码在每步采样前把 Schema 编译成文法/状态机，将"此刻不合法"的 token 直接从候选词表屏蔽——模型"想错都错不了"。格式正确性就这样从"概率事件"变成了"构造保证"，这是它配当第一道防线的根本原因 [^openai-so]。
+
+但也要看清边界：约束解码保证的是**格式**，不是**语义**——Schema 要求 `confidence` 是 0~1 的数值，模型可以给一个格式完美但胡说八道的 0.87。语义正确性要靠 Verifier（第五篇）与 Eval（第九篇）兜底。
+
+最后记住修复循环与"简单重试"的本质区别：**重试是同样的输入再来一次，修复是把校验错误作为新输入重问**。前者指望运气，后者给了模型它唯一真正需要的信息——"上一次错在哪"。
+
+下面这个交互 Demo 把三档防线摆在一起对比：先选档位点「生成一次」，看 Attempt → 校验 → 修复重问的完整过程；再点「批量模拟 100 次」，对比三档的一次通过率、修复挽救率与平均 Attempts：
+
+```demo structured-output
+```
+
+**Demo 导学单**
+
+1. 用「① 裸 Prompt 约定」连点 5 次「生成一次」，统计你遇到了几种失败形态，并对照右侧 Schema 说出每种失败违反了哪条约束。
+2. 观察一次"修复重问"成功的过程：重问时追加进上下文的到底是什么？它与 3.2 节的"简单重试"有何本质区别？
+3. 换到「③ Structured Output」档再点几次：剩下的失败形态是什么？这如何印证"约束解码保格式不保语义"？
+4. 跑「批量模拟 100 次」，读出三档的最终失败率与平均 Attempts，回答：为什么说"把格式问题消灭在解码层比事后修复便宜一个数量级"？
+5. 思考：如果修复重问不设 2 次上限而是无限重问，会发生什么？这和 3.2 节的哪个概念直接冲突？
 
 ### 3.4 流式输出的最终提交机制
 
@@ -299,6 +429,47 @@ class ReliableExecutor:
 
 要点：UI 可以预览中间 chunk（体验），但**业务状态提交**（写库、触发下游步骤）只能发生在 `finalize + validate` 之后。预览可丢弃，提交必须完整。
 
+### 3.5 函数调用：模型"使用工具"的真相
+
+Agent 能查数据库、能发审批，靠的不是模型长了手——**函数调用（Function Calling）的本质仍是一次文本生成**：你在请求里用 JSON Schema 声明"有哪些工具、各要什么参数"，模型在生成时输出一段**约定格式的工具调用请求**（工具名 + 参数 JSON），剩下的执行、结果回灌，全是代码的活 [^openai-fc]。
+
+完整循环：
+
+```mermaid
+sequenceDiagram
+    participant M as 模型
+    participant RT as LLM Runtime / Harness
+    participant T as 工具执行层
+    RT->>M: messages + tools 声明(名称/描述/参数Schema)
+    M-->>RT: tool_call: sql_query({"table":"dwd_trade_di",...})
+    Note over RT: 关键关卡: 参数 Schema 校验<br/>+ 权限与只读检查(第七篇展开)
+    RT->>T: 执行工具(Runtime 调, 不是模型调)
+    T-->>RT: 结果 / 错误
+    RT->>M: 追加 role=tool 消息后继续生成
+    alt 还要继续调
+        M-->>RT: 下一个 tool_call(可声明并行多个)
+    else 信息足够
+        M-->>RT: 最终回答(自然语言或结构化)
+    end
+```
+
+三个必须建立的正确认知：
+
+1. **模型从不"执行"任何工具**。它只生成"请执行 X，参数是 Y"这段文本；执行权永远在 Runtime/工具层——这正是权限、审计、沙箱能插进来的位置。反过来，把工具用法写进 Prompt 让模型"自己想办法"，等于放弃了所有关卡。
+2. **工具描述是 Prompt 的一部分，而且是很贵的一部分**。工具名、描述、参数说明都占 token、都直接影响模型选工具的准确率。工具一多就要按 Task Profile 动态挂载，而不是 50 个工具全量塞给每一次调用。
+3. **tool_call 输出同样要走 Output Contract**。参数 JSON 的 Schema 校验、枚举合法性、危险参数（`DROP`、跨租户 ID）检查，与 3.3 节是同一套机制——函数调用没有豁免权。
+
+常见失败模式速查：
+
+| 失败 | 表现 | 对策 |
+| --- | --- | --- |
+| 幻觉工具 | 调用未声明的工具名 | 白名单校验，拒绝并把错误反馈给模型 |
+| 参数幻觉 | 编出不存在的字段/表名 | 参数 Schema 校验 + 语义层约束（第六篇） |
+| 连环调用失控 | 模型陷入"调了再调"的循环 | `max_tool_calls` 预算 + 无进展检测（第五篇） |
+| 并行调用冲突 | 一次发出多个有依赖的 tool_call | 声明依赖关系，Runtime 负责串行化 |
+
+DataAgent 的落法：SQL 生成走 `response_schema`（3.3 节），取数与查文档走 `tools`（本节）——**结构化回答用输出契约，对外动作用工具契约**，两条路在 Runtime 里汇入同一套校验与审计。
+
 ---
 
 ## 4. 模型治理：从能调用到可运营
@@ -338,6 +509,72 @@ class ReliableExecutor:
 5. **流式边收边提交**。中断产生半个结果污染下游；记住：预览可流式，提交必须两阶段。
 6. **成本只做事后统计**。没有事前/事中闸门，账单出来时损失已经发生了。
 
+## 本篇实战：给 DataAgent 写一个迷你 ReliableExecutor
+
+目标：不依赖任何框架，用 Python 实现一个支持"Fallback 链 + 指数退避 + Schema 修复重问"的迷你执行器，并用故障注入证明它有效。
+
+**Step 1：定义契约与故障语义（约 30 分钟）**
+
+- 目标：写出 `ModelRequest` / `ModelResponse` 数据类和 `RetryableError` / `NonRetryableError` 异常体系。
+- 操作：以 1.3 节契约为蓝本，只保留 tenant_id、logical_model、messages、response_schema、deadline_ms 五个字段；再写一个 `FakeAdapter`，用随机数模拟超时、429、400、成功四种返回。
+- 验收标准：四种故障都能被正确分类成两种异常；`FakeAdapter` 的故障率可用参数调节。
+
+**Step 2：实现带 Deadline 的退避重试（约 40 分钟）**
+
+- 目标：在单模型维度实现"指数退避 + jitter + Deadline 封顶"。
+- 操作：按 3.2 节退避状态机实现循环，每轮**先检查剩余预算再发 Attempt**。
+- 验收标准：注入 50% 超时率时，100 次调用成功率显著高于不重试对照组；Deadline 设为 1s 时，没有任何调用总耗时超过 1.2s。
+
+**Step 3：接上 Fallback 链与降级标记（约 30 分钟）**
+
+- 目标：主模型耗尽后自动切同档备用模型，再耗尽则显式降档。
+- 操作：构造 `[主, 同档备, 轻量]` 三个 FakeAdapter，把主模型设为 100% 故障。
+- 验收标准：响应携带正确的 `provider` 与 `degraded` 标记；Trace 里能看到每个 Attempt 归属哪个模型。
+
+**Step 4：加 Schema 校验与修复重问（约 40 分钟）**
+
+- 目标：实现 Output Contract 的第三道防线。
+- 操作：给 FakeAdapter 加"首次必返回缺字段 JSON"模式；执行器校验失败后把错误详情追加进 messages 重问，最多 2 次。
+- 验收标准：缺字段场景最终 COMMITTED 且 `attempts` 计数正确；修复耗尽场景抛出聚合异常，坏 JSON 不出现在返回值里。
+
+### AI Coding 实操模式
+
+上面每一步都适合与 AI 结对完成。推荐姿势：
+
+**① 可复制的 AI 提示词模板**
+
+```text
+你是资深后端工程师。我们在实现一个 LLM 可靠执行器（ReliableExecutor），请只完成当前这一步，不要提前实现后面的功能。
+
+背景契约：
+[粘贴 1.3 节的 ModelRequest / ModelResponse 代码]
+
+当前步骤：[粘贴 Step N 的目标与操作]
+
+硬性要求：
+1. 超时/429/5xx 归 RetryableError，4xx 归 NonRetryableError；
+2. 每次 Attempt 前必须先检查 Deadline 剩余预算，不足即放弃；
+3. 退避公式 delay = min(2^n, 8s) + random jitter；
+4. 降级必须显式：响应携带 degraded=true 与实际命中的 provider；
+5. 附带一个 pytest 故障注入测试，模拟 [本步故障场景]。
+
+请先给实现，再给测试，最后解释你在哪些地方做了取舍。
+```
+
+**② AI 初版人工评审清单**
+
+- [ ] 重试循环里是否**先查 Deadline 再发 Attempt**？（AI 最常漏的一行，漏了就是重试雪崩）
+- [ ] 不可重试错误（4xx）是否真的不重试？还是被一个万能 `except Exception` 吞进去重试了？
+- [ ] 降档是否显式标记了 `degraded`？还是悄悄返回了轻量模型的结果？
+- [ ] 修复重问时追加进 messages 的是**校验错误详情**还是一句笼统的"请重试"？
+- [ ] 测试断言的是"最终成功"，还是"最终成功**且** attempts / degraded 正确"？（前者会让降级逻辑形同虚设）
+
+**③ 验收标准**
+
+四个 Step 各自通过验收标准；AI 生成代码经人工评审清单逐条核对；`pytest` 全绿；能口头回答"故障期这个执行器的流量放大系数是多少"。
+
+---
+
 ## 动手练习
 
 1. 为 DataAgent 定义 5 个 Task Profile 及其能力需求矩阵，并给出每个 Profile 的逻辑模型名和至少 2 个候选物理模型（含 Fallback 顺序与降档策略）。
@@ -358,3 +595,14 @@ class ReliableExecutor:
 - [ ] 我能解释流式输出为什么必须两阶段提交
 - [ ] 我能列出成本治理的事前/事中/事后三层闸门与模型升级的 Replay 防线
 - [ ] 我知道租户隔离与审计在 Runtime 层的具体落点
+
+---
+
+## 参考与脚注
+
+[^geektime]: 极客时间《企业级 Agent 工程化》课程——本篇 LLM Runtime 四支柱（统一执行边界、多模型路由、可靠执行、模型治理）与 DataAgent 贯穿案例的主线来源。
+[^openai-api]: OpenAI《Chat Completions API Reference》——请求参数、usage 计量与 SSE 流式协议的细节。https://platform.openai.com/docs/api-reference/chat
+[^ddia8]: Martin Kleppmann《数据密集型应用系统设计》（DDIA）第 8 章「分布式系统的麻烦」——部分失败、不可靠网络与超时的系统论述，可重试错误分类的理论背景。
+[^phoenix]: 周志明《凤凰架构：构建可靠的大型分布式系统》——超时、重试、熔断等服务治理手段的体系化讨论，惊群效应与退避策略可参考其服务治理章节。https://icyfenix.cn
+[^openai-so]: OpenAI《Structured Outputs》——约束解码（constrained decoding）保证 Schema 合规的机制说明。https://platform.openai.com/docs/guides/structured-outputs
+[^openai-fc]: OpenAI《Function Calling Guide》——工具声明、tool_call 回传与并行调用的协议细节。https://platform.openai.com/docs/guides/function-calling
