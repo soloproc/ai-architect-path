@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷07：AI FDE 交付实战——把技术能力转化为客户价值的最后一公里 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html" class="active">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷07-ai-fde-交付实战-把技术能力转化为客户价值的最后一公里">卷07：AI FDE 交付实战——把技术能力转化为客户价值的最后一公里</h1>
+<blockquote>
+<p>导语：至此，RetailHub/DataAgent 已经具备了全部技术要件：服务端架构（卷01-02）、数据系统（卷03）、内部平台（卷04）、架构文档与决策体系（卷05）、AI 开发能力（篇00-02）、可运营的 AI Infra（卷06）、SLO 与可靠性工程体系（卷08），以及篇03-10 构建的企业级 Agent 系统——Runtime、上下文治理、工具治理、记忆、评测与受控进化。但还有一道所有技术人都容易低估的鸿沟：<strong>系统存在 ≠ 价值交付。</strong> 客户的经营数据脏乱、需求模糊、期望值被 ChatGPT 演示吊到天花板，生产环境和你的演示环境完全是两个世界。本卷讲 AI FDE（Forward Deployed Engineer，前置部署工程师）这一角色与工作方法——它源自 Palantir 的实践，正在 AI 时代成为把 Agent 系统真正&quot;交出去&quot;的关键路径<sup class="fn-ref"><a href="#fn-gktime" id="ref-gktime">[1]</a></sup>。卷末你将完成一次端到端的交付模拟，并用一张大图复盘十阶段成长线，为整条学习路径收官。</p>
+</blockquote>
+<hr>
+<h2 id="1-fde-是什么-源自-palantir-的-进驻式-交付模式">1. FDE 是什么：源自 Palantir 的&quot;进驻式&quot;交付模式</h2>
+<h3 id="1-1-定义">1.1 定义</h3>
+<p><strong>FDE（Forward Deployed Engineer）= 进驻客户现场、对交付结果直接负责的工程师。</strong> 这一模式由 Palantir 在 2000 年代实践并命名：他们的软件要接入政府、金融机构高度异构的数据环境，标准产品开箱即用是不可能的，于是派工程师直接进驻客户现场，边理解业务、边配置/开发、边交付，同时把现场产生的通用能力<strong>反哺回产品</strong>。</p>
+<p>FDE 模式的三个支柱：</p>
+<ol>
+<li><strong>嵌入式理解</strong>：不是听客户转述需求，而是坐在客户旁边看真实数据、真实流程、真实的 Excel 表格和微信群里传递的数字。</li>
+<li><strong>交付负责制</strong>：FDE 的成功标准不是&quot;我部署完了&quot;，而是&quot;客户的业务问题被解决了&quot;——指标由客户的业务语言定义。</li>
+<li><strong>资产回流</strong>：每一次现场交付都必须沉淀回平台，让下一个客户的交付成本更低。没有这个循环，FDE 就退化为外包驻场。</li>
+</ol>
+<h3 id="1-2-为什么-ai-时代-fde-尤其兴起">1.2 为什么 AI 时代 FDE 尤其兴起</h3>
+<p>传统软件的需求是相对可规约的（&quot;把审批流线上化&quot;），AI/Agent 项目则有三重模糊性，天然需要 FDE 式的贴身交付：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>AI 项目的特殊性</th>
+<th>具体表现</th>
+<th>对交付方式的要求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>需求模糊</strong></td>
+<td>客户说&quot;要一个经营分析 Agent&quot;，实际想要的可能只是&quot;每天早上自动发一张异常门店清单&quot;</td>
+<td>必须在现场快速试错，需求是挖出来的不是写出来的</td>
+</tr>
+<tr>
+<td><strong>数据脏乱</strong></td>
+<td>客户说&quot;我们数据很全&quot;，实际三套系统口径不一、门店编码有四种写法、历史数据断档半年</td>
+<td>数据探查必须前置，且往往在客户内网才能做</td>
+</tr>
+<tr>
+<td><strong>效果需要现场调优</strong></td>
+<td>演示集准确率 92%，上生产掉到 61%——因为真实提问里有方言、简称、错别字</td>
+<td>评测集必须来自生产数据，调优必须贴近真实分布</td>
+</tr>
+</tbody>
+</table></div>
+<p>再叠加&quot;期望值管理&quot;这一 AI 特有的难题：客户见过 ChatGPT 的流畅对话，会默认 AI&quot;什么都能答&quot;，而你要交付的是一个边界清晰、数字有据可查的企业系统。<strong>FDE 的一半工作是工程，另一半是预期管理。</strong></p>
+<h3 id="1-3-fde-与相邻角色的边界">1.3 FDE 与相邻角色的边界</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>角色</th>
+<th>对什么负责</th>
+<th>写代码吗</th>
+<th>时间尺度</th>
+<th>与 FDE 的关系</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>售前/解决方案</strong></td>
+<td>赢单：方案、报价、演示</td>
+<td>Demo 级</td>
+<td>签约前</td>
+<td>把交接棒给 FDE；FDE 反馈&quot;哪些承诺兑现成本高&quot;</td>
+</tr>
+<tr>
+<td><strong>项目经理（PM）</strong></td>
+<td>进度、范围、干系人沟通</td>
+<td>否</td>
+<td>项目周期</td>
+<td>FDE 管技术交付，PM 管项目治理，常并肩作战</td>
+</tr>
+<tr>
+<td><strong>传统交付/实施工程师</strong></td>
+<td>按既定方案部署配置</td>
+<td>脚本级</td>
+<td>部署窗口</td>
+<td>FDE 要&quot;定义方案&quot;，交付工程师&quot;执行方案&quot;</td>
+</tr>
+<tr>
+<td><strong>产品经理</strong></td>
+<td>产品路线图、通用能力取舍</td>
+<td>否</td>
+<td>季度/年度</td>
+<td>消费 FDE 沉淀的资产与洞察</td>
+</tr>
+<tr>
+<td><strong>FDE</strong></td>
+<td><strong>客户价值 + 资产回流，双负责</strong></td>
+<td>是，生产级</td>
+<td>PoC 到稳定运营</td>
+<td>——</td>
+</tr>
+</tbody>
+</table></div>
+<p>一句话区分：<strong>售前承诺价值，FDE 兑现价值，产品吸收价值。</strong></p>
+<p>再把视角拉高一层：FDE 模式和其他几种交付模式相比，钱和风险到底怎么流动：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>交付模式</th>
+<th>客户买到什么</th>
+<th>厂商收入逻辑</th>
+<th>谁承担&quot;用不起来&quot;的风险</th>
+<th>厂商能力是否复利</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>标准 SaaS</td>
+<td>开箱即用的产品</td>
+<td>订阅费，边际成本趋零</td>
+<td>客户（自助 onboarding）</td>
+<td>强（产品迭代普惠所有客户）</td>
+</tr>
+<tr>
+<td>传统实施/驻场外包</td>
+<td>按合同范围部署与定制</td>
+<td>人天报价，卖人头</td>
+<td>名义上厂商，实际上扯皮</td>
+<td>弱（第 N 个项目和第 1 个一样难）</td>
+</tr>
+<tr>
+<td>咨询 + 移交</td>
+<td>方案文档与培训</td>
+<td>项目费</td>
+<td>客户（咨询结束责任结束）</td>
+<td>中（方法论可复用，系统不可复用）</td>
+</tr>
+<tr>
+<td><strong>FDE 模式</strong></td>
+<td>业务结果 + 持续运营的系统</td>
+<td>高客单价 + 平台复用摊薄</td>
+<td><strong>厂商（交付负责制）</strong></td>
+<td><strong>强（资产回流平台，下次更便宜）</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>这张表解释了 Palantir 模式的商业本质：<strong>用&quot;交付负责制&quot;换取高客单价，再用&quot;资产回流&quot;把高成本的人力交付逐步摊薄成平台生意。</strong> 少了第一环，客户不会为驻场付溢价；少了第三环，驻场就只是贵的外包。</p>
+<h2 id="2-fde-工作循环-理解-poc-迭代-沉淀">2. FDE 工作循环：理解 → PoC → 迭代 → 沉淀</h2>
+<pre class="mermaid">flowchart LR
+    A[嵌入式理解&lt;br/&gt;现场观察/数据探查&lt;br/&gt;需求澄清纪要] --&gt; B[最快 PoC&lt;br/&gt;范围裁剪&lt;br/&gt;2 周验证核心价值假设]
+    B --&gt; C{价值验证通过?}
+    C -- 否 --&gt; A2[修正假设&lt;br/&gt;缩小/转向范围] --&gt; B
+    C -- 是 --&gt; D[迭代交付&lt;br/&gt;接入真实数据&lt;br/&gt;生产化：权限/审计/SLA]
+    D --&gt; E[沉淀回流&lt;br/&gt;通用能力进 DataAgent 平台&lt;br/&gt;评测集/模板/工具入库]
+    E --&gt; A
+    D --&gt; F[价值度量与验收&lt;br/&gt;技术指标↔业务指标]
+    F --&gt; E
+</pre>
+<h3 id="2-1-第一步-嵌入式理解-问对问题比答对问题难">2.1 第一步：嵌入式理解——问对问题比答对问题难</h3>
+<p>进现场第一周不交付任何软件，只交付一份《需求澄清纪要》。好的澄清问题有三个特征：<strong>逼出具体场景</strong>（&quot;最近一次您为库存问题熬夜是什么时候，发生了什么&quot;优于&quot;您有什么痛点&quot;）、<strong>暴露数据真相</strong>（&quot;能让我随机抽 50 条近三天的真实提问吗&quot;）、<strong>锚定价值度量</strong>（&quot;这件事做成了，您会向老板报哪个数字&quot;）。第 4 节给出 10 个必问问题模板。</p>
+<h3 id="2-2-第二步-最快-poc-范围裁剪是第一生产力">2.2 第二步：最快 PoC——范围裁剪是第一生产力</h3>
+<p>PoC 的目标不是&quot;展示能力&quot;，而是<strong>用最小成本证伪或证实核心价值假设</strong>。裁剪原则：</p>
+<ol>
+<li><strong>只切一刀</strong>：选 1 个角色、1 个高频场景、1 类数据源。&quot;区域经理每天早上看异常门店&quot;胜过&quot;全员经营分析平台&quot;。</li>
+<li><strong>用真人真数据，但绕过脏的部分</strong>：真实数据抽 1 个区域/1 个月，清洗成本超 2 天的数据源果断移出范围并书面记录。</li>
+<li><strong>提前写下验收假设</strong>：开工第一天就和客户确认&quot;什么样算成了&quot;，避免两周后目标移动。</li>
+<li><strong>时间盒铁律</strong>：2 周。超过 2 周的 PoC 一定是范围没裁干净。</li>
+</ol>
+<h3 id="2-3-第三步-迭代交付-从-能跑-到-敢上生产">2.3 第三步：迭代交付——从&quot;能跑&quot;到&quot;敢上生产&quot;</h3>
+<p>PoC 验证通过后，差距通常不在模型能力，而在工程化：多租户权限（篇03）、输出契约与证据链（篇04/06）、工具审批（篇07）、评测门禁（篇09）、私有化推理 SLA（卷06）。注意：<strong>此时前面所有篇目的知识第一次以&quot;客户验收压力&quot;的形式汇合</strong>——这正是学习路径把它们排在 FDE 之前的原因。</p>
+<h3 id="2-4-第四步-沉淀回流-与篇02-资产蒸馏-篇09-受控进化-的呼应">2.4 第四步：沉淀回流——与篇02&quot;资产蒸馏&quot;、篇09&quot;受控进化&quot;的呼应</h3>
+<p>篇02 讲过资产蒸馏：把一次性劳动提炼为可复用资产；篇09 讲过受控进化：任何变更过评测门禁才能进主干。FDE 的沉淀就是把这两件事搬到客户现场语境：</p>
+<pre class="mermaid">flowchart TB
+    subgraph 现场[&quot;客户现场（一次性语境）&quot;]
+        Q1[真实提问语料&lt;br/&gt;方言/简称/错别字]
+        D1[数据口径映射表&lt;br/&gt;客户系统的脏规则]
+        P1[场景化 Prompt&lt;br/&gt;区域经理异常巡检]
+        T1[客户专属工具&lt;br/&gt;对接其 ERP 的查询封装]
+    end
+    subgraph 蒸馏[&quot;资产蒸馏（篇02）&quot;]
+        F1{通用性判断&lt;br/&gt;下个客户会用到吗}
+    end
+    subgraph 平台[&quot;DataAgent 平台（篇09 受控进化）&quot;]
+        E1[行业评测集库&lt;br/&gt;零售提问基准 +120 条]
+        E2[语义层模板&lt;br/&gt;零售指标口径包]
+        E3[Prompt 模式库&lt;br/&gt;巡检类模板 v3]
+        E4[连接器框架&lt;br/&gt;ERP 适配器模式]
+    end
+    Q1 &amp; D1 &amp; P1 &amp; T1 --&gt; F1
+    F1 -- 通用 --&gt; E1 &amp; E2 &amp; E3 &amp; E4
+    F1 -- 专属 --&gt; C1[留在客户侧配置&lt;br/&gt;不进平台主干]
+    E1 &amp; E2 &amp; E3 &amp; E4 --&gt; G[回归评测通过&lt;br/&gt;Regression Gate 放行]
+</pre>
+<p><strong>判断标准</strong>：如果一个资产的通用性说不清（&quot;下个客户应该也会遇到&quot;），就不进平台主干——否则平台会被 N 个客户的特例污染成泥潭。客户专属内容以配置/租户数据形式留在客户侧。</p>
+<h2 id="3-ai-交付的特殊坑-演示很好-生产很糟">3. AI 交付的特殊坑：演示很好、生产很糟</h2>
+<p>&quot;前期演示环节很惊艳，落地执行时始终达不到想要的效果&quot;——这是企业 AI 转型中被反复验证的通病，连 AI 原生程度最高的厂商在销售一线也把它列为头号痛点<sup class="fn-ref"><a href="#fn-wpscomate" id="ref-wpscomate">[2]</a></sup>。拆开看，它有五个相互叠加的成因：</p>
+<ol>
+<li><strong>演示集过拟合</strong>：演示用的 10 个问题是精心挑的，生产问题分布完全不同。对策：评测集必须从生产日志采样，且随时间滚动更新（篇09 的可复现基准）。</li>
+<li><strong>脏数据的冰山</strong>：客户给 PoC 的导出表是清洗过的，直连生产库才发现 NULL、口径冲突、时区错乱。对策：PoC 第二周必须接一次真实源系统，哪怕只接一个表。</li>
+<li><strong>期望值的棘轮</strong>：第一次演示越惊艳，客户预期越高，之后每次&quot;正常水平&quot;都被视为退步。对策：首次演示就明确展示失败案例与边界，&quot;它不会什么&quot;和&quot;它会什么&quot;一起讲。</li>
+<li><strong>隐性利益相关者</strong>：Agent 替代了某人每周手工做报表的 6 小时——这个人可能是项目最隐蔽的反对者。对策：需求澄清时就问&quot;现在谁在做这件事&quot;。</li>
+<li><strong>&quot;准确率&quot;没有业务含义</strong>：检索准确率 90% 客户无感；&quot;每月避免 2 次因库存误判导致的断货&quot;客户才听得懂。技术指标必须翻译成业务指标（见 3.1）。</li>
+</ol>
+<h3 id="3-1-技术指标-业务指标映射">3.1 技术指标 ↔ 业务指标映射</h3>
+<p>映射公式：<strong>技术指标 → 用户行为指标 → 业务结果指标</strong>，三层链条缺一不可。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>技术指标（你量的）</th>
+<th>行为指标（客户用户感受到的）</th>
+<th>业务指标（客户老板关心的）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据问答准确率（评测集）</td>
+<td>区域经理采纳回答的比例（埋点）</td>
+<td>经营例会前数据准备工时 ↓</td>
+</tr>
+<tr>
+<td>TTFT/TPOT（卷06）</td>
+<td>日活跃使用人数、人均提问数</td>
+<td>决策周期从&quot;周&quot;到&quot;天&quot;</td>
+</tr>
+<tr>
+<td>证据链覆盖率（篇06）</td>
+<td>回答被人工复核推翻的比例</td>
+<td>因数据误读导致的错误补货次数 ↓</td>
+</tr>
+<tr>
+<td>系统可用性/时延 SLA</td>
+<td>早高峰 8-9 点使用完成率</td>
+<td>晨会准时开始率</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>经验法则</strong>：PoC 阶段至少要锁定 1 个业务指标作为北极星，哪怕只是方向性改善——没有业务锚点的 AI 项目，验收时一定会陷入&quot;我觉得还不够聪明&quot;的扯皮。</p>
+<h2 id="4-客户现场的工程纪律">4. 客户现场的工程纪律</h2>
+<h3 id="4-1-数据安全与合规">4.1 数据安全与合规</h3>
+<p>零售客户的会员数据、交易流水是敏感资产，现场纪律包括：</p>
+<ul>
+<li><strong>最小化取数</strong>：只取 PoC 范围声明的表与字段，书面确认数据授权范围。</li>
+<li><strong>不出域优先</strong>：默认走卷06 的私有化推理路径；任何出域调用（云 API）必须脱敏并经客户书面同意。</li>
+<li><strong>不留尾巴</strong>：现场调试用的临时数据库副本、导出的 CSV，项目结束按清单销毁并书面确认。</li>
+<li><strong>审计留痕</strong>：谁、什么时间、查询了什么数据——复用篇04 的用量归集与篇07 的审批闭环。</li>
+</ul>
+<h3 id="4-2-受限环境下的部署">4.2 受限环境下的部署</h3>
+<p>客户现场常见约束与对策：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>约束</th>
+<th>现实例子</th>
+<th>对策</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无法访问公网</td>
+<td>门店内网/金融级隔离区</td>
+<td>离线镜像 + 私有化模型权重预拷贝（卷06 的模型资产仓）</td>
+</tr>
+<tr>
+<td>无 GPU</td>
+<td>只有两台虚拟化 CPU 服务器</td>
+<td>小模型 + 量化 + 降级路由（简单问答本地、复杂分析云端审批后出域）</td>
+</tr>
+<tr>
+<td>变更窗口严苛</td>
+<td>每月只有一个周六凌晨可发布</td>
+<td>蓝绿/灰度 + 一键回滚，发布包提前演练</td>
+</tr>
+<tr>
+<td>安全扫描</td>
+<td>所有依赖要过客户 SCA 扫描</td>
+<td>依赖清单（SBOM）随交付物提供，提前跑一遍</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5-价值度量与验收-怎么定义-这个项目成了">5. 价值度量与验收：怎么定义&quot;这个项目成了&quot;</h2>
+<p>一个可验收的项目定义包含四层：</p>
+<ol>
+<li><strong>范围事实</strong>：交付了什么（场景清单、接入数据源清单、用户角色清单）。</li>
+<li><strong>技术指标</strong>：评测集准确率、SLA、可用性——有基线、有测量方法、有复测条件（篇09 的可复现基准）。</li>
+<li><strong>业务指标</strong>：北极星指标的方向与幅度，以及测量窗口（&quot;上线后 4 周内，区域经理数据准备工时中位数下降 ≥30%&quot;）。</li>
+<li><strong>运营移交</strong>：客户方谁会日常运营（看告警、管 Prompt 变更、处理 badcase）——移交培训完成 = 验收的一部分。</li>
+</ol>
+<p><strong>反模式</strong>：验收标准写&quot;系统运行稳定、效果良好&quot;。无法测量的验收标准等于没有验收标准，也等于项目永远不会结束。</p>
+<hr>
+<h2 id="6-poc-生产交付成熟度模型-每一级都在证明一件不同的事">6. POC→生产交付成熟度模型：每一级都在证明一件不同的事</h2>
+<p>FDE 新手最常见的失败，是把交付当成一条平滑的进度条——&quot;完成 60% 了&quot;。真实的交付是一组<strong>离散台阶</strong>：每一级要证明的命题不同、需要的证据不同、跳过任何一级都要在后面连本带利地补回来。</p>
+<h3 id="6-1-五级成熟度阶梯">6.1 五级成熟度阶梯</h3>
+<pre class="mermaid">flowchart LR
+    L0[&quot;L0 演示 Demo&lt;br/&gt;证明：技术可行&quot;] --&gt; L1[&quot;L1 PoC&lt;br/&gt;证明：价值真实&quot;]
+    L1 --&gt; L2[&quot;L2 试点&lt;br/&gt;证明：能被真实使用&quot;]
+    L2 --&gt; L3[&quot;L3 生产&lt;br/&gt;证明：能承诺&quot;]
+    L3 --&gt; L4[&quot;L4 规模化运营&lt;br/&gt;证明：可移交、可复制&quot;]
+    L0 -. &quot;跳级：价值未验证&quot; .-&gt; W1[&quot;返工税&quot;]
+    L1 -. &quot;跳级：真实分布未见过&quot; .-&gt; W1
+    L2 -. &quot;跳级：信任被透支&quot; .-&gt; W1
+    W1[&quot;返工税 + 客户信任损耗&quot;] -. &quot;级别越高越贵&quot; .-&gt; L0
+</pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>本级证明的命题</th>
+<th>关键证据</th>
+<th>未达标的典型死法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L0 演示 Demo</td>
+<td>核心技术链路在准备好的数据上能跑通</td>
+<td>可现场操作的 Demo + 一句话核心价值假设</td>
+<td>把 Demo 效果误当成交付能力，直接报价</td>
+</tr>
+<tr>
+<td>L1 PoC</td>
+<td>核心价值假设在真实数据/真实提问上成立</td>
+<td>真实源系统接入 + 真实提问评测集 + 北极星指标基线</td>
+<td>演示集过拟合，上生产准确率腰斩</td>
+</tr>
+<tr>
+<td>L2 试点</td>
+<td>真实用户在日常工作流中持续使用</td>
+<td>权限审计上线 + 评测门禁进 CI + 使用行为埋点</td>
+<td>试点期质量退化无人发现，口碑崩塌</td>
+</tr>
+<tr>
+<td>L3 生产</td>
+<td>可以对系统做出可量化的承诺</td>
+<td>SLA + 一键回滚演练 + 成本账本</td>
+<td>第一次事故就原形毕露，合同变成索赔</td>
+</tr>
+<tr>
+<td>L4 规模化运营</td>
+<td>客户能自己运营，平台因本项目变强</td>
+<td>移交培训完成 + 资产回流清单 + 量化验收关闭</td>
+<td>项目永远&quot;收不了尾&quot;，尾款与口碑双失</td>
+</tr>
+</tbody>
+</table></div>
+<p>为什么要强调&quot;每一级证明的命题不同&quot;？因为它直接决定了<strong>证据不可通用</strong>：L1 的评测集证明不了 L3 的 SLA，L0 的惊艳演示证明不了 L1 的真实价值。拿着上一级的成绩单去敲下一级的门，是所有&quot;跳级&quot;的共同形式。</p>
+<h3 id="6-2-交付漏斗-每一级都是一次筛选">6.2 交付漏斗：每一级都是一次筛选</h3>
+<p>从 FDE 的 pipeline 视角看，项目从来不是&quot;一个客户做到底&quot;，而是一个漏斗——每一级都有正当的退出理由，<strong>及时杀死一个错误项目也是 FDE 的交付成果</strong>：</p>
+<pre class="mermaid">flowchart TD
+    A[&quot;商机 10 个&lt;br/&gt;售前移交&quot;] --&gt; B[&quot;嵌入式理解后立项 6 个&lt;br/&gt;退出：需求是假的/数据根本不可用&quot;]
+    B --&gt; C[&quot;PoC 启动 4 个&lt;br/&gt;退出：核心价值假设证伪&quot;]
+    C --&gt; D[&quot;试点 3 个&lt;br/&gt;退出：用户不采纳/隐性干系人反对&quot;]
+    D --&gt; E[&quot;生产 2 个&lt;br/&gt;退出：SLA 或合规不达标&quot;]
+    E --&gt; F[&quot;规模化运营 1-2 个&lt;br/&gt;资产回流，复制到同行业&quot;]
+</pre>
+<p>漏斗的健康读法：每一级都有退出率是正常的；<strong>100% 立项率或 100% PoC 通过率反而是警报</strong>——说明门槛形同虚设，或者售前为了赢单过度承诺，把筛选成本全部推给了 FDE。</p>
+<h3 id="6-3-交付物清单-每个阶段的-出厂标配">6.3 交付物清单：每个阶段的&quot;出厂标配&quot;</h3>
+<p>FDE 的专业性，很大程度体现在&quot;交付物永远比代码多&quot;。按阶段对齐：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>核心交付物</th>
+<th>验收人</th>
+<th>对应模板</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>嵌入式理解</td>
+<td>《需求澄清纪要》（10 问 + 数据探查记录 + 北极星指标锚定）</td>
+<td>客户业务负责人</td>
+<td>本卷实战任务 1</td>
+</tr>
+<tr>
+<td>PoC</td>
+<td>《PoC 计划》（价值假设 + 范围裁剪记录 + 时间盒）+ 可演示系统 + 评测基线</td>
+<td>客户业务 + IT 双签</td>
+<td>本卷实战任务 2</td>
+</tr>
+<tr>
+<td>试点</td>
+<td>《PoC 验收指标表》（技术/行为/业务/治理四层）+ 权限审计配置 + 使用埋点报表</td>
+<td>客户运营方</td>
+<td>本卷实战任务 3</td>
+</tr>
+<tr>
+<td>生产</td>
+<td>SLA 文档 + 回滚演练记录 + SBOM 依赖清单 + 成本账本</td>
+<td>客户 IT/安全</td>
+<td>卷08 的 SLO 模板</td>
+</tr>
+<tr>
+<td>规模化运营</td>
+<td>《交付复盘报告》（含资产回流表）+ 运营移交培训记录 + 验收关闭确认</td>
+<td>双方项目负责人</td>
+<td>本卷实战任务 4</td>
+</tr>
+</tbody>
+</table></div>
+<p>把成熟度阶梯亲手走一遍：在下面的模拟器里扮演 FDE，尝试把项目从 L0 推到 L4。你可以老老实实勾齐每级准入条件再晋级，也可以试试&quot;裸奔闯关&quot;——观察返工税和客户信任度如何变化；特别注意 L3→L4 的准入条件里为什么没有一条是技术性的：</p>
+<div class="demo-embed" data-demo="delivery-funnel"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong>：</p>
+<ol>
+<li>先&quot;裸奔&quot;点一次「申请晋级」，记录返工税金额与信任度变化——回答：为什么级别越高，跳级的返工税越贵？</li>
+<li>逐条阅读 L1（PoC）的三个准入条件，把每条映射回 2.2 节的四条裁剪原则，指出哪条原则对应哪个条件。</li>
+<li>对比 L2 与 L3 的准入条件清单：L2 管&quot;人用不用&quot;，L3 管&quot;敢不敢承诺&quot;——各找出一条最能代表该级命题的条件并说明理由。</li>
+<li>观察 L4 的准入条件：四条里三条是&quot;移交、回流、复盘&quot;，没有新功能开发——解释为什么&quot;可移交、可复制&quot;是成熟度的最高级而不是附加题。</li>
+<li>重开一局，以&quot;零返工 + 信任度 100&quot;为目标通关，然后把每一级勾选的条件与 6.3 节交付物清单对照，说出&quot;准入条件&quot;与&quot;交付物&quot;是什么关系。</li>
+</ol>
+<hr>
+<h2 id="本卷实战-retailhub-演进第-8-步-某连锁零售客户-端到端交付模拟">本卷实战：RetailHub 演进第 8 步——&quot;某连锁零售客户&quot;端到端交付模拟</h2>
+<p><strong>背景</strong>：某连锁零售客户（180 家门店，三套异构系统：ERP、会员 CRM、门店 POS 日报 Excel）想上&quot;经营分析 Agent&quot;。你是 DataAgent 团队的 FDE。本实战为角色扮演模拟：自己同时扮演客户方（区域运营总监）与 FDE，按四个递进步骤产出四份交付物。</p>
+<h3 id="第-1-步-需求澄清纪要-理解层">第 1 步：需求澄清纪要（理解层）</h3>
+<ul>
+<li><strong>目标</strong>：不动一行代码，先把&quot;真需求、真数据、真指标&quot;挖出来。</li>
+<li><strong>操作</strong>：写出 10 个必问问题、提问意图、以及模拟客户的示例回答。示例骨架（自行补全 10 条）：</li>
+</ul>
+<pre><code class="language-markdown">## 需求澄清纪要 · XX连锁零售 · 2025-XX-XX · 现场第 3 天
+
+| # | 问题 | 提问意图 | 客户回答（模拟） |
+|---|---|---|---|
+| 1 | 最近一次因为经营数据问题，您或团队加班/出错是什么时候？当时发生了什么？ | 逼出具体场景与频率，区分&quot;痛点&quot;与&quot;痒点&quot; | 上月促销复盘，区域经理花 2 天从 ERP 和 Excel 对数，最后发现口径不一致，返工 |
+| 2 | 现在谁、用什么流程、花多少时间产出每日/每周经营数据？ | 量化现状基线（业务指标的分母） | 3 个运营专员，每天早 7-9 点手工汇总，周报另需 1 天 |
+| 3 | 如果只能自动化一个场景，您选哪个？为什么？ | 收敛 PoC 范围，测优先级 | 异常门店预警：哪些店昨天业绩跌超 20%、可能是什么原因 |
+| 4 | 能让我随机抽 50 条区域经理真实的业务提问吗（微信记录也行）？ | 拿真实问题分布，建评测集 | 可以，但要去标识化；方言和门店简称很多 |
+| 5 | 三套系统的门店编码一致吗？谁说了算？ | 探数据脏乱度，预估数据工程量 | 不一致，ERP 是主数据，POS 有历史遗留编码 |
+| 6 | 数据可以出公司内网吗？会员数据呢？ | 定部署形态：私有化 or 混合 | 经营数据可谈，会员数据绝对不出域 |
+| 7 | 这件事做成了，您在季度会上会向老板报哪个数字？ | 锚定北极星业务指标 | 运营专员的数据准备工时，以及异常门店发现时效（从 T+2 到 T+0） |
+| 8 | 现在手工做这件事的人，对这个项目是什么态度？ | 识别隐性利益相关者 | 专员担心被替代——需要定位为&quot;把他们从搬运中解放去分析&quot; |
+| 9 | 演示给区域经理看时，谁的认可能决定项目继续？ | 识别决策链 | 运营总监 + IT 负责人双签 |
+| 10 | 什么情况下您会叫停这个项目？ | 提前暴露失败条件，管理预期 | 答错数字且被我们抓包两次以上——信任崩了就回不来了 |
+</code></pre>
+<ul>
+<li><strong>验收标准</strong>：10 条齐全，每条含&quot;提问意图&quot;且意图各不相同；至少覆盖场景、基线、范围、数据、合规、指标、干系人、决策链、失败条件九个维度中的八个。</li>
+</ul>
+<h3 id="第-2-步-2-周-poc-计划-裁剪层">第 2 步：2 周 PoC 计划（裁剪层）</h3>
+<ul>
+<li><strong>目标</strong>：把第 1 步挖到的需求收敛成一个 2 周可证伪的最小验证。</li>
+<li><strong>操作</strong>：</li>
+</ul>
+<pre><code class="language-markdown">## PoC 计划 · 范围：异常门店预警单场景
+
+**核心价值假设**：基于 ERP 日销数据 + 历史提问语料，Agent 能在早 8:30 前
+自动产出&quot;昨日异常门店清单 + 可能原因 + 证据 SQL&quot;，准确率 ≥80%（人工抽检）。
+
+**范围裁剪记录**（移出范围项必须书面化）：
+- ❌ 会员数据分析（数据不出域约束 + 非核心假设）→ 移至二期
+- ❌ CRM 系统接入（接口要排期 3 周，超时间盒）→ PoC 用静态导出
+- ❌ 自然语言自由问答全量开放 → 限定 3 类问题模板 + 异常归因
+- ✅ 只接 ERP 一个区域 30 家门店近 90 天数据
+
+**日程**：D1-2 数据探查与口径映射 / D3-5 语义层+检索+异常检测打通 /
+D6-8 接真实提问建评测集跑基线 / D9-11 生产化（权限、证据链、定时任务）/
+D12-13 试跑+修 badcase / D14 现场演示 + 验收评审
+</code></pre>
+<ul>
+<li><strong>验收标准</strong>：核心价值假设一句话、可证伪（含数字与测量方式）；移出范围项 ≥3 条且每条有移出理由与去向；日程中&quot;接真实源系统&quot;不晚于第二周首日。</li>
+</ul>
+<h3 id="第-3-步-poc-验收指标表-度量层">第 3 步：PoC 验收指标表（度量层）</h3>
+<ul>
+<li><strong>目标</strong>：让&quot;成没成&quot;在开工前就有双方都认的刻度尺。</li>
+<li><strong>操作</strong>：</li>
+</ul>
+<pre><code class="language-markdown">| 层 | 指标 | 目标 | 测量方法 | 责任人 |
+|---|---|---|---|---|
+| 技术 | 异常识别准确率（评测集 50 条） | ≥80% | 双盲人工抽检，D12 复测 | FDE |
+| 技术 | 证据链覆盖率（每个数字附 SQL） | 100% | 自动校验（篇06 证据链） | FDE |
+| 技术 | 早 8:30 前产出完成率（试跑 5 天） | ≥4/5 天 | 任务日志 | FDE |
+| 行为 | 区域经理对预警清单的采纳率 | ≥60% | 点击/转发埋点 | 客户运营 |
+| 业务 | 数据准备工时（北极星） | 日均 2h → ≤1h | 专员自报+抽样核对，4 周窗口 | 客户总监 |
+| 治理 | 会员数据出域次数 | 0 | 网关审计日志 | 双方 |
+</code></pre>
+<ul>
+<li><strong>验收标准</strong>：覆盖技术/行为/业务/治理四层，每条有可执行的测量方法与责任人；北极星指标含基线值、目标值、测量窗口三要素。</li>
+</ul>
+<h3 id="第-4-步-交付复盘报告-沉淀层">第 4 步：交付复盘报告（沉淀层）</h3>
+<ul>
+<li><strong>目标</strong>：让这次交付同时为客户关账、为平台增值。</li>
+<li><strong>操作</strong>：</li>
+</ul>
+<pre><code class="language-markdown">## 交付复盘 · XX连锁零售异常预警 PoC
+
+### 1. 结果对照
+- 验收指标逐项：目标 / 实测 / 是否通过 / 偏差原因
+### 2. 需求认知偏差
+- 开工时的假设 vs 现场发现的真相（至少列 3 条）
+### 3. 数据工程实录
+- 门店编码映射规则、断档数据处理、口径仲裁记录
+### 4. 沉淀回 DataAgent 平台的资产
+| 现场产物 | 通用性判断 | 去向 | 是否过 Regression Gate |
+|---|---|---|---|
+| 零售异常归因 Prompt 模板 | 高：下个零售客户必用 | Prompt 模式库 v4 | ✅ |
+| 真实提问语料 120 条 | 高 | 行业评测集库 | ✅（去标识化后） |
+| ERP 门店编码映射 | 客户专属 | 留在客户侧配置 | — |
+| 异常检测 SQL 模式（同店环比） | 中：抽象后进语义层 | 语义层指标包 | ✅ |
+### 5. 下一个客户的交付成本预估
+- 本次 PoC 14 人日 → 预计同类场景下次 ≤9 人日（资产复用项列明）
+### 6. 如果重来一次
+- （至少 2 条，禁止写&quot;沟通要更充分&quot;这类空话）
+</code></pre>
+<ul>
+<li><strong>验收标准</strong>：第 4 节资产表中每个资产都有明确的&quot;通用/专属&quot;判断与去向；&quot;下次交付成本预估&quot;逐项列明复用了什么；&quot;如果重来一次&quot;不含空话。</li>
+</ul>
+<h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
+<p>① <strong>可复制提示词模板</strong>（把第 1 步的澄清问题设计委托给 AI 做&quot;陪练客户&quot;）：</p>
+<pre><code class="language-text">你扮演两个角色：(A) 连锁零售客户的区域运营总监（务实、对 AI 半信半疑、
+说话用业务语言）；(B) 资深 FDE 教练。
+流程：我先以 FDE 身份向你（角色 A）提 3 个需求澄清问题；
+你以角色 A 如实回答（可以给出模糊、回避或暴露新信息的答案）；
+然后角色 B 点评我每个问题：属于&quot;逼出场景/暴露数据/锚定价值&quot;中的哪类、
+好在哪里、如果换成封闭式提问会损失什么信息。
+客户背景：180 家门店，ERP+CRM+POS 日报 Excel 三套系统，
+门店编码不一致，会员数据不出域，3 个运营专员手工做数据。
+开始吧，等我先问。
+</code></pre>
+<p>② <strong>AI 初版人工评审清单</strong>（评审 AI 起草的 PoC 计划/验收指标表）：</p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 核心价值假设是否含数字与测量方式（AI 常写成&quot;显著提升效率&quot;这类不可测句）？</li>
+<li class="task-item"><input type="checkbox" disabled> 范围裁剪的移出项是否有去向（二期/客户侧/永久放弃），而非简单删除？</li>
+<li class="task-item"><input type="checkbox" disabled> 验收指标是否四层齐全（AI 容易只写技术指标，漏掉行为与治理层）？</li>
+<li class="task-item"><input type="checkbox" disabled> 测量方法是否可执行（谁、用什么工具、在什么时间点测）？</li>
+<li class="task-item"><input type="checkbox" disabled> 是否出现客户没授权的数据源（AI 不知道第 1 步的合规边界，必须人工核对）？</li>
+</ul>
+<p>③ <strong>验收标准</strong>：四份交付物通过评审清单全部条目；把四份交付物与 6.3 节交付物清单逐项对照无缺失；用 delivery-funnel Demo 复演一遍 L0→L2，验证你的交付物能支撑哪几级晋级。</p>
+<hr>
+<h2 id="常见误区">常见误区</h2>
+<ol>
+<li><strong>把 FDE 当高级售前</strong>：只负责演示赢单，不对上线后的业务结果负责。没有交付责任制的 FDE 只是换了个 title。</li>
+<li><strong>把 FDE 当驻场外包</strong>：现场需求来者不拒、全部定制，资产回流率为零。一年下来平台没有变强，第十个客户和第一个客户一样难。</li>
+<li><strong>PoC 范围膨胀</strong>：客户说&quot;顺便把会员分析也看看&quot;，不好意思拒绝，两周变六周，核心价值假设反而没验证透。移出范围项书面化是 FDE 的自我保护。</li>
+<li><strong>只报技术指标</strong>：验收会上讲&quot;Recall@5 提升了 12 个点&quot;，客户老板面无表情。翻译链断在哪一层，价值就断在哪一层。</li>
+<li><strong>回避失败案例</strong>：演示全程无死角，客户预期拉满；上线第一天遇到一个 badcase，信任直接清零。主动展示边界是长期信任的投资。</li>
+<li><strong>忽视数据授权边界</strong>：&quot;先接进来再说&quot;——合规事故一旦发生，丢的不只是这个项目，是公司在这个行业的入场券。</li>
+<li><strong>验收标准无量化窗口</strong>：&quot;上线后持续观察&quot;等于项目永远无法关闭，尾款永远无法回收。</li>
+<li><strong>复盘不写资产表</strong>：复盘只写&quot;经验教训&quot;，不写&quot;哪些产物进了平台、过了哪个门禁&quot;——资产蒸馏就不会真的发生（对照篇02）。</li>
+<li><strong>把交付当进度条</strong>：用&quot;完成 70%&quot;汇报一个还没过 L1 的项目——成熟度是离散台阶，上一级的证据敲不开下一级的门。</li>
+</ol>
+<h2 id="自测清单">自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 我能用三支柱（嵌入式理解/交付负责/资产回流）定义 FDE</li>
+<li class="task-item"><input type="checkbox" disabled> 我能说出 AI 项目比传统软件更需要 FDE 的三个原因</li>
+<li class="task-item"><input type="checkbox" disabled> 我能区分 FDE 与售前、PM、交付工程师的责任边界，并说出 FDE 模式的商业本质</li>
+<li class="task-item"><input type="checkbox" disabled> 我能写出 PoC 范围裁剪的四条原则并各举一例</li>
+<li class="task-item"><input type="checkbox" disabled> 我能解释&quot;技术指标→行为指标→业务指标&quot;的三层翻译链</li>
+<li class="task-item"><input type="checkbox" disabled> 我能列出 AI 交付&quot;演示好、生产糟&quot;的五个成因及对策</li>
+<li class="task-item"><input type="checkbox" disabled> 我能说出数据安全现场纪律的四条底线</li>
+<li class="task-item"><input type="checkbox" disabled> 我能写出可验收项目定义的四层（范围/技术/业务/移交）</li>
+<li class="task-item"><input type="checkbox" disabled> 我能画出五级成熟度阶梯，说出每一级证明的命题与关键证据</li>
+<li class="task-item"><input type="checkbox" disabled> 我能按阶段列出 FDE 交付物清单，并说明每份的验收人</li>
+<li class="task-item"><input type="checkbox" disabled> 我能判断一个现场产物该进平台主干还是留客户侧，并说出判断标准</li>
+<li class="task-item"><input type="checkbox" disabled> 我能说明 FDE 的资产回流如何复用篇02 资产蒸馏与篇09 受控进化的机制</li>
+</ul>
+<hr>
+<h2 id="全路径收官-十阶段能力成长线">全路径收官：十阶段能力成长线</h2>
+<pre class="mermaid">flowchart LR
+    subgraph 基础[&quot;地基：通用工程能力&quot;]
+        S1[阶段一 服务端筑基&lt;br/&gt;卷01：FastAPI 单体&lt;br/&gt;RetailHub 诞生]
+        S2[阶段二 架构演进&lt;br/&gt;卷02：模块化/服务化]
+        S3[阶段三 DDIA&lt;br/&gt;卷03：数据密集型&lt;br/&gt;存储与流思维]
+    end
+    subgraph 架构[&quot;架构与平台能力&quot;]
+        S4[阶段四 分布式与平台工程&lt;br/&gt;卷04：内部平台 PI]
+        S5[阶段五 架构师方法论&lt;br/&gt;卷05：ADR/文档包/软考体系]
+    end
+    subgraph AI[&quot;AI 工程能力&quot;]
+        S6[阶段六 AI 开发基础&lt;br/&gt;篇00-02：API/Function Calling/RAG&lt;br/&gt;+ AI Coding 道法术器]
+        S7[阶段七 AI Infra&lt;br/&gt;卷06：私有化推理&lt;br/&gt;向量检索/成本账本]
+        S8[阶段八 SRE 与可靠性工程&lt;br/&gt;卷08：SLO/错误预算/告警&lt;br/&gt;复盘与混沌实验]
+        S9[阶段九 Agent 企业工程化&lt;br/&gt;篇03-10：Runtime/上下文/工具&lt;br/&gt;记忆/评测/受控进化]
+    end
+    subgraph 价值[&quot;价值交付能力&quot;]
+        S10[阶段十 AI FDE&lt;br/&gt;卷07：端到端交付&lt;br/&gt;价值度量/资产回流]
+    end
+    S1 --&gt; S2 --&gt; S3 --&gt; S4 --&gt; S5 --&gt; S6 --&gt; S7 --&gt; S8 --&gt; S9 --&gt; S10
+    S10 -.资产回流.-&gt; S9
+    S10 -.现场证据反哺.-&gt; S6
+    S10 -.容量与成本约束.-&gt; S7
+    S10 -.SLA 承诺与事故证据.-&gt; S8
+</pre>
+<p>回看这条线：卷01 你为一个接口能跑通而高兴；卷03 你开始问&quot;数据怎么存才对&quot;；卷05 你学会了用文档和决策记录让架构可讨论；卷06 你把模型变成了自己的基础设施；卷08 你学会了为系统立下可承诺的 SLO 并用错误预算管理节奏；篇04-09 你把模型调用、上下文、工具、记忆、质量全部工程化；卷07 你终于回答了一个最初级也最难的问题——<strong>&quot;这东西对客户到底有什么用，怎么证明&quot;</strong>。</p>
+<h3 id="接下来去哪">接下来去哪</h3>
+<ul>
+<li><strong>开源贡献</strong>：你在卷06 压测、篇09 评测、卷07 交付中踩过的坑，都是 vLLM、LlamaIndex、各 Agent 框架 issue 区里的真实需求。从一个可复现的 bug report 或一篇 benchmark 复现开始。</li>
+<li><strong>深耕一域</strong>：选一个行业（零售、制造、金融……）把 FDE 循环跑 3 次以上，你会积累出任何通用工程师拿不走的资产：行业评测集、口径模板、以及对&quot;客户嘴里的话和系统里的数如何对应&quot;的直觉。</li>
+<li><strong>带团队</strong>：把你的 RetailHub→DataAgent 仓库、ADR 文档包、复盘模板变成新人的 onboarding 材料——教别人走通这条路，是检验你是否真的走通的最后一块试金石。</li>
+</ul>
+<p>路径到这里结束，但循环不会：下一个客户、下一代模型、下一波平台范式，都会把你重新带回卷01 的某个清晨——只不过这一次，你知道每一步为什么要这么走。</p>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-gktime">极客时间《企业级 Agent 工程化》课程——本卷的交付方法论与篇03-10 的企业级 Agent 体系同源，FDE 工作循环中引用的权限、证据链、评测门禁等机制分别对应篇07、篇06、篇09 的工程化展开。 <a class="fn-back" href="#ref-gktime" aria-label="回到正文">↩</a></li>
+<li id="fn-wpscomate">珠海网《金山办公将在7月中旬发布WPS Comate，直击企业AI&quot;落地难&quot;》，2026-07-05——&quot;前期演示环节很惊艳，落地执行时始终达不到想要的效果&quot;出自金山办公高端制造业总经理于叶舟对企业 AI 转型痛点的现场总结；报道同时记录了 Skill 化经验沉淀（&quot;打单顾问&quot;&quot;经营顾问&quot;Skill）带来业绩倍增的一线案例，<a href="https://pub-zhtb.hizh.cn/a/202607/05/AP6a4a6250e4b082bf2149917e.html">https://pub-zhtb.hizh.cn/a/202607/05/AP6a4a6250e4b082bf2149917e.html</a> 。 <a class="fn-back" href="#ref-wpscomate" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-06.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷06 · AI 基础设施 Infra</span></a>
+      <a class="next" href="vol-08.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷08 · SRE 与可靠性工程</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-fde-是什么-源自-palantir-的-进驻式-交付模式">1. FDE 是什么：源自 Palantir 的"进驻式"交付模式</a>
+    <a class="toc-h3" href="#1-1-定义">1.1 定义</a>
+    <a class="toc-h3" href="#1-2-为什么-ai-时代-fde-尤其兴起">1.2 为什么 AI 时代 FDE 尤其兴起</a>
+    <a class="toc-h3" href="#1-3-fde-与相邻角色的边界">1.3 FDE 与相邻角色的边界</a>
+    <a class="toc-h2" href="#2-fde-工作循环-理解-poc-迭代-沉淀">2. FDE 工作循环：理解 → PoC → 迭代 → 沉淀</a>
+    <a class="toc-h3" href="#2-1-第一步-嵌入式理解-问对问题比答对问题难">2.1 第一步：嵌入式理解——问对问题比答对问题难</a>
+    <a class="toc-h3" href="#2-2-第二步-最快-poc-范围裁剪是第一生产力">2.2 第二步：最快 PoC——范围裁剪是第一生产力</a>
+    <a class="toc-h3" href="#2-3-第三步-迭代交付-从-能跑-到-敢上生产">2.3 第三步：迭代交付——从"能跑"到"敢上生产"</a>
+    <a class="toc-h3" href="#2-4-第四步-沉淀回流-与篇02-资产蒸馏-篇09-受控进化-的呼应">2.4 第四步：沉淀回流——与篇02"资产蒸馏"、篇09"受控进化"的呼应</a>
+    <a class="toc-h2" href="#3-ai-交付的特殊坑-演示很好-生产很糟">3. AI 交付的特殊坑：演示很好、生产很糟</a>
+    <a class="toc-h3" href="#3-1-技术指标-业务指标映射">3.1 技术指标 ↔ 业务指标映射</a>
+    <a class="toc-h2" href="#4-客户现场的工程纪律">4. 客户现场的工程纪律</a>
+    <a class="toc-h3" href="#4-1-数据安全与合规">4.1 数据安全与合规</a>
+    <a class="toc-h3" href="#4-2-受限环境下的部署">4.2 受限环境下的部署</a>
+    <a class="toc-h2" href="#5-价值度量与验收-怎么定义-这个项目成了">5. 价值度量与验收：怎么定义"这个项目成了"</a>
+    <a class="toc-h2" href="#6-poc-生产交付成熟度模型-每一级都在证明一件不同的事">6. POC→生产交付成熟度模型：每一级都在证明一件不同的事</a>
+    <a class="toc-h3" href="#6-1-五级成熟度阶梯">6.1 五级成熟度阶梯</a>
+    <a class="toc-h3" href="#6-2-交付漏斗-每一级都是一次筛选">6.2 交付漏斗：每一级都是一次筛选</a>
+    <a class="toc-h3" href="#6-3-交付物清单-每个阶段的-出厂标配">6.3 交付物清单：每个阶段的"出厂标配"</a>
+    <a class="toc-h2" href="#本卷实战-retailhub-演进第-8-步-某连锁零售客户-端到端交付模拟">本卷实战：RetailHub 演进第 8 步——"某连锁零售客户"端到端交付模拟</a>
+    <a class="toc-h3" href="#第-1-步-需求澄清纪要-理解层">第 1 步：需求澄清纪要（理解层）</a>
+    <a class="toc-h3" href="#第-2-步-2-周-poc-计划-裁剪层">第 2 步：2 周 PoC 计划（裁剪层）</a>
+    <a class="toc-h3" href="#第-3-步-poc-验收指标表-度量层">第 3 步：PoC 验收指标表（度量层）</a>
+    <a class="toc-h3" href="#第-4-步-交付复盘报告-沉淀层">第 4 步：交付复盘报告（沉淀层）</a>
+    <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
+    <a class="toc-h2" href="#常见误区">常见误区</a>
+    <a class="toc-h2" href="#自测清单">自测清单</a>
+    <a class="toc-h2" href="#全路径收官-十阶段能力成长线">全路径收官：十阶段能力成长线</a>
+    <a class="toc-h3" href="#接下来去哪">接下来去哪</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

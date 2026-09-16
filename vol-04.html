@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷04：分布式架构与平台工程——从"能跑"到"扛得住"，再到"人人能用" · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html" class="active">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷04-分布式架构与平台工程-从-能跑-到-扛得住-再到-人人能用">卷04：分布式架构与平台工程——从&quot;能跑&quot;到&quot;扛得住&quot;，再到&quot;人人能用&quot;</h1>
+<blockquote>
+<p>导语：卷03 结束时，RetailHub 已经有一份数据架构设计文档，并且用防超卖实验亲手验证了&quot;一致性是要花代价的&quot;。但那份系统本质上还是卷02 拆出来的几个服务各自为战：服务之间靠写死的 IP 互调、下游一挂上游跟着雪崩、发版靠 SSH 登录重启、出了问题靠 <code>grep</code> 日志大海捞针。本卷要把这些&quot;手工作坊&quot;环节全部工程化：服务怎么找到彼此（服务发现）、流量怎么被驯服（超时/重试/熔断/限流/降级）、跨服务的钱和库存怎么不出错（分布式事务）、配置和发布怎么不翻车（配置中心与发布治理）、系统内部状态怎么看得见（可观测性三支柱）、代码怎么被标准化地交付和调度（容器与 Kubernetes）。最后我们会站高一层，引入平台工程（Platform Engineering，下称 PI 架构）的思想：当团队里每个项目组都自己搭一遍上面这些东西时，组织会系统性失血——这正是卷06（AI Infra 平台）和阶段九（Agent 企业工程化）要反复使用的世界观。本卷的知识主线来自周志明《凤凰架构》的&quot;分布式治理&quot;视角，平台工程部分来自近年平台工程社区的共识实践。</p>
+</blockquote>
+<hr>
+<h2 id="1-远程调用与服务发现-服务之间的-电话系统-是怎么建起来的">1. 远程调用与服务发现：服务之间的&quot;电话系统&quot;是怎么建起来的</h2>
+<h3 id="1-1-rpc-还是-rest-先把争论放对位置-融合来源-凤凰架构-远程服务调用-部分">1.1 RPC 还是 REST：先把争论放对位置（融合来源：凤凰架构&quot;远程服务调用&quot;部分<sup class="fn-ref"><a href="#fn-1" id="ref-1">[1]</a></sup>）</h3>
+<p>卷02 拆服务时我们直接用 HTTP+JSON（REST 风格）互调，这个选择在零售经营平台里至今依然成立。但你需要理解 RPC（如 gRPC、Dubbo）与 REST 的真实差异，因为面试和评审中一定会被问。</p>
+<ul>
+<li><strong>REST/HTTP</strong>：通用、可读、跨语言零成本，浏览器和 curl 就能调试；代价是文本序列化开销大、没有强类型契约、HTTP/1.1 队头阻塞。</li>
+<li><strong>RPC（gRPC 为代表）</strong>：二进制序列化（Protobuf）、强类型 IDL 契约、HTTP/2 多路复用、天然支持流式调用；代价是调试门槛高、跨语言要生成代码、对网关不友好。</li>
+</ul>
+<p>工程上的判断标准不是&quot;哪个快&quot;（内网环境下两者差距通常不是瓶颈），而是：<strong>对外、跨组织、需要被人直接调试的接口用 REST；对内、高频、调用关系稳定的服务间接口可以考虑 gRPC</strong>。RetailHub 内部调用量不大，继续用 REST 是合理决策——但要用 OpenAPI 契约把接口管起来，这是卷05 要讲的&quot;架构决策记录&quot;的第一条素材。</p>
+<h3 id="1-2-服务发现-别再把-ip-写进配置文件">1.2 服务发现：别再把 IP 写进配置文件</h3>
+<p>服务多实例部署后，&quot;订单服务在 10.0.0.3:8001&quot;这种写法立刻失效：实例会扩缩容、会漂移、会挂。服务发现就是给分布式系统装一部&quot;电话交换机&quot;：</p>
+<pre class="mermaid">flowchart LR
+    subgraph 注册中心[&quot;注册中心（Consul / Nacos / K8s Service）&quot;]
+        R[(服务注册表&lt;br/&gt;order-service: [10.0.1.3:8001, 10.0.1.4:8001]&lt;br/&gt;inventory-service: [10.0.1.5:8002])]
+    end
+    O1[order-service 实例1] --&gt;|启动时注册+定期心跳| R
+    O2[order-service 实例2] --&gt;|注册+心跳| R
+    GW[API 网关 / 调用方] --&gt;|查询健康实例列表| R
+    GW --&gt;|负载均衡选择其一| O1
+</pre>
+<p>两种主流模式：<strong>客户端发现</strong>（调用方从注册中心拉列表，自己做负载均衡，Dubbo/Eureka 风格）与<strong>服务端发现</strong>（调用方只发到一个虚拟地址，由网关或 K8s Service 转发）。在 Kubernetes 时代，服务端发现成为默认答案——K8s 的 Service 对象自带注册表、健康检查和负载均衡，你几乎&quot;免费&quot;获得服务发现。这也是本卷实战选择&quot;先搞懂概念、再直接用 K8s 能力&quot;的原因：不为造轮子而造轮子。</p>
+<p><strong>凤凰架构的一个重要提醒</strong>：注册中心本身也是分布式系统，同样受 CAP 约束。Eureka 选 AP（宁可返回过期实例列表也不拒绝服务），Zookeeper/etcd 选 CP（宁可暂时不可用也不返回不一致数据）。理解这一点，你就理解了为什么&quot;注册中心短暂抖动时所有服务互调全挂&quot;是一个真实存在过的线上事故类型。</p>
+<h3 id="1-3-负载均衡的三种粒度">1.3 负载均衡的三种粒度</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>粒度</th>
+<th>典型实现</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DNS 轮询</td>
+<td>一个域名解析到多个 IP</td>
+<td>最简单，无健康感知，只适合做第一层</td>
+</tr>
+<tr>
+<td>服务端（L4/L7 代理）</td>
+<td>Nginx、HAProxy、K8s Service、云 LB</td>
+<td>主流默认，集中式好治理</td>
+</tr>
+<tr>
+<td>客户端</td>
+<td>Ribbon、gRPC LB policy</td>
+<td>少一跳、调用方可定制策略（如按权重灰度），但策略散落在每个客户端</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="2-流量治理-超时-重试-熔断-限流-降级-每一种都在防一种确定的故障-融合来源-凤凰架构-流量治理-部分">2. 流量治理：超时、重试、熔断、限流、降级——每一种都在防一种确定的故障（融合来源：凤凰架构&quot;流量治理&quot;部分<sup class="fn-ref"><a href="#fn-1" id="ref-1">[1]</a></sup>）</h2>
+<p>这一节是全卷的心脏。新手背名词，架构师要能说清<strong>每种机制防的是什么故障、防不住什么、用错了会放大什么</strong>。</p>
+<h3 id="2-1-超时-timeout-一切治理的前提">2.1 超时（Timeout）：一切治理的前提</h3>
+<p>没有超时的调用，等于把本服务的线程池抵押给下游的故障。下游慢 10 倍，你的 worker 就全部被占满，然后你的上游也被你拖死——这就是故障传导链。<strong>原则：每一次跨进程调用都必须有显式超时，且超时要沿调用链逐层递减</strong>（网关 3s → 订单服务 2.5s → 库存服务 2s），否则内层还没超时外层先放弃，重试逻辑全部失效。</p>
+<h3 id="2-2-重试-retry-只治-瞬时故障-会放大-过载故障">2.2 重试（Retry）：只治&quot;瞬时故障&quot;，会放大&quot;过载故障&quot;</h3>
+<p>网络抖动、连接被重置这类瞬时故障，重试一次成功率极高。但下游如果是因为过载而慢，重试等于给垂死的下游再补一刀（请求量翻倍）。三个纪律：<strong>只对幂等接口重试</strong>（查询可重试，&quot;扣库存&quot;不可裸重试，除非下游支持幂等键）；<strong>重试次数有上限且带退避</strong>（exponential backoff + jitter）；<strong>超时预算内重试</strong>（总重试耗时不能超过上游给你的超时）。</p>
+<h3 id="2-3-熔断-circuit-breaker-防的是-持续调用一个已确定挂掉的下游">2.3 熔断（Circuit Breaker）：防的是&quot;持续调用一个已确定挂掉的下游&quot;</h3>
+<p>熔断器是一个状态机，这是本卷第一个必须画明白的图：</p>
+<pre class="mermaid">stateDiagram-v2
+    [*] --&gt; Closed: 初始
+    Closed --&gt; Open: 失败率/慢调用率超过阈值&lt;br/&gt;（如 10 次中 6 次失败）
+    Open --&gt; HalfOpen: 冷却时间到（如 30s）&lt;br/&gt;放行少量试探请求
+    HalfOpen --&gt; Closed: 试探请求全部成功
+    HalfOpen --&gt; Open: 试探仍有失败
+</pre>
+<ul>
+<li><strong>Closed（闭合）</strong>：正常放行，统计失败率。</li>
+<li><strong>Open（断开）</strong>：直接快速失败（fallback），不再真的调用下游——给下游喘息时间，也保护本服务的线程池。</li>
+<li><strong>HalfOpen（半开）</strong>：放几个&quot;侦察兵&quot;请求过去，试探下游是否恢复。</li>
+</ul>
+<p><strong>为什么必须是三态，两态不行吗？</strong> 设想只有&quot;开/关&quot;两态：下游恢复的瞬间，被挡住的积压请求会瞬间全部打过去——刚缓过来的下游立刻被&quot;惊群&quot;再次压垮，于是熔断再次断开，形成<strong>震荡</strong>。HalfOpen 的本质是<strong>限流试探</strong>：用少量侦察兵换取&quot;下游真的恢复了&quot;的证据，再逐渐放量。生产级熔断器（Sentinel、resilience4j）还会在此基础上加两个细化：<strong>滑动窗口统计</strong>（不看累计失败率，只看最近 10 秒/100 个请求的失败率，避免老数据干扰新判断）和<strong>慢调用比例熔断</strong>（不失败但慢到 P99 超标也算异常——慢下游拖死线程池的效果和挂掉一样）。</p>
+<p>熔断和重试的关系：<strong>重试治瞬时，熔断治持续</strong>；先有熔断再有重试上限，二者配合而不是替代。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：熔断器状态机。</strong> 拖动滑块把&quot;下游故障率&quot;从 0 慢慢拉到 80%，点击&quot;发送请求&quot;（或打开自动发送），观察状态机如何在 <strong>闭合 → 断开 → 半开</strong> 之间迁移。重点看两件事：连续失败达到阈值后状态机断开，之后请求不再触达下游、以 &lt;1ms 快速失败（&quot;熔断拒绝&quot;计数上涨）——这既给下游喘息时间，也保住了本服务的线程池；冷却结束后半开试探，试探成功才恢复闭合。</p>
+</blockquote>
+<div class="demo-embed" data-demo="circuit-breaker"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>故障率拉到 80% 后连续点&quot;发送请求&quot;，数一下：从第几个失败开始状态机跳到 Open？这个阈值在课文代码骨架里对应哪个参数？</li>
+<li>进入 Open 后再点&quot;发送请求&quot;：观察请求的耗时和&quot;熔断拒绝&quot;计数——此时请求<strong>有没有真的发出去</strong>？这保护了哪两样东西？</li>
+<li>等冷却时间到，观察状态机先进入哪个状态？为什么不直接跳回 Closed（提示：想想&quot;惊群&quot;）？</li>
+<li>在半开期间把故障率调回 0，再调回 80%，各会发生什么？用状态机术语描述这两条迁移路径。</li>
+<li>对照 §2.6 对比总表回答：熔断防的故障和重试防的故障本质区别是什么？为什么说&quot;先有熔断再有重试上限&quot;？</li>
+</ol>
+<h3 id="2-4-限流-rate-limiting-防的是-流量超过系统设计容量">2.4 限流（Rate Limiting）：防的是&quot;流量超过系统设计容量&quot;</h3>
+<p>限流的答案是&quot;在入口处拒绝多余请求&quot;，常见算法两个：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>算法</th>
+<th>原理</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>令牌桶</td>
+<td>以固定速率往桶里放令牌，请求取到令牌才放行</td>
+<td>允许突发（桶里攒的令牌可以一次用掉），适合应对秒杀尖峰</td>
+</tr>
+<tr>
+<td>漏桶</td>
+<td>请求进桶，以固定速率流出</td>
+<td>强行削平流量，输出绝对平滑，适合保护脆弱的下游</td>
+</tr>
+</tbody>
+</table></div>
+<p>限流要回答&quot;限谁&quot;：全局限流（保护系统总容量）、租户级限流（防止一个大客户挤死其他租户——对 RetailHub 这种多租户平台是刚需）、接口级限流（保护昂贵接口，如卷03 的报表导出）。</p>
+<p><strong>再深一层，两个实战绕不开的问题。</strong> 其一：<strong>令牌桶 vs 漏桶的本质分歧是&quot;允不允许突发&quot;</strong>。秒杀场景流量天然是尖峰，用漏桶会把合法用户活活排死，所以入口限流多用令牌桶；而调用一个脆弱的老系统（比如只能 50 QPS 的 ERP），要用漏桶把流量强行熨平。其二：<strong>单机限流好做，集群限流难</strong>。10 个网关卡点各配 100 QPS 上限，总和是 1000 但分配永远不均——热点卡点先限流、闲卡点吃不满。工程答案有两档：简单档是&quot;总量 ÷ 节点数 × 安全系数&quot;的静态分配；精确档是集中式计数（Redis + Lua 原子扣减），代价是每次限流判断多一跳网络。RetailHub 现阶段用单机令牌桶 + 静态分配即可，把&quot;什么时候需要升级集中式&quot;写进容量评审清单。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：令牌桶限流。</strong> 先用滑块设定令牌生成速率和桶容量（桶容量=允许的最大突发量），然后点&quot;突发流量 ×30&quot;注入一波秒杀式请求：观察桶内令牌被瞬间耗尽、拿不到令牌的请求被直接拒绝（429 语义），系统水位始终被压在安全线内；右侧&quot;无限制&quot;车道放进同样的突发，水位直接越过红线过载。再调高速率重放一次，体会&quot;速率决定稳态吞吐、容量决定突发容忍&quot;。</p>
+</blockquote>
+<div class="demo-embed" data-demo="token-bucket"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>速率设低（如 5/s）、容量设 20，点&quot;突发流量 ×30&quot;：多少个请求被放行、多少被拒绝？放行的数量由哪个参数决定？</li>
+<li>保持容量不变，把速率调高再重放同样的突发：稳态时被拒绝的请求数怎么变？验证课文那句&quot;速率决定稳态吞吐、容量决定突发容忍&quot;。</li>
+<li>连续点两次&quot;突发流量 ×30&quot;（中间不停）：第二次突发被拒的比例为什么比第一次高？令牌桶&quot;攒令牌&quot;需要多长时间？</li>
+<li>观察右侧&quot;无限制&quot;车道的水位线：如果那是库存服务，接下来会发生课文 §2.1 描述的哪种故障传导？</li>
+<li>结合 §8.4 代码骨架回答：<code>TokenBucket.allow()</code> 里的&quot;惰性补充&quot;为什么不需后台线程？多租户场景下这个实现还有什么要改的（提示：字典会无限增长吗）？</li>
+</ol>
+<h3 id="2-5-降级-degradation-防的是-非核心功能拖死核心功能">2.5 降级（Degradation）：防的是&quot;非核心功能拖死核心功能&quot;</h3>
+<p>降级是主动的、有计划的功能牺牲：大促期间关掉&quot;经营周报生成&quot;、关闭库存的实时同步改为 5 分钟延迟同步，把资源让给下单主链路。降级和熔断常被混淆，一句话区分：<strong>熔断是系统自动的自我保护，降级是人事先设计好的弃车保帅</strong>，通常由配置中心下发开关触发。降级的前提是你对功能做过分级——P0（下单/支付）永不降级，P1（实时库存展示）可延迟，P2（报表/周报）可直接关闭。这个功能分级表本身就是架构文档的一部分，卷05 会要求你写进文档包。</p>
+<h3 id="2-6-对比总表">2.6 对比总表</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>防的故障</th>
+<th>触发方</th>
+<th>典型参数</th>
+<th>用错的后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>超时</td>
+<td>下游慢导致线程池耗尽</td>
+<td>调用方</td>
+<td>逐层递减的超时预算</td>
+<td>无超时：故障级联雪崩</td>
+</tr>
+<tr>
+<td>重试</td>
+<td>瞬时网络抖动</td>
+<td>调用方</td>
+<td>次数≤3，指数退避</td>
+<td>对非幂等写重试：重复扣款/重复下单</td>
+</tr>
+<tr>
+<td>熔断</td>
+<td>下游持续不可用</td>
+<td>调用方（自动）</td>
+<td>失败率阈值、冷却时长</td>
+<td>阈值过松：等于没装；过紧：误杀健康下游</td>
+</tr>
+<tr>
+<td>限流</td>
+<td>流量超容量</td>
+<td>被调方/网关</td>
+<td>QPS 阈值、桶容量</td>
+<td>只限总量不限租户：大客户挤死小客户</td>
+</tr>
+<tr>
+<td>降级</td>
+<td>非核心拖死核心</td>
+<td>人（预案+开关）</td>
+<td>功能分级、开关</td>
+<td>没有分级表：降级时不知道该关什么</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-7-延伸-更大尺度的容灾-异地多活与单元化">2.7 延伸：更大尺度的容灾——异地多活与单元化</h3>
+<p>前面五种机制防的是&quot;实例级、下游级&quot;的故障。当故障尺度扩大到<strong>整个机房/整个地域</strong>（断电、光缆被挖断、区域性云故障），答案是把系统整体复制到多个地域，并按用户分片让流量就近落地——这就是异地多活，其极端形态是<strong>单元化</strong>：每个单元是一套能独立闭环的完整服务栈+数据库，只服务被分配到它的用户分片，单元之间只做异步数据同步兜底：</p>
+<pre class="mermaid">flowchart TB
+    U[全国用户流量] --&gt; G[GSLB 全局流量调度&lt;br/&gt;按用户 ID 哈希路由到单元]
+    subgraph HZ[&quot;单元 A · 杭州&quot;]
+        A1[完整服务栈&lt;br/&gt;网关/订单/库存] --&gt; A2[(本单元数据库&lt;br/&gt;用户分片 0-49)]
+    end
+    subgraph SH[&quot;单元 B · 上海&quot;]
+        B1[完整服务栈] --&gt; B2[(本单元数据库&lt;br/&gt;用户分片 50-99)]
+    end
+    G --&gt; A1
+    G --&gt; B1
+    A2 &lt;-.跨单元异步同步 容灾兜底.-&gt; B2
+</pre>
+<p>一句话注明出处：这是<strong>淘宝/阿里在 2010 年后于云平台上演进出的形态</strong>（从同城双活到&quot;异地三活&quot;再到单元化）<sup class="fn-ref"><a href="#fn-2" id="ref-2">[2]</a></sup>，与卷02 淘宝章节讲的&quot;去 IOE、自研中间件&quot;是同一条演进线的后半程。对 RetailHub 现阶段只需记住设计动机——<strong>把爆炸半径从&quot;整个系统&quot;缩小到&quot;一个单元&quot;</strong>，真到多地域经营那天再启用。</p>
+<hr>
+<h2 id="3-分布式事务-下单-扣库存-发券-凭什么同时成功或同时失败">3. 分布式事务：下单、扣库存、发券，凭什么同时成功或同时失败</h2>
+<p>卷03 的防超卖实验解决了<strong>单库内</strong>的一致性问题（行锁+条件更新）。但 RetailHub 的下单链路已经跨服务了：订单服务写订单、库存服务扣库存、营销服务发券。任何一个环节失败，数据就会出现&quot;订单创建了但库存没扣&quot;的中间态。这就是分布式事务问题。</p>
+<p><strong>先立世界观：ACID 守单机，BASE 闯天下。</strong> 单机数据库用 ACID（原子、一致、隔离、持久）给你&quot;要么全成要么全不成&quot;的硬承诺；一旦跨机器，网络分区让硬承诺的代价高到无法承受（这正是 CAP 的约束），于是工程界演化出 <strong>BASE</strong> 姿态：<strong>Basically Available</strong>（基本可用——允许有损服务，响应慢点、数据旧点，但不瘫）、<strong>Soft State</strong>（软状态——允许系统存在&quot;订单已建、库存未扣&quot;这样的中间态）、<strong>Eventually Consistent</strong>（最终一致——中间态会在有限时间内收敛）。一句话对比：<strong>ACID 是&quot;永远不许错&quot;，BASE 是&quot;允许暂时错，但保证会修好，且修好的过程可追溯&quot;</strong>。下面四种方案，2PC/TCC 是想方设法在分布式里保住 ACID 气质，Saga/本地消息表则是 BASE 的正规军——RetailHub 的下单链路站在 BASE 一边。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>ACID（单机事务）</th>
+<th>BASE（分布式姿态）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一致性</td>
+<td>强一致，提交即可见</td>
+<td>最终一致，中间态对外可见</td>
+</tr>
+<tr>
+<td>可用性</td>
+<td>故障时宁可阻塞</td>
+<td>故障时降级服务，保住主干</td>
+</tr>
+<tr>
+<td>中间态</td>
+<td>不存在</td>
+<td>存在，必须显式设计（状态机）</td>
+</tr>
+<tr>
+<td>失败处理</td>
+<td>回滚，用户看到&quot;失败&quot;</td>
+<td>补偿，用户可能先看到&quot;成功&quot;再看到&quot;已取消&quot;</td>
+</tr>
+<tr>
+<td>典型场景</td>
+<td>单库账务、库存扣减</td>
+<td>跨服务下单、通知、报表</td>
+</tr>
+</tbody>
+</table></div>
+<p>四种主流解法：</p>
+<h3 id="3-1-2pc-xa-强一致-但企业系统里越来越少见">3.1 2PC/XA：强一致，但企业系统里越来越少见</h3>
+<p>两阶段提交由协调者先问所有参与者&quot;能不能提交&quot;（prepare），全部点头后再统一提交（commit）。把时序画出来，两个致命点一眼可见——<strong>prepare 阶段资源全部锁定</strong>，以及<strong>协调者是全场唯一的单点</strong>：</p>
+<pre class="mermaid">sequenceDiagram
+    participant C as 协调者
+    participant O as 订单服务
+    participant I as 库存服务
+    Note over C,I: 阶段一 Prepare：询问 + 锁资源
+    C-&gt;&gt;O: PREPARE?
+    O--&gt;&gt;C: YES（锁定订单草稿行）
+    C-&gt;&gt;I: PREPARE?
+    I--&gt;&gt;C: YES（锁定库存行）
+    Note over O,I: 此刻起两个服务的资源都被攥住&lt;br/&gt;其他事务访问只能排队
+    Note over C,I: 阶段二 Commit：统一提交
+    C-&gt;&gt;O: COMMIT
+    C-&gt;&gt;I: COMMIT
+    O--&gt;&gt;C: DONE（释放锁）
+    I--&gt;&gt;C: DONE（释放锁）
+</pre>
+<p>三个要讲透的机理：</p>
+<ol>
+<li><strong>参与者投出 YES 的那一刻，就把命运交给了协调者</strong>。YES 的意思是&quot;我承诺能提交，资源已锁、undo/redo 日志已落盘&quot;。此后它既不能擅自提交也不能擅自回滚——只能等协调者的判决。这是 2PC 强一致的来源，也是它**阻塞（blocking）**的根源。</li>
+<li><strong>协调者宕机 + 参与者宕机叠加时，没人知道该提交还是回滚</strong>。幸存者们面面相觑：那个没应答的参与者到底是准备提交还是准备回滚？只能阻塞等待或人工介入。<strong>3PC 的改进</strong>是在 prepare 和 commit 之间加一个 preCommit 缓冲态、并给参与者加超时自动提交——缓解了阻塞，却在网络分区时引入&quot;两侧各自超时提交，数据分裂&quot;的新风险，所以 3PC 基本只活在教科书里。</li>
+<li><strong>性能账</strong>：两轮网络往返 + prepare 到 commit 之间全程持锁，吞吐被最慢的参与者拖垮。每秒几千单的链路里，锁被攥住 200ms 就是灾难。</li>
+</ol>
+<p><strong>吞吐低、可用性差，互联网高并发链路基本弃用</strong>，但在对一致性要求极高的金融核心账务里仍有位置。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：2PC 的时序与阻塞。</strong> 先不勾选任何捣乱项，点&quot;发起事务&quot;看一遍正常的 prepare → commit 动画，注意每个服务投 YES 时资源旁出现的 🔒。然后勾选&quot;库存服务 prepare 后立刻宕机&quot;重放：看协调者的 COMMIT 永远送达不到、库存行锁无法释放、整个事务卡死——只能靠&quot;管理员介入&quot;收场。把这一幕记住，你就永远记住了为什么互联网下单链路不用 2PC。</p>
+</blockquote>
+<div class="demo-embed" data-demo="two-phase-commit"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>正常流程跑一遍：阶段一中每个服务投 YES 的同时发生了什么（看资源区）？这个动作为什么是 2PC 强一致的来源？</li>
+<li>勾选&quot;库存服务投 NO&quot;重放：订单服务明明投了 YES，最后为什么也要回滚？它的资源被白白锁了多久？</li>
+<li>勾选&quot;prepare 后宕机&quot;重放：协调者的 COMMIT 发到了几个服务？库存服务的锁为什么释放不了？</li>
+<li>在阻塞状态下回答：如果你是库存服务的另一个事务，现在要扣同一行库存，你会怎样？这解释了 2PC&quot;吞吐低&quot;的哪一层原因？</li>
+<li>对照 §3.5 对比表回答：本地消息表用哪两个机制换掉了 2PC 的&quot;锁等待&quot;？代价是什么（提示：中间态）？</li>
+</ol>
+<h3 id="3-2-tcc-try-confirm-cancel-把-2pc-从数据库层搬到业务层">3.2 TCC（Try-Confirm-Cancel）：把 2PC 从数据库层搬到业务层</h3>
+<p>每个操作拆成三步：Try（冻结资源，如把 10 件库存从&quot;可用&quot;挪到&quot;冻结&quot;）、Confirm（确认扣减，冻结转实扣）、Cancel（释放冻结）。优点是不长锁、性能好；代价是<strong>每个接口要写三个版本</strong>，且要保证幂等和空回滚（Try 没执行成功时 Cancel 也要能安全执行）。适合核心资金链路，开发成本高。</p>
+<h3 id="3-3-saga-长流程拆成本地事务链-失败则逆向补偿">3.3 Saga：长流程拆成本地事务链，失败则逆向补偿</h3>
+<p>Saga 把&quot;下单→扣库存→发券&quot;拆成三个本地事务，每个都有对应的补偿动作（取消订单→回补库存→作废券）。依次执行，某步失败就逆序调用已完成步骤的补偿：</p>
+<pre class="mermaid">sequenceDiagram
+    participant S as Saga 协调器
+    participant O as 订单服务
+    participant I as 库存服务
+    participant M as 营销服务
+    S-&gt;&gt;O: 创建订单（本地事务）
+    O--&gt;&gt;S: OK
+    S-&gt;&gt;I: 扣减库存（本地事务）
+    I--&gt;&gt;S: OK
+    S-&gt;&gt;M: 发放优惠券（本地事务）
+    M--&gt;&gt;S: 失败（券池不足）
+    S-&gt;&gt;I: 补偿：回补库存
+    I--&gt;&gt;S: OK
+    S-&gt;&gt;O: 补偿：取消订单
+    O--&gt;&gt;S: OK
+    Note over S,O: 最终：无订单、库存原样、无券&lt;br/&gt;状态自洽
+</pre>
+<p>Saga 的关键认知：<strong>它不保证&quot;原子性&quot;，保证的是&quot;最终自洽&quot;</strong>——中间状态对外可见（用户可能短暂看到订单已创建），所以补偿逻辑和状态机设计（订单要有&quot;已取消&quot;态）必须写进业务设计，不能事后补。</p>
+<h3 id="3-4-本地消息表-零售系统里最务实的选择">3.4 本地消息表：零售系统里最务实的选择</h3>
+<p>核心思想：<strong>把&quot;要通知下游&quot;这件事和业务数据写在同一个本地事务里</strong>。订单服务在创建订单的同一个事务里，往自己的 <code>outbox</code> 表插一条&quot;订单已创建&quot;消息；后台任务把 outbox 里的消息投递到 MQ，库存服务消费 MQ 扣库存。本地事务保证&quot;订单和消息要么都在要么都不在&quot;，MQ 的重投递+消费端幂等保证&quot;最终至少送达一次且只生效一次&quot;。这就是卷02 引入的 MQ 的真正用武之地，也是本卷实战采用的方案（它是 Outbox 模式的朴素版）。</p>
+<h3 id="3-5-选型对比">3.5 选型对比</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>一致性</th>
+<th>性能/可用性</th>
+<th>业务侵入</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2PC/XA</td>
+<td>强一致</td>
+<td>差（阻塞、单点协调者）</td>
+<td>低（数据库支持）</td>
+<td>金融核心账务</td>
+</tr>
+<tr>
+<td>TCC</td>
+<td>强一致（业务层）</td>
+<td>较好</td>
+<td>极高（每个接口×3）</td>
+<td>资金、库存核心链路</td>
+</tr>
+<tr>
+<td>Saga</td>
+<td>最终一致（补偿）</td>
+<td>好</td>
+<td>高（要写补偿）</td>
+<td>长流程、跨多个领域服务</td>
+</tr>
+<tr>
+<td>本地消息表</td>
+<td>最终一致（重试）</td>
+<td>好</td>
+<td>中（outbox 表+幂等消费）</td>
+<td>零售下单、通知类链路，<strong>本卷采用</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="3-6-共识算法-raft-分布式系统的-宪法">3.6 共识算法：Raft——分布式系统的&quot;宪法&quot;</h3>
+<p>上面所有方案都回避了一个更底层的问题：<strong>&quot;协调者&quot;&quot;主库&quot;&quot;Leader&quot;自己挂了怎么办？谁来选新的？</strong> 这就是共识问题——让一群会宕机、会断网的节点，对&quot;谁是老大、数据是什么顺序&quot;达成一致。Paxos 提出了正确性证明但难到臭名昭著，<strong>Raft 是为&quot;可理解性&quot;而生的共识算法</strong>，etcd、Consul、RocketMQ 的 DLedger、TiKV 用的都是它。把 Raft 讲透只需要两个子问题。</p>
+<p><strong>子问题一：选主（Leader Election）。</strong> 节点只有三种角色：Follower、Candidate、Leader。规则骨架：</p>
+<ol>
+<li>平时 Leader 定期发心跳；Follower 超过<strong>选举超时</strong>（150~300ms 的随机值——随机是为了让大家错开，避免每次选票都瓜分）没收到心跳，就怀疑 Leader 死了。</li>
+<li>该 Follower 把<strong>任期（term）+1</strong>，自荐为 Candidate，先投自己一票，再向全体拉票。</li>
+<li>拿到**多数派（⌊N/2⌋+1 票）**就当选 Leader；没拿够就等下一轮随机超时再来。</li>
+<li>任何节点见到比自己更高的 term，立刻退回 Follower——<strong>term 单调递增是防止&quot;两个皇帝&quot;的第一道锁</strong>。</li>
+</ol>
+<p><strong>子问题二：日志复制（Log Replication）。</strong> 选主只是开始，干活的流程是：</p>
+<ol>
+<li>客户端只跟 Leader 写。Leader 把操作追加到自己日志末尾（<strong>未提交</strong>状态，对客户端不可见）。</li>
+<li>Leader 把日志条目并行复制给所有 Follower。</li>
+<li>收到<strong>多数派确认</strong>后，Leader 才把条目标记为<strong>已提交（committed）</strong>，应用到状态机，回复客户端成功，并随下次心跳通知 Follower 提交。</li>
+</ol>
+<p>为什么&quot;多数派提交&quot;就敢承诺不丢？<strong>多数派相交原理</strong>：任意两个多数派至少共享一个节点。新 Leader 一定由某个多数派选出，而任何多数派里至少有一个节点持有全部已提交日志——所以已提交的日志永远不会被新任期推翻。这也是卷03 讲的&quot;线性一致&quot;在工程上的实现方式之一。</p>
+<pre class="mermaid">sequenceDiagram
+    participant F as Follower(节点B)
+    participant C as Candidate(节点A)
+    participant F2 as Follower(节点C)
+    Note over F,F2: Leader 心跳停止，各自随机倒计时
+    C-&gt;&gt;C: 选举超时先到：term 3→4&lt;br/&gt;自荐+投自己(1票)
+    C-&gt;&gt;F: RequestVote(term=4)
+    C-&gt;&gt;F2: RequestVote(term=4)
+    F--&gt;&gt;C: 投票（term 更新为 4）
+    F2--&gt;&gt;C: 投票
+    Note over C: 3/3 票 ≥ 多数派 2&lt;br/&gt;当选 Leader
+    C-&gt;&gt;F: 心跳 AppendEntries(term=4)
+    C-&gt;&gt;F2: 心跳 AppendEntries(term=4)
+    Note over C,F2: 之后：客户端写 → Leader 追加日志&lt;br/&gt;→ 复制到多数派 → 标记已提交 → 回复客户端
+</pre>
+<p><strong>Raft 与 CAP、2PC 的关系，一句话串起来</strong>：Raft 是分区时选 C 的代表——少数派一侧选不出 Leader、拒绝写入，换取&quot;永远只有一个合法老大、已提交日志永不丢&quot;；而 2PC 解决的是&quot;多个资源要不要一起动&quot;的原子性问题，Raft 解决的是&quot;同一份数据由谁说了算&quot;的多数派问题，两者正交，常一起出现（如 Spanner 用 Paxos 选主 + 2PC 跨组分事务）。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：Raft 选主与日志复制。</strong> 5 节点集群，点&quot;发起选主&quot;看 Candidate 拉票动画；当选后点&quot;客户端写入一条日志&quot;，盯着条目从普通字变成<strong>加粗</strong>（已提交）的瞬间——那正是&quot;复制到多数派&quot;的时刻。然后&quot;杀死 Leader&quot;重新选举，看已提交日志原样保留；最后&quot;制造网络分区（2|3）&quot;，在 2 节点那一侧发起选举和写入，体验少数派&quot;永远选不出 Leader、日志无法提交&quot;的停摆——这就是 CAP 里&quot;P 发生时选 C&quot;的具体机制。</p>
+</blockquote>
+<div class="demo-embed" data-demo="raft-election"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>发起选主，观察 Candidate 的 term 变化与票数增长：5 节点集群的多数派是几票？如果只拿到 2 票会发生什么？</li>
+<li>当选 Leader 后写入一条日志：条目从&quot;未提交&quot;变&quot;已提交（加粗）&quot;的瞬间，集群里至少有几个节点持有了它？</li>
+<li>写入 2 条日志后&quot;杀死 Leader&quot;，再发起选主：新 Leader 的日志里那 2 条还在吗？用&quot;多数派相交原理&quot;解释为什么。</li>
+<li>制造网络分区（2|3）后，先在 B 区（3 节点侧）选主，成功了吗？再在 A 区（2 节点侧）选主，观察失败过程——这对应 CAP 的哪个选择？</li>
+<li>分区期间在 B 区写入一条日志（能提交），恢复网络后重启归队的 A 区节点会怎样处理自己的旧日志？（提示：回忆课文中&quot;日志复制的一致性检查&quot;。）</li>
+</ol>
+<hr>
+<h2 id="4-配置中心与发布治理">4. 配置中心与发布治理</h2>
+<p>服务从 3 个变成 13 个之后，两个新痛点出现：改一个配置（比如把降级开关打开）要登录 13 台机器改文件重启；发新版时直接全量替换，一出 bug 全员陪葬。</p>
+<p><strong>配置中心</strong>（Nacos、Apollo、Consul KV）解决第一个问题：配置集中存储、按服务/环境分组、客户端监听变更热更新。治理要点：配置也是代码——要评审、要版本、要能回滚；降级开关、限流阈值这类&quot;运行时旋钮&quot;放配置中心，数据库密码这类密钥放专用密钥管理（K8s Secret / Vault），两者不要混。</p>
+<p><strong>发布治理</strong>解决第二个问题，三种基本策略：</p>
+<ul>
+<li><strong>滚动更新</strong>：分批替换实例，K8s 默认策略；简单但出问题影响面已扩散。</li>
+<li><strong>蓝绿发布</strong>：新旧两套环境并存，流量一次性切到新版本，出问题秒级切回；资源双倍。</li>
+<li><strong>金丝雀发布</strong>：先放 5% 流量到新版本，观察指标正常再逐步放大；需要网关按权重分流的能力，是互联网大厂默认姿势。</li>
+</ul>
+<p>对 RetailHub 现阶段：K8s 滚动更新 + readinessProbe（就绪探针，没准备好的实例不接流量）已经能挡住 80% 的发版事故，金丝雀留给流量真的大起来之后。</p>
+<hr>
+<h2 id="5-可观测性三支柱-metrics-logging-tracing-融合来源-opentelemetry-社区实践-凤凰架构-可观测性-论述">5. 可观测性三支柱：Metrics、Logging、Tracing（融合来源：OpenTelemetry 社区实践<sup class="fn-ref"><a href="#fn-3" id="ref-3">[3]</a></sup> + 凤凰架构&quot;可观测性&quot;论述<sup class="fn-ref"><a href="#fn-1" id="ref-1">[1]</a></sup>）</h2>
+<p>分布式的本质代价之一是：<strong>你再也不能靠&quot;登录那台机器看日志&quot;排查问题了</strong>。一次请求穿过网关、订单、库存三个服务，日志散落在十几个容器里。可观测性（Observability）就是回答&quot;系统内部正在发生什么&quot;的能力，业界共识的三支柱：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>支柱</th>
+<th>回答的问题</th>
+<th>典型工具</th>
+<th>粒度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metrics（指标）</td>
+<td>系统整体健康吗？趋势如何？</td>
+<td>Prometheus + Grafana</td>
+<td>聚合数值：QPS、错误率、P99 延迟</td>
+</tr>
+<tr>
+<td>Logging（日志）</td>
+<td>这个具体请求/事件发生了什么？</td>
+<td>Loki / ELK</td>
+<td>离散事件，最细但最贵</td>
+</tr>
+<tr>
+<td>Tracing（链路追踪）</td>
+<td>这次请求经过了哪些服务，慢在哪一跳？</td>
+<td>Jaeger / Tempo</td>
+<td>单请求的完整路径</td>
+</tr>
+</tbody>
+</table></div>
+<p>三者的关系不是并列可选，而是<strong>排查动线</strong>：Metrics 告警发现&quot;订单接口 P99 飙升&quot;→ Tracing 定位到&quot;慢在调用库存服务那一跳&quot;→ Logging 看那一跳的具体报错。没有 Metrics 你不知道出事了，没有 Tracing 你不知道在哪出事，没有 Logging 你不知道为什么出事。把这条动线画出来——它也是你值班时的标准排查路径：</p>
+<pre class="mermaid">flowchart LR
+    M[&quot;① Metrics&lt;br/&gt;Prometheus 告警&lt;br/&gt;订单接口 P99 从 200ms 飙到 2s&quot;] --&gt; T[&quot;② Tracing&lt;br/&gt;Jaeger 按 trace_id 查&lt;br/&gt;慢在库存服务那一跳&quot;]
+    T --&gt; L[&quot;③ Logging&lt;br/&gt;用同一 trace_id 捞日志&lt;br/&gt;锁等待超时&quot;]
+    L --&gt; FIX[定位根因&lt;br/&gt;大租户批量锁库存行]
+    M -.没有它：不知道出事了.-&gt; X1[盲区]
+    T -.没有它：不知道在哪出事.-&gt; X1
+    L -.没有它：不知道为什么出事.-&gt; X1
+</pre>
+<p><strong>三支柱各有一个&quot;上手后才会撞见&quot;的深水区，提前告诉你：</strong></p>
+<ul>
+<li><strong>Metrics 的深水区是基数（cardinality）</strong>。给指标打标签（label）是免费的错觉：<code>http_requests_total{status, path}</code> 很美好，一旦有人把 <code>user_id</code> 或 <code>order_id</code> 打进 label，时间序列数量爆炸（每用户一条序列），Prometheus 直接被撑爆。纪律：<strong>label 只能放低基数维度</strong>（状态码、方法、服务名），高基数维度（用户、订单、trace_id）去日志和 Trace 里找。</li>
+<li><strong>Logging 的深水区是成本与结构</strong>。全量 INFO 日志在高 QPS 下是 TB 级/天，存储和检索都烧钱。纪律：<strong>结构化日志（JSON）+ 必带 trace_id</strong>（否则排查动线到日志这一环就断了）+ 按级别分层保留（ERROR 留 30 天，DEBUG 只留 3 天）。</li>
+<li><strong>Tracing 的深水区是采样</strong>。全量采集 Trace，头部大流量系统扛不住；只采 1%，出问题时大概率没采到出事的那条。工程答案：<strong>尾部采样</strong>（等一条 Trace 走完，发现含错误/超时才保留）或&quot;错误全采 + 正常请求低比例采&quot;。</li>
+<li><strong>两套口诀记牢</strong>：监控指标用 <strong>RED</strong>（Rate 请求量、Errors 错误率、Duration 延迟——面向服务）与 <strong>USE</strong>（Utilization 利用率、Saturation 饱和度、Errors 错误——面向资源）。评审任何系统的监控方案，先问&quot;RED 和 USE 各覆盖了几项&quot;<sup class="fn-ref"><a href="#fn-6" id="ref-6">[4]</a></sup>。</li>
+</ul>
+<p><strong>OpenTelemetry（OTel）</strong> 是这一领域的事实标准：一套 vendor 中立的 SDK/API，负责产生 Metrics、Logs、Traces 三种信号，通过 TraceID 把它们串起来，后端接什么（Jaeger 还是商业 APM）可以自由换。架构要点：<strong>用 OTel SDK 插桩，不直接绑死任何后端产品</strong>——这又是一次&quot;把易变的决策往后推&quot;的架构基本功。本卷实战将用 OTel 的 Python SDK 打通&quot;查询→订单→库存&quot;链路。</p>
+<p>一条 Trace 在 Jaeger 里的样子，本质是<strong>同一 trace_id 下父子 span 的嵌套时间条</strong>：</p>
+<pre class="mermaid">flowchart TB
+    subgraph TR[&quot;一条 Trace（所有 span 共享同一 trace_id）&quot;]
+        S1[&quot;span: gateway ———— 0ms ~ 120ms&quot;]
+        S2[&quot;span: order-service —— 10ms ~ 110ms&quot;]
+        S3[&quot;span: inventory-service — 30ms ~ 105ms ⚠ 慢在这一跳&quot;]
+        S4[&quot;span: SQL UPDATE — 35ms ~ 100ms&quot;]
+        S1 --&gt;|parent| S2 --&gt;|parent| S3 --&gt;|parent| S4
+    end
+    S4 --&gt; L[用 trace_id 去日志系统捞出&lt;br/&gt;这一跳的具体报错：锁等待超时]
+</pre>
+<p>读法：外层 span 的耗时 ≈ 内层之和 + 自身开销；哪一层&quot;自身耗时&quot;异常膨胀，慢点就在哪。上图中 gateway 的 120ms 里 100ms 耗在库存服务内的 SQL 上——Tracing 把&quot;感觉慢&quot;变成了&quot;第几跳、慢多少&quot;的定量结论。</p>
+<hr>
+<h2 id="6-容器化与-kubernetes-最小必要知识">6. 容器化与 Kubernetes：最小必要知识</h2>
+<h3 id="6-1-为什么需要容器">6.1 为什么需要容器</h3>
+<p>容器解决的是<strong>交付一致性</strong>：把代码、依赖、运行时打进一个不可变镜像（Dockerfile），&quot;在我机器上能跑&quot;从此等于&quot;在任何机器上能跑&quot;。同时它也是一切上层治理的前提——没有镜像这个标准交付物，就没有后面的编排、扩缩容、滚动更新。</p>
+<h3 id="6-2-kubernetes-最小概念集">6.2 Kubernetes 最小概念集</h3>
+<p>K8s 概念繁多，但 RetailHub 现阶段只需要六个，记住这张&quot;声明式意图&quot;图：</p>
+<pre class="mermaid">flowchart TB
+    Dev[开发者] --&gt;|kubectl apply 声明期望状态| API[K8s API Server]
+    API --&gt; Deploy[Deployment&lt;br/&gt;我要 3 个 order-service 副本&lt;br/&gt;镜像 v1.4，滚动更新]
+    Deploy --&gt; RS[ReplicaSet&lt;br/&gt;维持副本数：挂了自动补]
+    RS --&gt; P1[Pod 1&lt;br/&gt;最小调度单位&lt;br/&gt;1 个或多个容器]
+    RS --&gt; P2[Pod 2]
+    RS --&gt; P3[Pod 3]
+    SVC[Service&lt;br/&gt;稳定虚拟 IP + 负载均衡] --&gt; P1
+    SVC --&gt; P2
+    SVC --&gt; P3
+    CM[ConfigMap / Secret&lt;br/&gt;配置与密钥] -.注入环境变量/挂载.-&gt; P1
+</pre>
+<ul>
+<li><strong>Pod</strong>：最小调度单位，一个或多个共享网络的容器。你几乎不直接操作它。</li>
+<li><strong>Deployment</strong>：声明&quot;这个镜像跑几个副本、怎么更新&quot;，是日常操作的核心对象。</li>
+<li><strong>Service</strong>：一组 Pod 前面的稳定入口（虚拟 IP + DNS 名 + 负载均衡），就是 1.2 节说的&quot;免费的服务发现&quot;。</li>
+<li><strong>ConfigMap / Secret</strong>：非密配置与密钥的注入机制（轻量版配置中心）。</li>
+<li><strong>Probe（探针）</strong>：livenessProbe（活没活着，死了重启）与 readinessProbe（准备好接流量没有，没好就从 Service 摘掉）——<strong>这两个探针是 K8s 里性价比最高的可靠性设施，不配探针等于裸奔</strong>。</li>
+<li><strong>HPA</strong>：按 CPU/自定义指标自动扩缩副本数，有了它，&quot;容量规划&quot;从人肉变成声明。</li>
+</ul>
+<p>K8s 的哲学一句话：<strong>你声明期望状态，控制循环（controller）不断把现实扳回期望</strong>。这个&quot;声明式 + 调和循环&quot;的思想会在卷06（AI Infra 的资源调度）和阶段九（Agent Runtime 的任务调度）反复出现，值得在这里吃透。</p>
+<hr>
+<h2 id="7-平台工程-pi-架构-当每个团队都自己搭一遍-组织就开始失血">7. 平台工程（PI 架构）：当每个团队都自己搭一遍，组织就开始失血</h2>
+<h3 id="7-1-问题的形态">7.1 问题的形态</h3>
+<p>把前六节加起来看：服务发现、熔断限流、消息队列、配置中心、可观测性、CI/CD、K8s——RetailHub 一个团队搞定这些已经耗尽半生。现在想象公司有 8 个业务团队，每个团队都要把这些事重新做一遍：A 团队用 Sentinel，B 团队用 resilience4j；A 的 Grafana 看板长这样，B 的长那样；每个团队都有一个&quot;最懂 K8s 的人&quot;，他休年假全团队不敢发版。这就是平台工程要解决的真实组织病：<strong>基础设施能力被每个业务团队以略有不同、互不复用的方式重复建设，认知负担压垮了业务交付速度</strong>。</p>
+<h3 id="7-2-核心概念四件套">7.2 核心概念四件套</h3>
+<ul>
+<li><strong>内部开发者平台（IDP, Internal Developer Platform）</strong>：把上述基础设施能力封装成自助式产品——业务开发不需要懂 K8s，在平台上点选&quot;我要一个带 MySQL 和 Redis 的 Python 服务&quot;，平台自动产出镜像构建、部署清单、监控看板、告警规则。</li>
+<li><strong>黄金路径（Golden Path / Paved Road）</strong>：平台为最常见的场景提供一条&quot;被铺好的路&quot;——标准的项目模板、标准的 CI 流水线、标准的可观测接入。走黄金路径一切自动化；要偏离也可以，但偏离的成本自己承担。<strong>黄金路径是&quot;温柔的强制&quot;：不禁止自由，但让正确的做法成为最省力的做法。</strong></li>
+<li><strong>平台即产品（Platform as a Product）</strong>：平台团队把业务开发当&quot;内部客户&quot;——做用户调研、定义 SLA、度量采用率和开发者满意度，而不是把自己当成发号施令的&quot;运维管理部门&quot;。平台没人用，是平台的产品失败，不是业务团队不听话。</li>
+<li><strong>认知负担（Cognitive Load）</strong>：平台工程的度量原点（来自 Team Topologies<sup class="fn-ref"><a href="#fn-4" id="ref-4">[5]</a></sup>）。一个开发者能同时理解的东西是有限的，平台的使命就是把&quot;与业务无关的复杂度&quot;从业务开发的脑子里卸载到平台里。</li>
+</ul>
+<h3 id="7-3-从-工具-到-平台-的对比">7.3 从&quot;工具&quot;到&quot;平台&quot;的对比</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>工具堆（Tool Sprawl）</th>
+<th>内部开发者平台（IDP）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>新建一个服务</td>
+<td>复制老项目改半个月，配 5 个系统</td>
+<td>模板脚手架 + 自助申请，半天上线</td>
+</tr>
+<tr>
+<td>可观测接入</td>
+<td>各团队自己接，口径不一</td>
+<td>黄金路径默认带出 Metrics/Trace/日志</td>
+</tr>
+<tr>
+<td>K8s 知识要求</td>
+<td>每个团队都要有专家</td>
+<td>业务开发不需要懂，平台团队兜底</td>
+</tr>
+<tr>
+<td>故障排查</td>
+<td>先问&quot;这个服务是谁搭的、用的哪套&quot;</td>
+<td>全公司同一套看板与 Trace 入口</td>
+</tr>
+<tr>
+<td>组织风险</td>
+<td>关键人依赖、重复建设</td>
+<td>平台团队成为杠杆而非瓶颈</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="7-4-真实案例-kae-工业级-idp-长什么样">7.4 真实案例：KAE——工业级 IDP 长什么样</h3>
+<p>&quot;平台即产品&quot;在真实大厂是什么样子？看金山办公的 <strong>KAE（Kingsoft App Engine）</strong>：这是金山办公自研的云原生运行环境，统一管理微服务、容器与应用伸缩，是 WPS 混合云架构的底座<sup class="fn-ref"><a href="#fn-5" id="ref-5">[6]</a></sup>。规模感一下：KAE 承载的微服务总数 <strong>13600+</strong>（测试与生产环境），每天约 <strong>310 次更新部署</strong>——这个量级下任何&quot;每个团队自己搭一套&quot;的做法都会在人力上直接崩盘，平台不是选择题而是生存题。</p>
+<p>把 KAE 的公开实践拆成平台工程四件套来看，你会发现每个概念都有对应物<sup class="fn-ref"><a href="#fn-5" id="ref-5">[6]</a></sup>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>平台工程概念</th>
+<th>KAE 的对应做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自助式 IDP</td>
+<td>业务团队在平台上自助完成应用创建、部署、扩缩容，不直接接触底层 K8s 细节</td>
+</tr>
+<tr>
+<td>黄金路径</td>
+<td>发布走统一流水线，配合自动化测试与堡垒机管控守住发布门禁——标准动作被平台固化，偏离路径的成本自担</td>
+</tr>
+<tr>
+<td>平台即产品</td>
+<td>平台团队把上万微服务的治理收敛成统一产品能力，而不是逐个团队&quot;人盯人&quot;运维</td>
+</tr>
+<tr>
+<td>认知负担卸载</td>
+<td>可用性、容灾这类最难的能力沉淀为底座默认继承，业务开发不必人人成为容灾专家</td>
+</tr>
+</tbody>
+</table></div>
+<p>最值得细看的是<strong>可靠性如何被&quot;平台化&quot;</strong>：KAE 的目标可用性是 <strong>99.99%（四个 9，全年不可用约 52.6 分钟）</strong>，靠<strong>两地三中心</strong>架构承载——同城的两个中心互为主备，扛机房级故障（断电、网络中断）做到分钟级切换；异地的第三个中心扛地域级灾难（地震、城市级网络瘫痪），保住数据不丢、服务可重建。关键在于：这套容灾不是 13600 个微服务各自实现的，而是<strong>平台统一建设、所有服务默认继承</strong>——这正是&quot;认知负担卸载&quot;在可靠性维度上的样子。单个团队自己实现两地三中心，光演练成本就扛不住；平台把成本摊薄到万级服务上，才使四个 9 成为可负担的目标。（卷08 会用 SRE 的错误预算视角重新算这笔账。）</p>
+<p>你在本卷搭的&quot;最小内部平台&quot;与 KAE 之间隔着的是规模，不是原理：黄金路径、自助化、认知负担卸载，一模一样。KAE 的可靠性侧面，卷08 还会作为 SRE 案例展开。</p>
+<h3 id="7-5-为什么这个思想是后半条学习路径的暗线">7.5 为什么这个思想是后半条学习路径的暗线</h3>
+<p>本卷是平台工程第一次登场，但绝不是最后一次。<strong>卷06（AI Infra）</strong>：GPU 调度、模型服务化、推理网关、评测流水线——如果没有平台思维，每个算法团队都自己管 GPU 集群，结局和前六节描述的一模一样，只是更贵。<strong>阶段九（Agent 企业工程化）</strong>：LLM Runtime、工具治理、记忆治理、评测发布——Agent 平台本质上就是一个面向&quot;智能体开发者&quot;的 IDP，黄金路径就是&quot;标准 Agent 脚手架 + 受控发布流水线&quot;。你在本卷学到的&quot;平台即产品、黄金路径、认知负担&quot;三个概念，会在那时原样复用，只是服务对象从&quot;跑 HTTP 服务的开发&quot;变成&quot;跑 Agent 的开发&quot;。<strong>卷05 的架构评审</strong>：平台要不要自建、边界划在哪，正是 ADR 和 ATAM 评估的典型题材。</p>
+<hr>
+<h2 id="8-本卷实战-retailhub-演进第-4-步-给订单服务装上-安全气囊-并送上-k8s">8. 本卷实战：RetailHub 演进第 4 步——给订单服务装上&quot;安全气囊&quot;，并送上 K8s</h2>
+<h3 id="8-1-背景">8.1 背景</h3>
+<p>卷03 末态：RetailHub 有网关 + 订单服务 + 库存服务（REST 互调）、PostgreSQL 主从、Redis 缓存、MQ 异步报表，完成了数据架构文档与防超卖实验。本步目标对应本卷末态：<strong>服务注册发现 + 熔断限流 + 容器化 + K8s 部署 + 基础可观测</strong>。</p>
+<h3 id="8-2-任务清单-五步递进-每步都有明确的验收标准">8.2 任务清单（五步递进，每步都有明确的验收标准）</h3>
+<p>按依赖顺序推进，<strong>每步验收通过再进下一步</strong>——不要五步一起写再一起调，分布式问题的叠加调试是新手的噩梦。</p>
+<p><strong>第 1 步：给跨服务调用装上超时与熔断</strong></p>
+<ul>
+<li>目标：库存服务挂掉时，订单服务不被拖死。</li>
+<li>操作：按 §8.3 代码骨架实现迷你熔断器，包裹订单服务调用库存服务的 httpx 调用；显式设置 <code>timeout=2.0</code>。</li>
+<li>验收：停掉库存服务连调 10 次下单，前 5 次真实失败（≈2s 超时），第 6 次起快速返回 fallback（&lt;50ms），日志出现 <code>circuit OPEN</code>。</li>
+</ul>
+<p><strong>第 2 步：租户级限流中间件</strong></p>
+<ul>
+<li>目标：单个大客户的流量尖峰挤不死其他租户。</li>
+<li>操作：按 §8.4 骨架实现 <code>TokenBucket</code> + <code>TenantRateLimiter</code>，挂成 FastAPI 中间件，按 <code>X-Tenant-Plan</code> 分档。</li>
+<li>验收：脚本对 free 租户打 30 QPS 持续 5 秒出现 429（带 <code>Retry-After</code> 头）；同压下 pro 租户不受影响。</li>
+</ul>
+<p><strong>第 3 步：本地消息表改造下单链路</strong></p>
+<ul>
+<li>目标：订单与&quot;通知库存&quot;要么都发生、要么都不发生，MQ 故障可恢复。</li>
+<li>操作：按 §8.5 骨架建 <code>outbox</code> 表，改造 <code>create_order</code> 为同事务双写，写 relay 任务与幂等消费端。</li>
+<li>验收：下单 100 单后中断 MQ，恢复后 outbox 消息全部送达；库存扣减总数 = 成功订单数，无重复扣减。</li>
+</ul>
+<p><strong>第 4 步：容器化并送上 K8s</strong></p>
+<ul>
+<li>目标：&quot;在我机器上能跑&quot;变成&quot;在任何机器上能跑&quot;，且发版不掉流量。</li>
+<li>操作：按 §8.6 骨架写 Dockerfile（非 root 运行）、docker-compose 本地联调，再写 Deployment + Service + 双探针清单。</li>
+<li>验收：<code>docker compose up</code> 后网关→订单→库存链路本地可通；<code>kubectl apply</code> 后 3 副本就绪，手动 <code>kubectl delete pod</code> 任一实例，副本自动补齐且流量不中断；改镜像 tag 发版一次，全程 <code>maxUnavailable: 0</code> 且压测脚本零失败。</li>
+</ul>
+<p><strong>第 5 步：接入 OpenTelemetry 打通链路</strong></p>
+<ul>
+<li>目标：一次请求穿过三个服务，能回答&quot;慢在哪一跳&quot;。</li>
+<li>操作：按 §8.6 骨架部署 OTel Collector 与 Jaeger，应用侧用 <code>setup_tracing</code> 三行接入。</li>
+<li>验收：Jaeger 中能看到完整 Trace：gateway → order-service → inventory-service，库存服务内部可见 SQL 子 span。</li>
+</ul>
+<h3 id="8-3-代码骨架-1-迷你熔断器-50-行讲清原理">8.3 代码骨架 1：迷你熔断器（50 行讲清原理）</h3>
+<pre><code class="language-python"># retailhub/common/circuit_breaker.py
+import time
+from enum import Enum
+from threading import Lock
+
+class State(Enum):
+    CLOSED = &quot;closed&quot;      # 正常放行
+    OPEN = &quot;open&quot;          # 断开，快速失败
+    HALF_OPEN = &quot;half_open&quot;  # 半开，试探
+
+class CircuitOpenError(Exception):
+    &quot;&quot;&quot;熔断打开时抛出，调用方应走 fallback&quot;&quot;&quot;
+
+class CircuitBreaker:
+    def __init__(self, name: str, failure_threshold: int = 5,
+                 recovery_timeout: float = 30.0):
+        self.name = name
+        self.failure_threshold = failure_threshold   # 连续失败多少次断开
+        self.recovery_timeout = recovery_timeout     # 断开后多久进入半开
+        self.state = State.CLOSED
+        self.consecutive_failures = 0
+        self.opened_at = 0.0
+        self._lock = Lock()
+
+    def call(self, fn, *args, **kwargs):
+        with self._lock:
+            if self.state == State.OPEN:
+                if time.monotonic() - self.opened_at &gt;= self.recovery_timeout:
+                    self.state = State.HALF_OPEN      # 冷却到点，放行试探
+                else:
+                    raise CircuitOpenError(f&quot;[{self.name}] circuit OPEN, fail fast&quot;)
+        try:
+            result = fn(*args, **kwargs)
+        except Exception:
+            self._on_failure()
+            raise
+        self._on_success()
+        return result
+
+    def _on_success(self):
+        with self._lock:
+            self.consecutive_failures = 0
+            self.state = State.CLOSED                 # 试探成功，恢复闭合
+
+    def _on_failure(self):
+        with self._lock:
+            self.consecutive_failures += 1
+            if self.consecutive_failures &gt;= self.failure_threshold:
+                self.state = State.OPEN
+                self.opened_at = time.monotonic()
+
+# 用法：订单服务调用库存服务
+import httpx
+inventory_cb = CircuitBreaker(&quot;inventory-service&quot;, failure_threshold=5)
+
+def deduct_stock(sku: str, qty: int) -&gt; dict:
+    def _do_call():
+        resp = httpx.post(                            # 显式超时：一切治理的前提
+            &quot;http://inventory-service/api/deduct&quot;,
+            json={&quot;sku&quot;: sku, &quot;qty&quot;: qty},
+            timeout=2.0,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    try:
+        return inventory_cb.call(_do_call)            # 熔断包裹真实调用
+    except CircuitOpenError:
+        return {&quot;status&quot;: &quot;fallback&quot;,                 # 降级：先入待发队列
+                &quot;message&quot;: &quot;库存服务熔断，扣减请求已进入补偿队列&quot;}
+</code></pre>
+<blockquote>
+<p>说明：生产环境可直接用成熟的 <code>pybreaker</code> 库或在网关层（如 Kong/APISIX）配置熔断，这里手写是为了让状态机刻进脑子。Sentinel/resilience4j 的核心逻辑与此相同，只是增加了滑动窗口统计、慢调用比例等更细的指标。</p>
+</blockquote>
+<h3 id="8-4-代码骨架-2-租户级令牌桶限流-fastapi-中间件">8.4 代码骨架 2：租户级令牌桶限流（FastAPI 中间件）</h3>
+<pre><code class="language-python"># retailhub/common/rate_limit.py
+import time
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from threading import Lock
+
+class TokenBucket:
+    def __init__(self, rate: float, capacity: int):
+        self.rate = rate            # 每秒补充的令牌数
+        self.capacity = capacity    # 桶容量 = 允许的突发量
+        self.tokens = float(capacity)
+        self.last_refill = time.monotonic()
+
+    def allow(self) -&gt; bool:
+        now = time.monotonic()
+        # 惰性补充：按流逝时间计算应补多少令牌，不需要后台线程
+        self.tokens = min(self.capacity,
+                          self.tokens + (now - self.last_refill) * self.rate)
+        self.last_refill = now
+        if self.tokens &gt;= 1.0:
+            self.tokens -= 1.0
+            return True
+        return False
+
+class TenantRateLimiter:
+    &quot;&quot;&quot;多租户限流：每个租户独立一个桶，防止大客户挤死小客户&quot;&quot;&quot;
+    DEFAULT_RULES = {&quot;free&quot;: (10, 20), &quot;pro&quot;: (100, 200), &quot;enterprise&quot;: (1000, 2000)}
+
+    def __init__(self):
+        self._buckets: dict[str, TokenBucket] = {}
+        self._lock = Lock()
+
+    def _bucket_for(self, tenant_id: str, plan: str) -&gt; TokenBucket:
+        with self._lock:
+            if tenant_id not in self._buckets:
+                rate, cap = self.DEFAULT_RULES.get(plan, self.DEFAULT_RULES[&quot;free&quot;])
+                self._buckets[tenant_id] = TokenBucket(rate, cap)
+            return self._buckets[tenant_id]
+
+limiter = TenantRateLimiter()
+
+async def rate_limit_middleware(request: Request, call_next):
+    tenant_id = request.headers.get(&quot;X-Tenant-Id&quot;, &quot;anonymous&quot;)
+    plan = request.headers.get(&quot;X-Tenant-Plan&quot;, &quot;free&quot;)
+    if not limiter._bucket_for(tenant_id, plan).allow():
+        return JSONResponse(
+            status_code=429,
+            content={&quot;error&quot;: &quot;rate limit exceeded&quot;, &quot;tenant&quot;: tenant_id},
+            headers={&quot;Retry-After&quot;: &quot;1&quot;},
+        )
+    return await call_next(request)
+</code></pre>
+<h3 id="8-5-代码骨架-3-本地消息表-outbox-下单链路">8.5 代码骨架 3：本地消息表（Outbox）下单链路</h3>
+<pre><code class="language-python"># retailhub/order/service.py（关键片段）
+from sqlalchemy import insert
+from db import engine, orders, outbox  # outbox(id, topic, payload, status, created_at)
+
+def create_order(tenant_id: str, sku: str, qty: int) -&gt; dict:
+    with engine.begin() as conn:  # 同一个本地事务：订单与消息同生共死
+        result = conn.execute(
+            insert(orders).values(tenant_id=tenant_id, sku=sku,
+                                  qty=qty, status=&quot;CREATED&quot;)
+        )
+        order_id = result.inserted_primary_key[0]
+        conn.execute(
+            insert(outbox).values(
+                topic=&quot;order.created&quot;,
+                payload={&quot;order_id&quot;: order_id, &quot;sku&quot;: sku, &quot;qty&quot;: qty},
+                status=&quot;PENDING&quot;,
+            )
+        )
+    return {&quot;order_id&quot;: order_id}
+
+# retailhub/order/outbox_relay.py：后台投递任务（可用 K8s CronJob 或常驻 worker）
+def relay_pending_messages(mq_producer):
+    with engine.begin() as conn:
+        rows = conn.execute(
+            outbox.select().where(outbox.c.status == &quot;PENDING&quot;).limit(100)
+        ).fetchall()
+        for row in rows:
+            mq_producer.send(row.topic, row.payload)  # MQ 失败则下轮重试
+            conn.execute(
+                outbox.update().where(outbox.c.id == row.id)
+                .values(status=&quot;SENT&quot;)
+            )
+
+# retailhub/inventory/consumer.py：消费端幂等——用消息 ID 去重
+def handle_order_created(msg: dict, processed_ids: set):
+    msg_id = msg[&quot;message_id&quot;]
+    if msg_id in processed_ids:        # 幂等：MQ 重投递不会重复扣库存
+        return
+    deduct_stock_with_optimistic_lock(msg[&quot;sku&quot;], msg[&quot;qty&quot;])  # 卷03 的防超卖逻辑
+    processed_ids.add(msg_id)          # 生产实现：写入 dedup 表或 Redis SETNX
+</code></pre>
+<h3 id="8-6-配置骨架-4-dockerfile-与-k8s-清单">8.6 配置骨架 4：Dockerfile 与 K8s 清单</h3>
+<pre><code class="language-dockerfile"># retailhub/order/Dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+# 非 root 运行：容器安全的最小动作
+RUN useradd -m appuser &amp;&amp; chown -R appuser /app
+USER appuser
+EXPOSE 8001
+# 用 uvicorn 起 2 个 worker；K8s 里靠多副本水平扩展，不靠单容器多进程
+CMD [&quot;uvicorn&quot;, &quot;main:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8001&quot;, &quot;--workers&quot;, &quot;2&quot;]
+</code></pre>
+<pre><code class="language-yaml"># retailhub/deploy/order-service.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 3                       # 声明期望状态：3 个副本
+  strategy:
+    rollingUpdate:
+      maxSurge: 1                   # 滚动更新：先多起 1 个新版本
+      maxUnavailable: 0             # 全程不减少可用副本
+  selector:
+    matchLabels: { app: order-service }
+  template:
+    metadata:
+      labels: { app: order-service }
+    spec:
+      containers:
+        - name: order-service
+          image: registry.internal/retailhub/order-service:1.4.0
+          ports: [{ containerPort: 8001 }]
+          envFrom:
+            - configMapRef: { name: order-service-config }
+            - secretRef: { name: order-service-secret }
+          resources:
+            requests: { cpu: &quot;100m&quot;, memory: &quot;128Mi&quot; }   # 资源声明是调度依据
+            limits:   { cpu: &quot;500m&quot;, memory: &quot;512Mi&quot; }   # 防止单个服务吃光节点
+          readinessProbe:           # 没就绪不接流量（发版安全的关键）
+            httpGet: { path: /healthz, port: 8001 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:            # 死了自动重启
+            httpGet: { path: /healthz, port: 8001 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service               # 稳定 DNS 名：order-service:8001
+spec:
+  selector: { app: order-service }  # 这就是免费的服务发现+负载均衡
+  ports: [{ port: 8001, targetPort: 8001 }]
+</code></pre>
+<pre><code class="language-yaml"># retailhub/deploy/otel-config.yaml（片段）：OTel Collector 以 DaemonSet 收集
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+data:
+  collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+    processors:
+      batch: {}
+    exporters:
+      otlp/jaeger:
+        endpoint: jaeger-collector:4317
+        tls: { insecure: true }
+      prometheus:
+        endpoint: &quot;0.0.0.0:8889&quot;
+    service:
+      pipelines:
+        traces:  { receivers: [otlp], processors: [batch], exporters: [otlp/jaeger] }
+        metrics: { receivers: [otlp], processors: [batch], exporters: [prometheus] }
+</code></pre>
+<pre><code class="language-python"># retailhub/common/tracing.py：应用侧三行接入 OTel
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+
+def setup_tracing(app, service_name: str):
+    provider = TracerProvider()
+    provider.resource.attributes[&quot;service.name&quot;] = service_name
+    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    trace.set_tracer_provider(provider)
+    FastAPIInstrumentor.instrument_app(app)      # 自动给每个请求开 span
+    HTTPXClientInstrumentor().instrument()       # 出站调用自动带上 traceparent 头
+    # 效果：网关→订单→库存三个服务的 span 被同一个 trace_id 串成一条链
+</code></pre>
+<h3 id="8-7-ai-coding-实操模式">8.7 AI Coding 实操模式</h3>
+<p>本卷的五步任务里有大量&quot;模式固定、细节易错&quot;的代码（熔断状态机、令牌桶、K8s 清单），正是 AI Coding 的最佳战场：<strong>模式让 AI 生成，判断由人把关</strong>。</p>
+<p><strong>① 可直接复制的提示词模板</strong></p>
+<pre><code class="language-text">背景：FastAPI + httpx 的多租户零售系统，Python 3.12。
+任务：实现一个租户级令牌桶限流中间件。
+约束：
+- 不引第三方限流库，纯标准库实现，单文件 80 行内，附带 5 条注释解释关键机理
+- 惰性令牌补充（不起后台线程），线程安全
+- 按请求头 X-Tenant-Id 分桶、X-Tenant-Plan 分档（free 10QPS/pro 100QPS/enterprise 1000QPS）
+- 拒绝时返回 429 + Retry-After 头 + JSON 错误体
+交付：完整代码 + 一段 30 行的并发压测脚本证明 free 被限、pro 不受影响
+</code></pre>
+<p><strong>② AI 生成初版后的人工评审清单</strong>（熔断器/限流器/消息表通用）：</p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> <strong>并发安全</strong>：共享状态（失败计数、令牌数、桶字典）是否都在锁内读写？AI 最常漏的是&quot;读-改-写&quot;竞态</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>时间源</strong>：是否用了 <code>time.monotonic()</code> 而非 <code>time.time()</code>（后者会被 NTP 校时拨乱，重试/冷却计时全部失真）</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>边界参数</strong>：阈值为 0、桶容量为 1、超时为 0 时行为是否合理？让 AI 补边界单测</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>资源泄漏</strong>：长驻内存结构（如按租户分桶的字典）有无淘汰机制？生产上会无限增长吗？</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>语义对齐</strong>：AI 写的&quot;熔断&quot;是真三态状态机还是只是个计数器？对照 §2.3 状态机图逐条核对迁移条件</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>失败路径</strong>：fallback 分支是否真的不触达下游？AI 常在 fallback 里又写一次真实调用</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 提示词生成的代码<strong>不修改直接通过</strong>对应步骤的验收标准（第 1/2 步）</li>
+<li class="task-item"><input type="checkbox" disabled> 评审清单中发现的问题全部回归修复，并把&quot;AI 犯了什么错、为什么&quot;记录进实验报告——这是比代码本身更值钱的产出</li>
+<li class="task-item"><input type="checkbox" disabled> K8s 清单类配置由 AI 生成后，必须用 <code>kubectl apply --dry-run=server</code> 或 <code>kubeval</code> 校验通过才算数</li>
+</ul>
+<h3 id="8-8-验收标准">8.8 验收标准</h3>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 停掉库存服务后，连续调用下单接口 10 次：前 5 次真实失败（耗时≈2s 超时），第 6 次起熔断打开，快速返回 fallback（耗时&lt;50ms），日志中出现 <code>circuit OPEN</code></li>
+<li class="task-item"><input type="checkbox" disabled> 恢复库存服务并等待冷却时间后，调用自动恢复正常（HalfOpen→Closed）</li>
+<li class="task-item"><input type="checkbox" disabled> 用脚本对 free 租户打 30 QPS 持续 5 秒，出现 429 响应且带 <code>Retry-After</code> 头；pro 租户同压下不受影响</li>
+<li class="task-item"><input type="checkbox" disabled> 下单 100 单后中断 MQ，恢复后 outbox 消息全部送达，库存扣减总数与成功订单数一致，无重复扣减</li>
+<li class="task-item"><input type="checkbox" disabled> <code>docker build</code> 成功且容器以非 root 用户运行；<code>docker compose up</code> 后网关→订单→库存链路本地可通</li>
+<li class="task-item"><input type="checkbox" disabled> <code>kubectl apply -f deploy/</code> 后 3 个副本就绪；手动 <code>kubectl delete pod</code> 任一实例，副本自动补齐且 Service 流量不中断</li>
+<li class="task-item"><input type="checkbox" disabled> 发版一次（改镜像 tag 后 apply），全程 <code>maxUnavailable: 0</code>，压测脚本无失败请求</li>
+<li class="task-item"><input type="checkbox" disabled> Jaeger 中能看到一条完整 Trace：gateway → order-service → inventory-service，且库存服务内部可见 SQL 子 span</li>
+</ul>
+<hr>
+<h2 id="9-常见误区">9. 常见误区</h2>
+<ol>
+<li><strong>&quot;超时设长一点更稳&quot;</strong>——恰恰相反，超时过长等于放弃治理，线程池照样被拖死。超时应该贴近下游 P99 延迟，并且逐层递减。</li>
+<li><strong>对所有接口加重试</strong>——对非幂等的写操作重试是线上事故的经典配方（重复扣款、重复下单）。要么接口幂等化，要么不重试。</li>
+<li><strong>熔断阈值拍脑袋</strong>——&quot;失败 1 次就断&quot;会把抖动误判为故障，频繁误断；&quot;失败 100 次才断&quot;等于没装。阈值要基于下游正常失败率的观测数据来定，并随容量调整。</li>
+<li><strong>把限流只配在网关总量上</strong>——多租户系统里不限租户维度，一个大客户的爬虫就能挤死所有小客户。限流维度要和业务隔离维度对齐。</li>
+<li><strong>以为 Saga/消息表给了&quot;事务&quot;就不用设计状态</strong>——最终一致方案的前提是业务能接受中间态，且每个中间态都有明确定义（订单的&quot;已取消&quot;、库存的&quot;冻结中&quot;）。状态机设计缺失，补偿逻辑就是空中楼阁。</li>
+<li><strong>不配 readinessProbe 就滚动发版</strong>——新 Pod 还没初始化完就接流量，每次发版都伴随一波 502。两个探针是 K8s 性价比最高的可靠性投资。</li>
+<li><strong>直接绑死某个 APM 厂商的 SDK</strong>——厂商更换或成本谈判时全部推倒重来。用 OpenTelemetry 这层中立抽象插桩，后端可替换。</li>
+<li><strong>把平台工程理解成&quot;招几个运维搭 K8s&quot;</strong>——平台工程的核心是产品思维（黄金路径、自助化、度量采用率），不是工具堆砌。没有产品思维的平台团队最终会变成新的瓶颈部门。</li>
+</ol>
+<hr>
+<h2 id="10-自测清单">10. 自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 能向一个新手讲清 RPC 与 REST 的真实差异，以及&quot;为什么内网性能差距通常不是选型的决定因素&quot;</li>
+<li class="task-item"><input type="checkbox" disabled> 能画出熔断器三态状态机，并说明 HalfOpen 存在的意义</li>
+<li class="task-item"><input type="checkbox" disabled> 能分别说出超时、重试、熔断、限流、降级各自防的故障类型，并举一个&quot;用错放大事故&quot;的例子</li>
+<li class="task-item"><input type="checkbox" disabled> 能解释为什么重试必须配合幂等与退避，为什么超时预算要逐层递减</li>
+<li class="task-item"><input type="checkbox" disabled> 能用&quot;下单扣库存发券&quot;讲清 2PC/TCC/Saga/本地消息表四者的取舍，并说明 RetailHub 为什么选本地消息表</li>
+<li class="task-item"><input type="checkbox" disabled> 能说明可观测性三支柱各自的回答的问题，以及&quot;Metrics 告警 → Trace 定位 → 日志归因&quot;的排查动线</li>
+<li class="task-item"><input type="checkbox" disabled> 能说出 K8s 六个最小概念（Pod/Deployment/Service/ConfigMap/Probe/HPA）各自的职责，并解释&quot;声明式 + 调和循环&quot;</li>
+<li class="task-item"><input type="checkbox" disabled> 能解释 readinessProbe 与 livenessProbe 的区别，以及不配探针发版会发生什么</li>
+<li class="task-item"><input type="checkbox" disabled> 能用自己的话讲清&quot;为什么每个团队都自己搭一套会失败&quot;，并定义 IDP、黄金路径、平台即产品、认知负担</li>
+<li class="task-item"><input type="checkbox" disabled> 能说出平台工程思想在卷06（AI Infra）和阶段九（Agent 平台）将如何复用</li>
+</ul>
+<hr>
+<h2 id="下卷预告">下卷预告</h2>
+<p>到这里，RetailHub 已经是一个&quot;扛得住&quot;的系统：流量有治理、链路可观测、交付有标准、部署有编排。但你有没有发现一个隐藏问题——<strong>本卷每一个决策（为什么选本地消息表而不是 TCC？为什么要自建迷你熔断器而不是直接上 Sentinel？平台边界划在哪？）都是你脑子里做出的，却没有任何一份文档记录下来</strong>。三个月后新同事问&quot;为什么不用 gRPC&quot;，你只能回答&quot;当时好像讨论过&quot;。架构的可持续性，一半在技术决策本身，另一半在决策的显式化与可评估性。卷05 将引入系统架构设计师（软考）的完整知识体系与架构师的真实工作方法：质量属性场景、4+1 视图、ADR、ATAM 架构评估——并用它们为 RetailHub 产出一份可参评的完整架构文档包。</p>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-1">周志明《凤凰架构：构建可靠的大型分布式系统》，开源在线版，&quot;远程服务调用&quot;&quot;流量治理&quot;&quot;可观测性&quot;等章节。<a href="https://icyfenix.cn">https://icyfenix.cn</a> <a class="fn-back" href="#ref-1" aria-label="回到正文">↩</a></li>
+<li id="fn-2">子柳《淘宝技术这十年》，电子工业出版社——淘宝从同城双活到异地多活、单元化的演进历程。 <a class="fn-back" href="#ref-2" aria-label="回到正文">↩</a></li>
+<li id="fn-3">OpenTelemetry 官方文档，vendor 中立的观测信号（Metrics/Logs/Traces）采集标准。<a href="https://opentelemetry.io/docs/">https://opentelemetry.io/docs/</a> <a class="fn-back" href="#ref-3" aria-label="回到正文">↩</a></li>
+<li id="fn-6">Google《Site Reliability Engineering》（SRE Book），监控四大黄金信号与 RED/USE 方法论的源头之一。<a href="https://sre.google/sre-book/table-of-contents">https://sre.google/sre-book/table-of-contents</a> <a class="fn-back" href="#ref-6" aria-label="回到正文">↩</a></li>
+<li id="fn-4">Matthew Skelton &amp; Manuel Pais《Team Topologies》（中译《高效能团队模式》）——&quot;认知负担&quot;作为平台工程度量原点的出处。 <a class="fn-back" href="#ref-4" aria-label="回到正文">↩</a></li>
+<li id="fn-5">InfoQ《金山办公 KAE 云原生实践》——13600+ 微服务、日均约 310 次部署、两地三中心、99.99% 可用性等数据出处。<a href="https://www.infoq.cn/article/7hrf2lzxs641uwnwk09f">https://www.infoq.cn/article/7hrf2lzxs641uwnwk09f</a> <a class="fn-back" href="#ref-5" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-03.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷03 · 数据密集型系统 DDIA</span></a>
+      <a class="next" href="vol-05.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷05 · 架构师方法论与软考</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-远程调用与服务发现-服务之间的-电话系统-是怎么建起来的">1. 远程调用与服务发现：服务之间的"电话系统"是怎么建起来的</a>
+    <a class="toc-h3" href="#1-1-rpc-还是-rest-先把争论放对位置-融合来源-凤凰架构-远程服务调用-部分">1.1 RPC 还是 REST：先把争论放对位置（融合来源：凤凰架构"远程服务调用"部分）</a>
+    <a class="toc-h3" href="#1-2-服务发现-别再把-ip-写进配置文件">1.2 服务发现：别再把 IP 写进配置文件</a>
+    <a class="toc-h3" href="#1-3-负载均衡的三种粒度">1.3 负载均衡的三种粒度</a>
+    <a class="toc-h2" href="#2-流量治理-超时-重试-熔断-限流-降级-每一种都在防一种确定的故障-融合来源-凤凰架构-流量治理-部分">2. 流量治理：超时、重试、熔断、限流、降级——每一种都在防一种确定的故障（融合来源：凤凰架构"流量治理"部分）</a>
+    <a class="toc-h3" href="#2-1-超时-timeout-一切治理的前提">2.1 超时（Timeout）：一切治理的前提</a>
+    <a class="toc-h3" href="#2-2-重试-retry-只治-瞬时故障-会放大-过载故障">2.2 重试（Retry）：只治"瞬时故障"，会放大"过载故障"</a>
+    <a class="toc-h3" href="#2-3-熔断-circuit-breaker-防的是-持续调用一个已确定挂掉的下游">2.3 熔断（Circuit Breaker）：防的是"持续调用一个已确定挂掉的下游"</a>
+    <a class="toc-h3" href="#2-4-限流-rate-limiting-防的是-流量超过系统设计容量">2.4 限流（Rate Limiting）：防的是"流量超过系统设计容量"</a>
+    <a class="toc-h3" href="#2-5-降级-degradation-防的是-非核心功能拖死核心功能">2.5 降级（Degradation）：防的是"非核心功能拖死核心功能"</a>
+    <a class="toc-h3" href="#2-6-对比总表">2.6 对比总表</a>
+    <a class="toc-h3" href="#2-7-延伸-更大尺度的容灾-异地多活与单元化">2.7 延伸：更大尺度的容灾——异地多活与单元化</a>
+    <a class="toc-h2" href="#3-分布式事务-下单-扣库存-发券-凭什么同时成功或同时失败">3. 分布式事务：下单、扣库存、发券，凭什么同时成功或同时失败</a>
+    <a class="toc-h3" href="#3-1-2pc-xa-强一致-但企业系统里越来越少见">3.1 2PC/XA：强一致，但企业系统里越来越少见</a>
+    <a class="toc-h3" href="#3-2-tcc-try-confirm-cancel-把-2pc-从数据库层搬到业务层">3.2 TCC（Try-Confirm-Cancel）：把 2PC 从数据库层搬到业务层</a>
+    <a class="toc-h3" href="#3-3-saga-长流程拆成本地事务链-失败则逆向补偿">3.3 Saga：长流程拆成本地事务链，失败则逆向补偿</a>
+    <a class="toc-h3" href="#3-4-本地消息表-零售系统里最务实的选择">3.4 本地消息表：零售系统里最务实的选择</a>
+    <a class="toc-h3" href="#3-5-选型对比">3.5 选型对比</a>
+    <a class="toc-h3" href="#3-6-共识算法-raft-分布式系统的-宪法">3.6 共识算法：Raft——分布式系统的"宪法"</a>
+    <a class="toc-h2" href="#4-配置中心与发布治理">4. 配置中心与发布治理</a>
+    <a class="toc-h2" href="#5-可观测性三支柱-metrics-logging-tracing-融合来源-opentelemetry-社区实践-凤凰架构-可观测性-论述">5. 可观测性三支柱：Metrics、Logging、Tracing（融合来源：OpenTelemetry 社区实践 + 凤凰架构"可观测性"论述）</a>
+    <a class="toc-h2" href="#6-容器化与-kubernetes-最小必要知识">6. 容器化与 Kubernetes：最小必要知识</a>
+    <a class="toc-h3" href="#6-1-为什么需要容器">6.1 为什么需要容器</a>
+    <a class="toc-h3" href="#6-2-kubernetes-最小概念集">6.2 Kubernetes 最小概念集</a>
+    <a class="toc-h2" href="#7-平台工程-pi-架构-当每个团队都自己搭一遍-组织就开始失血">7. 平台工程（PI 架构）：当每个团队都自己搭一遍，组织就开始失血</a>
+    <a class="toc-h3" href="#7-1-问题的形态">7.1 问题的形态</a>
+    <a class="toc-h3" href="#7-2-核心概念四件套">7.2 核心概念四件套</a>
+    <a class="toc-h3" href="#7-3-从-工具-到-平台-的对比">7.3 从"工具"到"平台"的对比</a>
+    <a class="toc-h3" href="#7-4-真实案例-kae-工业级-idp-长什么样">7.4 真实案例：KAE——工业级 IDP 长什么样</a>
+    <a class="toc-h3" href="#7-5-为什么这个思想是后半条学习路径的暗线">7.5 为什么这个思想是后半条学习路径的暗线</a>
+    <a class="toc-h2" href="#8-本卷实战-retailhub-演进第-4-步-给订单服务装上-安全气囊-并送上-k8s">8. 本卷实战：RetailHub 演进第 4 步——给订单服务装上"安全气囊"，并送上 K8s</a>
+    <a class="toc-h3" href="#8-1-背景">8.1 背景</a>
+    <a class="toc-h3" href="#8-2-任务清单-五步递进-每步都有明确的验收标准">8.2 任务清单（五步递进，每步都有明确的验收标准）</a>
+    <a class="toc-h3" href="#8-3-代码骨架-1-迷你熔断器-50-行讲清原理">8.3 代码骨架 1：迷你熔断器（50 行讲清原理）</a>
+    <a class="toc-h3" href="#8-4-代码骨架-2-租户级令牌桶限流-fastapi-中间件">8.4 代码骨架 2：租户级令牌桶限流（FastAPI 中间件）</a>
+    <a class="toc-h3" href="#8-5-代码骨架-3-本地消息表-outbox-下单链路">8.5 代码骨架 3：本地消息表（Outbox）下单链路</a>
+    <a class="toc-h3" href="#8-6-配置骨架-4-dockerfile-与-k8s-清单">8.6 配置骨架 4：Dockerfile 与 K8s 清单</a>
+    <a class="toc-h3" href="#8-7-ai-coding-实操模式">8.7 AI Coding 实操模式</a>
+    <a class="toc-h3" href="#8-8-验收标准">8.8 验收标准</a>
+    <a class="toc-h2" href="#9-常见误区">9. 常见误区</a>
+    <a class="toc-h2" href="#10-自测清单">10. 自测清单</a>
+    <a class="toc-h2" href="#下卷预告">下卷预告</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
