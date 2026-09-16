@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>篇07-1：工具与技能治理（上）——能力形态、Tool Contract 与受控执行 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="篇07-1：工具与技能治理（上）——能力形态、Tool Contract 与受控执行 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html" class="active">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="篇07-1-工具与技能治理-上-能力形态-tool-contract-与受控执行">篇07-1：工具与技能治理（上）——能力形态、Tool Contract 与受控执行</h1>
+<h2 id="导语">导语</h2>
+<p>一个只能聊天的 Agent 是玩具，一个能随意调用生产接口的 Agent 是事故。本子页是篇07 的上半篇：先回答&quot;一项业务能力究竟该封装成什么形态&quot;——API / Tool / Skill / Workflow / SubAgent / MCP 六种形态与进程内到远程的部署光谱（第 1 节）；再把工具定义升级为三层 Tool Contract（模型理解层 / Runtime 执行层 / 企业治理层），并让错误回传成为&quot;教模型下一步怎么办&quot;的指令（第 2 节）；最后把高风险动作收进&quot;提议—校验—授权—审批—执行—验真&quot;的 Action Runtime 闭环，权限四层与幂等双保险是其中的两块硬骨头（第 3 节）。贯穿案例仍是多租户零售经营分析 DataAgent <sup class="fn-ref"><a href="#fn-gktime" id="ref-gktime">[1]</a></sup>。</p>
+<hr>
+<h2 id="1-从-function-call-到-capability-architecture">1. 从 Function Call 到 Capability Architecture</h2>
+<h3 id="1-1-为什么-形态选型-是第一个架构问题">1.1 为什么&quot;形态选型&quot;是第一个架构问题</h3>
+<p>很多团队的工具治理失控，起点不是工具写错了，而是<strong>能力放错了位置</strong>：把本该是 Workflow 的固定审批流写进了 Prompt，让模型每次&quot;自由发挥&quot;；把本该是 Tool 的单次查询封装成了 SubAgent，白白多一轮模型调用；把本该进程内调用的纯函数强行做成远程 MCP，引入网络、认证和版本管理的全部成本。</p>
+<p>形态选型的本质是回答三个问题：</p>
+<ul>
+<li><strong>谁来决策？</strong> 是模型动态决定调用，还是代码静态编排？</li>
+<li><strong>决策频率多高？</strong> 每次任务都要重新决策，还是一次决策反复复用？</li>
+<li><strong>失败代价多大？</strong> 调用失败是重试一次就行，还是需要审批和补偿？</li>
+</ul>
+<h3 id="1-2-六种能力形态对比">1.2 六种能力形态对比</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>形态</th>
+<th>决策者</th>
+<th>适用场景</th>
+<th>粒度</th>
+<th>典型代价</th>
+<th>DataAgent 例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API（内部函数/服务接口）</td>
+<td>代码</td>
+<td>系统内部的确定性逻辑，模型不可见</td>
+<td>任意</td>
+<td>无模型调用成本</td>
+<td>权限校验、指标口径查询的内部实现</td>
+</tr>
+<tr>
+<td>Tool（模型工具）</td>
+<td>模型</td>
+<td>需要模型根据上下文决定&quot;调不调、传什么参数&quot;的单步能力</td>
+<td>单步、无副作用或弱副作用</td>
+<td>Schema 占用 Context；误调用风险</td>
+<td><code>query_metrics</code>、<code>run_python_analysis</code></td>
+</tr>
+<tr>
+<td>Skill（领域技能）</td>
+<td>模型触发 + Skill 内规则引导</td>
+<td>有稳定方法论、需要领域原则和完成标准的复合任务</td>
+<td>一个完整任务类型</td>
+<td>需要维护版本与验证器</td>
+<td>&quot;经营异常诊断 Skill&quot;</td>
+</tr>
+<tr>
+<td>Workflow（确定性编排）</td>
+<td>代码/编排引擎</td>
+<td>步骤固定、顺序固定、合规要求强的流程</td>
+<td>多步骤流水线</td>
+<td>灵活性低，变更需发版</td>
+<td>&quot;每日经营报告生成流水线&quot;</td>
+</tr>
+<tr>
+<td>SubAgent（子代理）</td>
+<td>主 Agent 分派</td>
+<td>需要独立上下文窗口、独立推理循环的复杂子任务</td>
+<td>一个子目标</td>
+<td>Token 成本翻倍；结果需合并</td>
+<td>&quot;库存健康度深度分析子代理&quot;</td>
+</tr>
+<tr>
+<td>MCP（远程能力协议）</td>
+<td>模型（经 Host 过滤）</td>
+<td>跨团队、跨进程、跨组织提供的能力</td>
+<td>一组远程 Tool/Resource</td>
+<td>网络、认证、限流、版本治理成本</td>
+<td>广告平台团队提供的预算操作 MCP Server</td>
+</tr>
+</tbody>
+</table></div>
+<p>经验法则：<strong>能用代码决定的，不要让模型决定；能用单步 Tool 表达的，不要包成 SubAgent；能进程内解决的，不要协议化。</strong></p>
+<h3 id="1-3-插件化与服务化-能力住在哪里">1.3 插件化与服务化：能力住在哪里</h3>
+<p>形态之外还有&quot;部署位置&quot;的选择，可以对照&quot;Everything is a Plugin&quot;的思路理解成一条光谱<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>：</p>
+<ul>
+<li><strong>进程内模块</strong>：直接 import。延迟最低、类型最安全，但与宿主同生共死，升级要发版。</li>
+<li><strong>进程内插件</strong>：通过接口注册（如插件发现机制），可独立加载卸载，仍共享进程和权限边界。</li>
+<li><strong>独立服务（RPC/HTTP）</strong>：独立部署、独立伸缩，但需要认证、限流、熔断。</li>
+<li><strong>远程 MCP Server</strong>：在独立服务之上叠加了标准化的工具发现和 Schema 描述，适合跨团队供给能力。</li>
+</ul>
+<p>代价是单调递增的：每往外走一步，你就多承担一份网络、安全、版本和可观测性成本。选型的原则是<strong>让能力住在离它数据最近、治理责任最清晰的地方</strong>。DataAgent 的 SQL 查询走进程内 Query Gateway（需要行列级权限，必须和数据权限体系同进程同上下文），而广告预算能力走独立 MCP Server（由广告平台团队运维、背 SLA）。</p>
+<h3 id="1-4-模型决策与系统执行分离">1.4 模型决策与系统执行分离</h3>
+<p>这是本篇最重要的一条架构红线。一个&quot;工具调用&quot;在系统里其实是三件事：</p>
+<ol>
+<li><strong>模型提议</strong>：模型输出&quot;我想调 <code>adjust_budget</code>，参数是 X&quot;——这只是文本，不是事实。</li>
+<li><strong>系统校验与决策</strong>：Runtime 检查参数合法性、权限、风险等级，决定放行、拒绝还是转人工。</li>
+<li><strong>真实执行</strong>：由持有凭据的执行器调用真实业务接口。</li>
+</ol>
+<p>把这三件事混在一个函数里（模型一输出就执行），等于把生产系统的钥匙交给了概率模型。分离之后，模型的&quot;提议面&quot;和系统的&quot;执行面&quot;各自演化：模型可以换，执行器不用动；执行策略收紧，Prompt 不用改。</p>
+<h3 id="1-5-工具粒度与最小模型可见面">1.5 工具粒度与最小模型可见面</h3>
+<p>工具粒度的两个极端都有明确的失败模式：</p>
+<ul>
+<li><strong>过粗</strong>：一个 <code>do_analysis(question, datasource)</code> 万能工具。模型看似&quot;什么都能调&quot;，实际上参数自由度过高，无法校验、无法限权、无法审计，出了错也无法定位是哪一步。</li>
+<li><strong>过细</strong>：把 SQL 的每个子句都做成工具。模型要在几十次调用里拼装一个查询，错误率指数上升，Context 被工具结果淹没。</li>
+</ul>
+<p>合理的粒度是<strong>业务语义粒度</strong>：一个工具对应一个模型能理解的业务动作（&quot;查指标&quot;&quot;跑分析&quot;&quot;生成报告草稿&quot;），参数是业务对象（指标名、时间范围、维度），而不是技术细节（SQL 片段、表名）。</p>
+<p>判断粒度是否合适，可以用一张决策表自检：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>自检问题</th>
+<th>偏粗的信号</th>
+<th>偏细的信号</th>
+<th>合适的信号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>参数能被 JSON Schema 严格校验吗？</td>
+<td>关键参数是自由文本（SQL、自然语言指令）</td>
+<td>参数多到模型经常漏传</td>
+<td>参数全是枚举/受控词汇，Schema 即文档</td>
+</tr>
+<tr>
+<td>一次调用对应一个业务动作吗？</td>
+<td>一次调用干了三步事，失败不知错在哪</td>
+<td>一个业务动作要拆成 5 次调用</td>
+<td>调用日志读出来就是业务语言</td>
+</tr>
+<tr>
+<td>能对它单独限权吗？</td>
+<td>权限只能&quot;全开或全关&quot;</td>
+<td>权限配置数量爆炸，没人说得清</td>
+<td>每个工具能独立标风险等级</td>
+</tr>
+<tr>
+<td>失败能单独重试/补偿吗？</td>
+<td>部分成功，无法界定重试范围</td>
+<td>重试要编排多个调用的顺序</td>
+<td>单次调用即原子单位，幂等键可覆盖</td>
+</tr>
+</tbody>
+</table></div>
+<p>与粒度配套的是<strong>最小模型可见面</strong>原则：任意时刻，模型只应看到当前租户、当前角色、当前任务阶段所需的最小工具集。工具全量暴露不仅浪费 Context（每个 Schema 都是 Token），更会直接造成误选和越权——模型没法调用它看不见的工具，这是最简单也最可靠的权限控制。DataAgent 中，只读分析会话不暴露任何写工具；预算调整工具只在&quot;行动建议被用户确认后&quot;才注入。</p>
+<h3 id="1-6-工具设计三原则速查-粒度-幂等-错误回传">1.6 工具设计三原则速查：粒度、幂等、错误回传</h3>
+<p>把散落本篇各节的工具设计纪律收敛成三句话，也是评审任何一个新工具的 checklist：</p>
+<ol>
+<li><strong>粒度即权限</strong>：工具的边界就是权限的边界。切分工具时先问&quot;这个动作要不要单独限权、单独审计&quot;，要，就独立成工具。</li>
+<li><strong>写操作必幂等</strong>：凡是会改变世界状态的工具，必须回答&quot;同一个请求来两次会发生什么&quot;。答案不能是&quot;祈祷网络不重试&quot;（详见 3.4）。</li>
+<li><strong>错误即指令</strong>：工具返回的不是&quot;成功/失败&quot;，而是&quot;模型下一步该怎么办&quot;。每一种失败都要预设模型的应对动作（详见 2.3）。</li>
+</ol>
+<hr>
+<h2 id="2-tool-contract-与动态工具供给">2. Tool Contract 与动态工具供给</h2>
+<h3 id="2-1-三层-tool-contract-一个工具-三份契约">2.1 三层 Tool Contract：一个工具，三份契约</h3>
+<p>典型反模式是把所有要求塞进一份 JSON Schema 扔给模型。企业级工具需要把契约拆成三层，各管各的：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>面向谁</th>
+<th>内容</th>
+<th>变更频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型理解层</td>
+<td>模型</td>
+<td>工具名、一句话职责、参数语义、何时该用/不该用、结果怎么读</td>
+<td>低，随能力语义演化</td>
+</tr>
+<tr>
+<td>Runtime 执行层</td>
+<td>执行器</td>
+<td>参数 JSON Schema、校验规则、超时、重试策略、幂等键、副作用标记</td>
+<td>中，随实现演化</td>
+</tr>
+<tr>
+<td>企业治理层</td>
+<td>治理平台</td>
+<td>负责人、版本、风险等级、数据分级、租户可见性、审计要求、配额</td>
+<td>高，随治理策略演化</td>
+</tr>
+</tbody>
+</table></div>
+<p>三层分离的价值在于：治理策略收紧（比如某工具从&quot;自动执行&quot;降为&quot;需审批&quot;）只改治理层，不碰模型看到的描述；执行器重写了，模型的理解层不受影响。</p>
+<h3 id="2-2-工具语义与参数设计">2.2 工具语义与参数设计</h3>
+<p>模型选错工具，八成是语义问题而不是模型问题。几条实战原则：</p>
+<ul>
+<li><strong>名字即边界</strong>：<code>query_business_metrics</code> 比 <code>query_data</code> 好，因为名字本身就排除了&quot;查原始订单明细&quot;的误用。</li>
+<li><strong>参数用枚举和受控词汇</strong>：指标名用枚举而不是自由字符串，让模型在受控空间里选择，杜绝编造。</li>
+<li><strong>一个参数一个含义</strong>：<code>time_range=&quot;last_7d&quot;</code> 优于 <code>start/end</code> 自由组合——自由度每多一分，出错面就大一圈。</li>
+<li><strong>在描述里写反例</strong>：明确写&quot;不要用于查询实时库存，实时库存请用 X&quot;。模型对负面约束的遵循能力比想象中强。</li>
+</ul>
+<h3 id="2-3-标准结果与错误语义-教模型-下一步怎么办">2.3 标准结果与错误语义：教模型&quot;下一步怎么办&quot;</h3>
+<p>工具结果不只是数据，更是<strong>给模型的行动指令</strong>。企业级结果对象至少要带三类信息：</p>
+<ul>
+<li><strong>状态</strong>：success / retryable_error / parameter_error / permission_denied / stopped_by_policy。</li>
+<li><strong>错误语义</strong>：模型必须能从结果里判断&quot;该重试、该改参数、还是该停下告诉用户&quot;。超时是 retryable；参数不合法是 parameter_error（重试一百次也没用）；权限不足必须停止并升级给人。</li>
+<li><strong>证据与元数据</strong>：数据时间、来源、行数、截断标记。DataAgent 要求所有数据工具结果携带 <code>as_of</code> 和 <code>evidence_ref</code>，否则结论无法溯源。</li>
+</ul>
+<p>为什么错误回传值得单独当原则讲？因为<strong>模型的下一步行为，几乎完全由工具返回的错误文本塑造</strong>。同一场失败，三种回传方式会导出三种完全不同的后续：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>回传方式</th>
+<th>示例</th>
+<th>模型的实际后续行为</th>
+<th>后果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>裸异常</td>
+<td><code>Exception: timeout</code></td>
+<td>模型自由发挥：可能重试、可能编造数据、可能放弃</td>
+<td>行为不可预测，审计无从谈起</td>
+</tr>
+<tr>
+<td>状态码无指引</td>
+<td><code>{&quot;status&quot;: &quot;error&quot;, &quot;code&quot;: 403}</code></td>
+<td>模型不知道 403 该停，往往换个参数继续试</td>
+<td>越权请求被反复重放，触发告警</td>
+</tr>
+<tr>
+<td>结构化错误语义</td>
+<td><code>{&quot;status&quot;: &quot;permission_denied&quot;, &quot;error_action&quot;: &quot;stop&quot;, &quot;message&quot;: &quot;该指标超出当前角色数据范围，请告知用户申请权限，不要重试&quot;}</code></td>
+<td>停止调用，如实向用户解释并给出补救路径</td>
+<td>行为确定、可审计、体验体面</td>
+</tr>
+</tbody>
+</table></div>
+<p>设计错误语义时按这张映射表路由：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>失败类型</th>
+<th>error_action</th>
+<th>模型该做的</th>
+<th>不该做的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>超时、限流、依赖抖动</td>
+<td>RETRY（带退避上限）</td>
+<td>等待后重试，超过上限则降级告知</td>
+<td>无限重试</td>
+</tr>
+<tr>
+<td>参数缺失/越界/类型错</td>
+<td>FIX_PARAMS</td>
+<td>按 message 修正参数后重调一次</td>
+<td>原样重试、编造参数</td>
+</tr>
+<tr>
+<td>权限不足、越租户</td>
+<td>STOP</td>
+<td>停止，向用户解释并建议申请权限</td>
+<td>换说法绕过、伪造身份</td>
+</tr>
+<tr>
+<td>策略拒绝（合规/预算封顶）</td>
+<td>STOP + 升级</td>
+<td>停止并转人工通道</td>
+<td>拆小金额规避</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-4-动态最小工具集-toolset-是-编译-出来的">2.4 动态最小工具集：ToolSet 是&quot;编译&quot;出来的</h3>
+<p>静态工具列表的问题在于：不同租户买了不同能力包、不同角色有不同权限、同一任务的不同阶段需要不同工具。解法是<strong>动态 ToolSet 编译</strong>：在每次模型调用前，由 Tool Broker 根据（租户能力包 × 角色权限 × 任务阶段 × 风险策略）过滤和组装出本次调用可见的工具列表。这把&quot;权限&quot;从 Prompt 里的口头约束，变成了结构性的不可见——前面说的最小可见面，落地机制就是它。</p>
+<p>一次工具调用的完整权限决策流如下（这也是本篇 Demo 的模拟对象）：</p>
+<pre class="mermaid">flowchart TD
+    T[&quot;租户×角色×任务阶段&lt;br/&gt;安全上下文&quot;] --&gt; TB[&quot;Tool Broker 编译&lt;br/&gt;最小 ToolSet&quot;]
+    REG[(&quot;Capability Registry&lt;br/&gt;能力注册表&quot;)] --&gt; TB
+    TB --&gt;|&quot;可见工具列表&lt;br/&gt;（结构性不可见）&quot;| M[&quot;模型提议 Tool Call&quot;]
+    M --&gt; V{&quot;Schema 校验&quot;}
+    V -- &quot;失败&quot; --&gt; R1[&quot;回传 FIX_PARAMS&quot;]
+    V -- &quot;通过&quot; --&gt; A{&quot;授权&lt;br/&gt;真实身份×租户&quot;}
+    A -- &quot;拒绝&quot; --&gt; R2[&quot;回传 STOP 并升级&quot;]
+    A -- &quot;通过&quot; --&gt; G{&quot;风险分级&quot;}
+    G -- &quot;L1/L2&quot; --&gt; X[&quot;执行器&lt;br/&gt;短期凭据+幂等键&quot;]
+    G -- &quot;L3&quot; --&gt; H[&quot;人工审批&quot;]
+    H -- &quot;批准&quot; --&gt; X
+    H -- &quot;驳回&quot; --&gt; R3[&quot;终止并记录原因&quot;]
+    X --&gt; TR[(&quot;Tool Trace 审计&quot;)]
+</pre>
+<p>注意这张图里模型出现的位置：<strong>它在第二道门之后才开始参与</strong>。模型能&quot;看到&quot;什么工具，在模型说话之前就由安全上下文决定了——这是和&quot;在 Prompt 里写你不许调 X&quot;的本质区别。</p>
+<h3 id="2-5-三种工具设计对照-tool-badcase-分析">2.5 三种工具设计对照（Tool Badcase 分析）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>万能工具 <code>run_query(sql)</code></th>
+<th>底层 SQL 工具（表/列级）</th>
+<th>业务语义工具 <code>query_metrics</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>调用成功率</td>
+<td>低（SQL 生成错误多）</td>
+<td>中（多次调用拼装，易错）</td>
+<td>高（受控参数空间）</td>
+</tr>
+<tr>
+<td>安全性</td>
+<td>极差（任意 SQL，注入与越权直通车）</td>
+<td>中（需表级权限，但行列权限难落实）</td>
+<td>高（只能访问指标层，行列权限内建）</td>
+</tr>
+<tr>
+<td>可审计性</td>
+<td>差（审计的是任意 SQL 文本）</td>
+<td>中</td>
+<td>高（审计的是业务语义调用）</td>
+</tr>
+<tr>
+<td>治理成本</td>
+<td>无法治理</td>
+<td>高</td>
+<td>低（指标口径一处维护）</td>
+</tr>
+</tbody>
+</table></div>
+<p>结论：DataAgent 的数据查询能力应该落在<strong>指标语义层</strong>，让 Query Gateway 把业务参数编译成受控 SQL，而不是把 SQL 的自由交给模型。</p>
+<h3 id="2-6-代码骨架-三层-toolcontract">2.6 代码骨架：三层 ToolContract</h3>
+<pre><code class="language-python">from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any
+
+class RiskLevel(Enum):
+    READ_ONLY = &quot;read_only&quot;      # 只读，自动放行
+    LOW_WRITE = &quot;low_write&quot;      # 可逆写入，记录审计
+    HIGH_WRITE = &quot;high_write&quot;    # 资金/生产变更，强制审批
+
+class ErrorAction(Enum):
+    RETRY = &quot;retry&quot;              # 可重试：超时、限流
+    FIX_PARAMS = &quot;fix_params&quot;    # 改参数：模型应修正后重调
+    STOP = &quot;stop&quot;                # 停止：权限不足/策略拒绝，升级给人
+
+@dataclass
+class ModelFacingContract:            # 第一层：模型理解层
+    name: str                         # 业务语义命名，如 query_business_metrics
+    purpose: str                      # 一句话职责 + 何时该用
+    when_not_to_use: str              # 反例约束，划清边界
+    param_semantics: dict[str, str]   # 每个参数的业务含义与受控取值
+
+@dataclass
+class RuntimeContract:                # 第二层：Runtime 执行层
+    params_schema: dict               # JSON Schema，服务端强校验
+    timeout_ms: int = 10_000
+    max_retries: int = 2
+    idempotency: str = &quot;by_request_id&quot;  # 幂等策略
+    side_effect: bool = False
+
+@dataclass
+class GovernanceContract:             # 第三层：企业治理层
+    owner: str                        # 责任团队
+    version: str
+    risk: RiskLevel
+    data_classification: str          # 数据分级：公开/内部/机密
+    tenant_visibility: list[str]      # 哪些租户可见，空=全租户
+    audit_required: bool = True
+
+@dataclass
+class ToolResult:                     # 标准结果对象
+    status: str                       # success / retryable_error / ...
+    data: Any = None
+    error_action: ErrorAction | None = None
+    message: str = &quot;&quot;                 # 给模型读的&quot;下一步指令&quot;
+    evidence_ref: str | None = None   # 证据引用，支撑结论溯源
+    as_of: str | None = None          # 数据时点
+
+@dataclass
+class ToolContract:
+    model: ModelFacingContract
+    runtime: RuntimeContract
+    governance: GovernanceContract
+</code></pre>
+<hr>
+<h2 id="3-从-tool-call-到-action-runtime">3. 从 Tool Call 到 Action Runtime</h2>
+<h3 id="3-1-为什么-tool-call-不等于-action">3.1 为什么 Tool Call 不等于 Action</h3>
+<p>模型输出一个工具调用，只是一段结构化的&quot;意图文本&quot;。对只读查询，让 Runtime 直接执行问题不大；但对&quot;调整广告预算&quot;&quot;创建工单&quot;&quot;写入业务系统&quot;这类<strong>有真实副作用的动作</strong>，从意图到执行之间必须插入一整套控制闭环：</p>
+<p><strong>提议（Propose）→ 校验（Validate）→ 授权（Authorize）→ 审批（Approve）→ 执行（Execute）→ 验真（Verify）</strong></p>
+<ul>
+<li><strong>提议</strong>：模型生成 ActionRequest，包含动作类型、参数、理由和证据引用。注意：模型提出的是&quot;建议&quot;，不是&quot;命令&quot;。</li>
+<li><strong>校验</strong>：Schema 校验、业务规则校验（预算调整幅度是否超限、目标状态是否还存在）。</li>
+<li><strong>授权</strong>：当前用户 + 当前租户 + 当前角色是否有权发起此类 Action。注意鉴权的是&quot;发起人&quot;，不是模型。</li>
+<li><strong>审批</strong>：按风险分级决定自动放行还是人工审批。审批人看到的是<strong>人类可读的预览</strong>（调整前后对比、影响面），不是 JSON。</li>
+<li><strong>执行</strong>：由执行器持短期凭据调用真实系统，全程幂等。</li>
+<li><strong>验真</strong>：执行后回读真实状态，确认变更真实生效（防止接口&quot;假成功&quot;），失败则触发补偿或告警。</li>
+</ul>
+<pre class="mermaid">flowchart TD
+    A[模型提议 ActionRequest&lt;br/&gt;含参数/理由/证据] --&gt; B{校验&lt;br/&gt;Schema + 业务规则}
+    B -- 不通过 --&gt; R1[拒绝并反馈模型&lt;br/&gt;error_action=FIX_PARAMS]
+    B -- 通过 --&gt; C{授权&lt;br/&gt;用户×租户×角色}
+    C -- 无权 --&gt; R2[拒绝并升级人工&lt;br/&gt;error_action=STOP]
+    C -- 有权 --&gt; D{风险分级}
+    D -- 低风险 --&gt; F
+    D -- 高风险 --&gt; E[人工审批&lt;br/&gt;预览影响面]
+    E -- 驳回 --&gt; R3[终止并记录原因]
+    E -- 批准 --&gt; F[执行&lt;br/&gt;短期凭据 + 幂等键]
+    F --&gt; G{验真&lt;br/&gt;回读真实状态}
+    G -- 一致 --&gt; H[完成, 写审计与证据链]
+    G -- 不一致 --&gt; I[补偿/回滚 + 告警]
+</pre>
+<h3 id="3-2-风险分级与权限分层">3.2 风险分级与权限分层</h3>
+<p>不要用同一套安全策略对待所有动作。一个实用的三级模型：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>例子</th>
+<th>控制策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1 只读</td>
+<td>指标查询、报告生成</td>
+<td>自动执行，记录审计日志</td>
+</tr>
+<tr>
+<td>L2 可逆写</td>
+<td>创建工单草稿、保存分析结论</td>
+<td>自动执行 + 通知，可撤销</td>
+</tr>
+<tr>
+<td>L3 资金/生产变更</td>
+<td>调整广告预算、改价</td>
+<td>强制人工审批 + 双人复核选项 + 执行后验真</td>
+</tr>
+</tbody>
+</table></div>
+<p>DataAgent 的预算调整 Action 就是 L3：模型只能走到&quot;提议 + 生成预览&quot;，审批权永远在人手里。</p>
+<p>风险分级管&quot;单个动作有多危险&quot;，<strong>权限分层</strong>管&quot;谁在什么范围里能发起动作&quot;。企业级系统通常是四层叠加，缺一不可：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>权限层</th>
+<th>判定依据</th>
+<th>在哪拦截</th>
+<th>防的是什么</th>
+<th>DataAgent 实例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>租户层</td>
+<td>tenant_id（来自安全上下文，非自报）</td>
+<td>网关/ToolSet 编译</td>
+<td>跨租户数据泄漏</td>
+<td>租户 A 的会话编译不出租户 B 的任何工具目标</td>
+</tr>
+<tr>
+<td>角色层</td>
+<td>用户角色（分析师/运营/管理员）</td>
+<td>ToolSet 编译 + 授权</td>
+<td>越权操作类型</td>
+<td>只读分析师的工具集里没有任何写工具</td>
+</tr>
+<tr>
+<td>工具层</td>
+<td>工具的风险等级与配额</td>
+<td>风险分级 + 审批门禁</td>
+<td>高风险动作失控</td>
+<td><code>adjust_ad_budget</code> 永远走人工审批</td>
+</tr>
+<tr>
+<td>数据层</td>
+<td>行/列级权限、数据分级</td>
+<td>Query Gateway</td>
+<td>合法工具查到越界数据</td>
+<td>区域经理只能查到本区域的指标明细</td>
+</tr>
+</tbody>
+</table></div>
+<p>为什么要把四层分开说？因为事故复盘时你会发现：<strong>每一次真实的越权，都是恰好穿过了其中一层、而被另一层侥幸接住（或没接住）</strong>。四层各自独立失效的概率相乘，才是系统整体的越权概率。把四层合并成&quot;一个大权限判断&quot;，等于把失效概率叠加成一次掷骰。</p>
+<h3 id="3-3-最小权限与短期凭据">3.3 最小权限与短期凭据</h3>
+<p>两条铁律：</p>
+<ol>
+<li><strong>Agent 不持有长期凭据</strong>。执行器通过 Credential Broker 按 Action 申请短期、窄范围凭据（只能调这一个接口、只对这一个租户有效、几分钟过期），用完即焚。即使模型被注入攻击诱导，攻击者也无法从 Agent 上下文里拿到任何可用的密钥。</li>
+<li><strong>凭据粒度跟 Action 走，不跟 Agent 走</strong>。预算执行器拿的是&quot;广告平台预算接口&quot;的凭据，而不是广告平台账号本身。</li>
+</ol>
+<h3 id="3-4-幂等与状态一致性">3.4 幂等与状态一致性</h3>
+<p>生产环境的三类经典故障，Action Runtime 必须正面回答：</p>
+<ul>
+<li><strong>重复执行</strong>：Runtime 重试、消息重复投递会导致同一 Action 执行两次。解法是幂等键（<code>action_request_id</code>）+ 执行器去重表，重复请求直接返回首次执行结果。</li>
+<li><strong>状态过期</strong>：模型基于十分钟前的数据提议&quot;把预算从 5 万调到 8 万&quot;，审批人批的时候预算已经是 9 万了。解法是 ActionRequest 携带<strong>前置状态快照</strong>（<code>expected_state</code>），执行前比对，不一致则拒绝并重新提议。</li>
+<li><strong>部分成功</strong>：调预算成功了但通知工单创建失败。Action 生命周期里要有显式的补偿（compensation）定义，而不是让运维半夜翻日志。</li>
+</ul>
+<p>幂等为什么值得上升到&quot;原则&quot;高度？因为<strong>在分布式系统里，&quot;恰好执行一次&quot;是不存在的</strong>——网络超时后调用方无法区分&quot;没送到&quot;和&quot;送到了但响应丢了&quot;，唯一安全的默认动作就是重试，于是&quot;至少一次&quot;成为物理现实，&quot;恰好一次&quot;只能靠幂等性在应用层人工合成<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>。常见的四种幂等实现，按防护强度排序：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>实现方式</th>
+<th>原理</th>
+<th>适用</th>
+<th>代价/局限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>天然幂等</td>
+<td>操作本身重复无副作用（如&quot;把状态置为 X&quot;）</td>
+<td>覆盖式更新、只读</td>
+<td>只适用于少数操作语义</td>
+</tr>
+<tr>
+<td>幂等键 + 去重表</td>
+<td>请求携唯一键，执行前先查表，命中则返回首次结果</td>
+<td>几乎所有写操作</td>
+<td>需要存储与一致的去重表；键的生命周期要管理</td>
+</tr>
+<tr>
+<td>条件更新（乐观锁）</td>
+<td><code>UPDATE ... WHERE version = expected</code></td>
+<td>状态有版本/前值可比</td>
+<td>并发冲突要定义重试策略</td>
+</tr>
+<tr>
+<td>状态机防护</td>
+<td>只允许显式状态迁移，已迁移请求直接拒绝</td>
+<td>有生命周期的 Action</td>
+<td>要先建模状态机（见 3.5）</td>
+</tr>
+</tbody>
+</table></div>
+<p>DataAgent 的 Action Runtime 是&quot;幂等键 + 状态机&quot;双保险：去重表挡住传输层的重复，状态机挡住业务层的跳态——两者防的是不同层面的重复，不能只留一个。</p>
+<h3 id="3-5-代码骨架-actionrequest-状态机">3.5 代码骨架：ActionRequest 状态机</h3>
+<pre><code class="language-python">from dataclasses import dataclass, field
+from enum import Enum
+import time, uuid
+
+class ActionState(Enum):
+    PROPOSED = &quot;proposed&quot;        # 模型已提议
+    VALIDATED = &quot;validated&quot;      # 通过 Schema 与业务校验
+    REJECTED = &quot;rejected&quot;        # 校验/授权失败，终态
+    PENDING_APPROVAL = &quot;pending_approval&quot;
+    APPROVED = &quot;approved&quot;
+    EXECUTING = &quot;executing&quot;
+    VERIFYING = &quot;verifying&quot;
+    COMPLETED = &quot;completed&quot;      # 验真通过，终态
+    COMPENSATED = &quot;compensated&quot;  # 已回滚补偿，终态
+    FAILED = &quot;failed&quot;            # 终态
+
+ALLOWED = {  # 状态机：只允许显式定义的迁移，杜绝跳态
+    ActionState.PROPOSED: {ActionState.VALIDATED, ActionState.REJECTED},
+    ActionState.VALIDATED: {ActionState.PENDING_APPROVAL, ActionState.EXECUTING},
+    ActionState.PENDING_APPROVAL: {ActionState.APPROVED, ActionState.REJECTED},
+    ActionState.APPROVED: {ActionState.EXECUTING},
+    ActionState.EXECUTING: {ActionState.VERIFYING, ActionState.FAILED},
+    ActionState.VERIFYING: {ActionState.COMPLETED, ActionState.COMPENSATED, ActionState.FAILED},
+}
+
+@dataclass
+class ActionRequest:
+    action_type: str              # 如 &quot;adjust_ad_budget&quot;
+    params: dict                  # 业务参数：campaign_id, new_budget
+    tenant_id: str
+    requested_by: str             # 发起人（真实用户），鉴权对象
+    reason: str                   # 模型给出的提议理由
+    evidence_refs: list[str]      # 支撑证据链
+    expected_state: dict          # 前置状态快照，执行前比对防过期
+    risk: str = &quot;high_write&quot;
+    request_id: str = field(default_factory=lambda: uuid.uuid4().hex)  # 幂等键
+    state: ActionState = ActionState.PROPOSED
+
+    def transition(self, target: &quot;ActionState&quot;, actor: str) -&gt; None:
+        if target not in ALLOWED.get(self.state, set()):
+            raise IllegalTransition(f&quot;{self.state} -&gt; {target}&quot;)
+        audit_log(self.request_id, self.state, target, actor, time.time())
+        self.state = target
+
+# 执行器伪代码：短期凭据 + 幂等 + 验真
+def execute_adjust_budget(req: ActionRequest) -&gt; None:
+    if dedup_seen(req.request_id):          # 幂等去重
+        return previous_result(req.request_id)
+    cred = credential_broker.mint(          # 短期窄范围凭据
+        scope=&quot;ads:budget:write&quot;, tenant=req.tenant_id, ttl_seconds=300)
+    current = ads_api.get_budget(req.params[&quot;campaign_id&quot;], cred)
+    if current != req.expected_state[&quot;budget&quot;]:   # 状态过期保护
+        req.transition(ActionState.FAILED, &quot;runtime&quot;); return
+    ads_api.set_budget(req.params[&quot;campaign_id&quot;],
+                       req.params[&quot;new_budget&quot;], cred,
+                       idempotency_key=req.request_id)
+    req.transition(ActionState.VERIFYING, &quot;runtime&quot;)
+    actual = ads_api.get_budget(req.params[&quot;campaign_id&quot;], cred)  # 验真回读
+    req.transition(ActionState.COMPLETED if actual == req.params[&quot;new_budget&quot;]
+                   else ActionState.COMPENSATED, &quot;runtime&quot;)
+</code></pre>
+<p>把第 2、3 节的决策链亲手操作一遍：在下面的沙箱里切换三种角色，把 7 个预置请求逐个送入决策链——观察 <code>export_order_detail</code> 如何在 ToolSet 编译期就&quot;结构性不可见&quot;（连被误调的机会都没有），伪造租户参数的请求如何在授权站被拦，同一个预算请求重放时幂等键如何阻止二次扣款；最后打开「关闭 ToolSet 编译」对照开关，看越权请求会穿透到第几道防线：</p>
+<div class="demo-embed" data-demo="tool-permission"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong>：</p>
+<ol>
+<li>以「只读分析师」身份发送 r3（创建工单草稿），记录它在哪一站被拦；切换「运营专员」重发同一请求，对比命运差异，说出这是权限四层中的哪一层在起作用。</li>
+<li>发送 r4（伪造 tenant=B 的查询），注意它通过了 ToolSet 编译却在授权站被拦——解释为什么 Scope 必须取自安全上下文而不是模型自报。</li>
+<li>先批准 r5（预算调整），再发送 r6（同 request_id 重放），观察幂等去重发生在哪一站、避免了什么后果。</li>
+<li>勾选「关闭 ToolSet 编译」后重发 r3/r4，对比拦截位置的变化，回答：为什么&quot;防线越靠前，失效代价越小&quot;？</li>
+<li>打开审计日志面板，找出每条记录的四个要素（谁、调了什么、决策结果、在哪一站），对照 5.7 节 Tool Trace 的定义检查是否完备。</li>
+</ol>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：篇07-2 · 工具与技能治理（下）——Skill 工程、MCP 与 CapabilityOps</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-gktime">极客时间《企业级 Agent 工程化》课程（工具治理、Skill 工程与 CapabilityOps 相关章节）——本篇的能力形态选型、Action Runtime 与 Skill 六层结构在该课程大纲基础上扩展改写。 <a class="fn-back" href="#ref-gktime" aria-label="回到正文">↩</a></li>
+<li id="fn-phoenix">周志明《凤凰架构：构建可靠的大型分布式系统》，&quot;演进中的架构&quot;与&quot;分布式事务&quot;部分（服务化光谱、至少一次投递与幂等性讨论），<a href="https://icyfenix.cn">https://icyfenix.cn</a> 。 <a class="fn-back" href="#ref-phoenix" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-06-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇06-2 · 证据长任务与 ContextOps</span></a>
+      <a class="next" href="chapter-07-2.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇07-2 · Skill 工程与 MCP 治理</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#导语">导语</a>
+    <a class="toc-h2" href="#1-从-function-call-到-capability-architecture">1. 从 Function Call 到 Capability Architecture</a>
+    <a class="toc-h3" href="#1-1-为什么-形态选型-是第一个架构问题">1.1 为什么"形态选型"是第一个架构问题</a>
+    <a class="toc-h3" href="#1-2-六种能力形态对比">1.2 六种能力形态对比</a>
+    <a class="toc-h3" href="#1-3-插件化与服务化-能力住在哪里">1.3 插件化与服务化：能力住在哪里</a>
+    <a class="toc-h3" href="#1-4-模型决策与系统执行分离">1.4 模型决策与系统执行分离</a>
+    <a class="toc-h3" href="#1-5-工具粒度与最小模型可见面">1.5 工具粒度与最小模型可见面</a>
+    <a class="toc-h3" href="#1-6-工具设计三原则速查-粒度-幂等-错误回传">1.6 工具设计三原则速查：粒度、幂等、错误回传</a>
+    <a class="toc-h2" href="#2-tool-contract-与动态工具供给">2. Tool Contract 与动态工具供给</a>
+    <a class="toc-h3" href="#2-1-三层-tool-contract-一个工具-三份契约">2.1 三层 Tool Contract：一个工具，三份契约</a>
+    <a class="toc-h3" href="#2-2-工具语义与参数设计">2.2 工具语义与参数设计</a>
+    <a class="toc-h3" href="#2-3-标准结果与错误语义-教模型-下一步怎么办">2.3 标准结果与错误语义：教模型"下一步怎么办"</a>
+    <a class="toc-h3" href="#2-4-动态最小工具集-toolset-是-编译-出来的">2.4 动态最小工具集：ToolSet 是"编译"出来的</a>
+    <a class="toc-h3" href="#2-5-三种工具设计对照-tool-badcase-分析">2.5 三种工具设计对照（Tool Badcase 分析）</a>
+    <a class="toc-h3" href="#2-6-代码骨架-三层-toolcontract">2.6 代码骨架：三层 ToolContract</a>
+    <a class="toc-h2" href="#3-从-tool-call-到-action-runtime">3. 从 Tool Call 到 Action Runtime</a>
+    <a class="toc-h3" href="#3-1-为什么-tool-call-不等于-action">3.1 为什么 Tool Call 不等于 Action</a>
+    <a class="toc-h3" href="#3-2-风险分级与权限分层">3.2 风险分级与权限分层</a>
+    <a class="toc-h3" href="#3-3-最小权限与短期凭据">3.3 最小权限与短期凭据</a>
+    <a class="toc-h3" href="#3-4-幂等与状态一致性">3.4 幂等与状态一致性</a>
+    <a class="toc-h3" href="#3-5-代码骨架-actionrequest-状态机">3.5 代码骨架：ActionRequest 状态机</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:chapter-07-1:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

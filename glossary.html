@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>附录：全站术语表——遇到不懂的词，先查这里 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="附录：全站术语表——遇到不懂的词，先查这里 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html" class="active">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="附录-全站术语表-遇到不懂的词-先查这里">附录：全站术语表——遇到不懂的词，先查这里</h1>
+<blockquote>
+<p>导师的话：这套教程横跨服务端、数据系统、分布式、SRE、AI Infra 与 Agent 工程六大领域，术语密度不低。新手最常见的放弃原因不是&quot;内容难&quot;，而是&quot;一句话里三个生词，查不过来&quot;。这一页就是为此准备的：<strong>阅读中任何卡壳的术语，先回到这里查人话解释，再顺着&quot;首次出现&quot;的链接回到正文看完整上下文。</strong></p>
+<p>本页收录 <strong>73 条术语、6 个分组</strong>，覆盖全站 28 个子页与保留页中所有&quot;不查就读不下去&quot;的硬核词汇；每条解释都控制在 40 字以内，类比优先、不照抄定义。</p>
+</blockquote>
+<h2 id="怎么用这本词典">怎么用这本词典</h2>
+<ol>
+<li><strong>卡壳即查</strong>：读到不懂的词，用浏览器页内搜索（Ctrl/Cmd + F）在本页定位，看一句话解释就够了，不必立刻钻细节。</li>
+<li><strong>回链补上下文</strong>：解释右侧的&quot;首次出现&quot;链接指向该术语第一次被正式讲解的子页与章节，点回去读那一段，理解才算闭环。</li>
+<li><strong>不要顺序背</strong>：这不是单词书。术语是按学习路径分组的，跟着正文学到哪组、查哪组即可。</li>
+<li><strong>口径说明</strong>：&quot;首次出现&quot;指该术语在<strong>学习路径顺序</strong>下首次被正式讲解的位置；个别在早期一笔带过、后期才展开的词，标注的是首次详解处。</li>
+</ol>
+<h2 id="一次完整的查词示范">一次完整的查词示范</h2>
+<p>假设你正在读卷04-1，看到这句话卡住了：</p>
+<blockquote>
+<p>&quot;熔断防的是'持续调用一个已确定挂掉的下游'，它和限流、降级不是一回事。&quot;</p>
+</blockquote>
+<p>三步走完一次查词闭环：</p>
+<ol>
+<li>回到本页，页内搜索&quot;熔断&quot;，在第四组表格里找到它——一句话解释是&quot;下游确定挂了就先跳闸别打了，隔会儿再试探一次&quot;。</li>
+<li>顺手扫一眼上下两行，你会发现&quot;限流&quot;和&quot;降级&quot;就在旁边——三个词本来就是一组，一起看比单独看省一半力气（本页开头的&quot;高频易混&quot;表已经替你对比好了）。</li>
+<li>点解释右侧的链接回到 <a href="vol-04-1.html">卷04-1</a> §2.3，读那一节的完整推导和 50 行迷你熔断器代码。</li>
+</ol>
+<p>到这一步，&quot;熔断&quot;对你就不再是一个&quot;听说过的词&quot;，而是一个&quot;知道为什么存在、什么时候用&quot;的工具。<strong>词典负责第 1 步，第 2、3 步才是学习。</strong></p>
+<h2 id="三组高频易混-先对一遍">三组高频易混，先对一遍</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>易混组合</th>
+<th>一句话区分</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>穿透 / 击穿 / 雪崩</td>
+<td>穿透打&quot;不存在的&quot;，击穿打&quot;一个爆品&quot;，雪崩是&quot;一大批同时到期&quot;</td>
+</tr>
+<tr>
+<td>熔断 / 限流 / 降级</td>
+<td>熔断防&quot;打死下游&quot;，限流防&quot;挤死自己&quot;，降级是&quot;保核心舍枝叶&quot;</td>
+</tr>
+<tr>
+<td>SLI / SLO / SLA</td>
+<td>SLI 是尺子，SLO 是对内军令状，SLA 是对客户签的赔钱合同</td>
+</tr>
+<tr>
+<td>2PC / TCC / Saga</td>
+<td>2PC 数据库层投票，TCC 业务层占座，Saga 长链分段可退票</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="一-服务端基础-卷01">一、服务端基础（卷01）</h2>
+<blockquote>
+<p>一切架构的起点：一次请求怎么进来、一台机器怎么同时服务很多人、数据库连接为什么是个池。这组词是全站使用频率最高的&quot;普通话&quot;——后面每一卷的正文都默认你已经认识它们。</p>
+<p><strong>什么时候会密集遇到</strong>：卷01-1（HTTP/TCP/REST/并发模型）、卷01-2（连接池/N+1）。学完卷01，本组 9 个词应该全部能&quot;见词知意&quot;。</p>
+</blockquote>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HTTP（HyperText Transfer Protocol）</td>
+<td>浏览器与服务端之间的&quot;标准点菜单&quot;，点什么、上没上错都有格式</td>
+<td><a href="vol-01-1.html">卷01-1</a> §1.1</td>
+</tr>
+<tr>
+<td>TCP（Transmission Control Protocol）</td>
+<td>传数据前先握手&quot;接通电话&quot;，挂断也要双方确认</td>
+<td><a href="vol-01-1.html">卷01-1</a> §1.5</td>
+</tr>
+<tr>
+<td>REST（Representational State Transfer）</td>
+<td>URL 说&quot;什么东西&quot;，方法说&quot;干什么&quot;：GET 看、POST 办</td>
+<td><a href="vol-01-1.html">卷01-1</a> §2</td>
+</tr>
+<tr>
+<td>进程（Process）</td>
+<td>一人一间独立办公室，互看不见内存，安全但开销大</td>
+<td><a href="vol-01-1.html">卷01-1</a> §3.2</td>
+</tr>
+<tr>
+<td>线程（Thread）</td>
+<td>同一办公室多张工位，共享文件柜，快但要防抢</td>
+<td><a href="vol-01-1.html">卷01-1</a> §3.2</td>
+</tr>
+<tr>
+<td>协程（Coroutine）</td>
+<td>一个人同时看多口锅，哪锅开了先顾哪锅</td>
+<td><a href="vol-01-1.html">卷01-1</a> §3.2</td>
+</tr>
+<tr>
+<td>IO 多路复用（IO Multiplexing）</td>
+<td>一个服务员盯一百张桌，谁举手就服务谁</td>
+<td><a href="vol-01-1.html">卷01-1</a> §3.3</td>
+</tr>
+<tr>
+<td>连接池（Connection Pool）</td>
+<td>数据库连接像共享雨伞：借了要还，别每次新买</td>
+<td><a href="vol-01-2.html">卷01-2</a> §4.2</td>
+</tr>
+<tr>
+<td>N+1 问题（N+1 Query Problem）</td>
+<td>查 1 次列表再循环查 N 次详情，像跑 N+1 趟超市</td>
+<td><a href="vol-01-2.html">卷01-2</a> §4.3</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="二-架构演进-卷02">二、架构演进（卷02）</h2>
+<blockquote>
+<p>RetailHub 的四次&quot;手术&quot;用到的一整套词汇。记住全站主线：<strong>每次演进都是症状逼出来的，不是技术痒</strong>。这组词几乎每个大厂面试都会问。</p>
+<p><strong>什么时候会密集遇到</strong>：卷02-1（缓存三兄弟、读写分离、分库分表）、卷02-2（MQ、负载均衡、一致性哈希）、卷02-3（大促实战里全部串一遍）。</p>
+</blockquote>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缓存穿透（Cache Penetration）</td>
+<td>专查根本不存在的东西，缓存形同虚设，全砸数据库</td>
+<td><a href="vol-02-1.html">卷02-1</a> §2.3</td>
+</tr>
+<tr>
+<td>缓存击穿（Cache Breakdown）</td>
+<td>一个爆品缓存恰好过期，万人同时冲去数据库重算</td>
+<td><a href="vol-02-1.html">卷02-1</a> §2.3</td>
+</tr>
+<tr>
+<td>缓存雪崩（Cache Avalanche）</td>
+<td>大批缓存同一时刻集体到期，像整栋楼的伞同时被收走</td>
+<td><a href="vol-02-1.html">卷02-1</a> §2.3</td>
+</tr>
+<tr>
+<td>读写分离（Read-Write Splitting）</td>
+<td>主库管写、从库管读，像后厨与前厅分工</td>
+<td><a href="vol-02-1.html">卷02-1</a> §3.1</td>
+</tr>
+<tr>
+<td>分库分表（Sharding）</td>
+<td>一本账记不下就分柜，按用户 ID 取模路由到不同库</td>
+<td><a href="vol-02-1.html">卷02-1</a> §3.3</td>
+</tr>
+<tr>
+<td>消息队列（Message Queue, MQ）</td>
+<td>下单先塞张&quot;取号单&quot;就走，后厨按自己节奏做</td>
+<td><a href="vol-02-2.html">卷02-2</a> §4.1</td>
+</tr>
+<tr>
+<td>负载均衡（Load Balancing）</td>
+<td>门口的领位员，把客人均匀领到空闲窗口</td>
+<td><a href="vol-02-2.html">卷02-2</a> §5.3</td>
+</tr>
+<tr>
+<td>一致性哈希（Consistent Hashing）</td>
+<td>加一台机器只让约 1/N 的客人换座，而不是全体重排</td>
+<td><a href="vol-02-2.html">卷02-2</a> §5.3</td>
+</tr>
+<tr>
+<td>服务化（Service Splitting）</td>
+<td>团队互相挡路时，把大应用按业务能力拆成小分队</td>
+<td><a href="vol-02-2.html">卷02-2</a> §5.2</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="三-数据系统-卷03-卷04-2">三、数据系统（卷03 + 卷04-2）</h2>
+<blockquote>
+<p>DDIA 的核心词汇。这一组回答两个问题：<strong>数据在单台机器上怎么存得又快又稳，跨机器之后凭什么还能信</strong>。</p>
+<p><strong>什么时候会密集遇到</strong>：卷03-1（存储引擎三件套 LSM/B-Tree/WAL）、卷03-2（MVCC/隔离级别/CAP）、卷04-2（BASE 与四种分布式事务方案、Raft）。布隆过滤器例外——它在卷02-1 治缓存穿透时就提前登场了。</p>
+</blockquote>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LSM-Tree（Log-Structured Merge-Tree）</td>
+<td>先记流水账、攒够一批再统一誊正，写得飞快</td>
+<td><a href="vol-03-1.html">卷03-1</a> §3</td>
+</tr>
+<tr>
+<td>B-Tree（Balanced Tree）</td>
+<td>像字典的部首索引：原地翻页改字，读快写随机</td>
+<td><a href="vol-03-1.html">卷03-1</a> §3</td>
+</tr>
+<tr>
+<td>WAL（Write-Ahead Log）</td>
+<td>先记小账再改大账，断电后照小账重放就能恢复</td>
+<td><a href="vol-03-1.html">卷03-1</a> §3</td>
+</tr>
+<tr>
+<td>布隆过滤器（Bloom Filter）</td>
+<td>门口的&quot;绝对不卖清单&quot;：它说没有，就一定没有</td>
+<td><a href="vol-02-1.html">卷02-1</a> §2.3</td>
+</tr>
+<tr>
+<td>MVCC（Multi-Version Concurrency Control）</td>
+<td>每个读者发一份&quot;当时快照&quot;，读写互不排队</td>
+<td><a href="vol-03-2.html">卷03-2</a> §7</td>
+</tr>
+<tr>
+<td>隔离级别（Isolation Level）</td>
+<td>事务之间的&quot;隔音等级&quot;：从听得到邻桌到完全包间</td>
+<td><a href="vol-03-2.html">卷03-2</a> §7</td>
+</tr>
+<tr>
+<td>CAP（Consistency, Availability, Partition tolerance）</td>
+<td>断网时只能二选一：宁可拒答保正确，还是带病也营业</td>
+<td><a href="vol-03-2.html">卷03-2</a> §9</td>
+</tr>
+<tr>
+<td>BASE（Basically Available, Soft state, Eventually consistent）</td>
+<td>允许暂时错，但保证会修好，且修好的过程可追溯</td>
+<td><a href="vol-04-2.html">卷04-2</a> §3</td>
+</tr>
+<tr>
+<td>2PC（Two-Phase Commit）</td>
+<td>班长先问&quot;都准备好了吗&quot;，齐答好了才喊&quot;执行&quot;</td>
+<td><a href="vol-04-2.html">卷04-2</a> §3.1</td>
+</tr>
+<tr>
+<td>TCC（Try-Confirm-Cancel）</td>
+<td>先占座（Try），成了转正（Confirm），黄了释放（Cancel）</td>
+<td><a href="vol-04-2.html">卷04-2</a> §3.2</td>
+</tr>
+<tr>
+<td>Saga</td>
+<td>长旅程分段买票，中途失败就按反序逐段退掉</td>
+<td><a href="vol-04-2.html">卷04-2</a> §3.3</td>
+</tr>
+<tr>
+<td>Raft</td>
+<td>分布式世界的&quot;选举 + 少数服从多数&quot;宪法</td>
+<td><a href="vol-04-2.html">卷04-2</a> §3.6</td>
+</tr>
+<tr>
+<td>共识（Consensus）</td>
+<td>一群会掉线的机器，对同一件事达成一致意见的本领</td>
+<td><a href="vol-04-2.html">卷04-2</a> §3.6</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="四-平台与可靠性-卷04-1-3-卷08">四、平台与可靠性（卷04-1/3 + 卷08）</h2>
+<blockquote>
+<p>从&quot;能跑&quot;到&quot;敢承诺&quot;。前半组是流量治理的安全气囊，后半组是 SRE 把&quot;稳定性&quot;变成可谈判数字的语言体系。</p>
+<p><strong>什么时候会密集遇到</strong>：卷04-1（熔断/限流/降级/单元化）、卷04-3（平台工程/IDP/两地三中心）、卷08 三子页（SLI 全家桶、燃烧率、oncall、混沌工程）。这组是进入篇09「评测门禁」之前的最后一块传统工程地基。</p>
+</blockquote>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>熔断（Circuit Breaker）</td>
+<td>下游确定挂了就先跳闸别打了，隔会儿再试探一次</td>
+<td><a href="vol-04-1.html">卷04-1</a> §2.3</td>
+</tr>
+<tr>
+<td>限流（Rate Limiting）</td>
+<td>门口发号：超出接待能力的，一律礼貌排队或劝退</td>
+<td><a href="vol-04-1.html">卷04-1</a> §2.4</td>
+</tr>
+<tr>
+<td>降级（Degradation）</td>
+<td>高峰期砍掉雕花装饰，保住主菜能上桌</td>
+<td><a href="vol-04-1.html">卷04-1</a> §2.5</td>
+</tr>
+<tr>
+<td>单元化（Unit Architecture）</td>
+<td>把全国用户分成若干&quot;自治小区&quot;，炸一个不伤全城</td>
+<td><a href="vol-04-1.html">卷04-1</a> §2.7</td>
+</tr>
+<tr>
+<td>平台工程（Platform Engineering）</td>
+<td>把好用的基础设施做成产品，让所有服务默认继承</td>
+<td><a href="vol-04-3.html">卷04-3</a> §7</td>
+</tr>
+<tr>
+<td>IDP（Internal Developer Platform）</td>
+<td>公司内部&quot;自助餐厅&quot;：部署、监控、发布不用求人</td>
+<td><a href="vol-04-3.html">卷04-3</a> §7.2</td>
+</tr>
+<tr>
+<td>两地三中心</td>
+<td>同城双中心抗机房级故障，异地一中心抗城市级灾难</td>
+<td><a href="vol-04-3.html">卷04-3</a> §7.4</td>
+</tr>
+<tr>
+<td>SLI（Service Level Indicator）</td>
+<td>拿尺子量出来的数字，比如&quot;请求成功率 99.95%&quot;</td>
+<td><a href="vol-08-1.html">卷08-1</a> §2.1</td>
+</tr>
+<tr>
+<td>SLO（Service Level Objective）</td>
+<td>对内立的军令状：这把尺子必须量到多少</td>
+<td><a href="vol-08-1.html">卷08-1</a> §2.1</td>
+</tr>
+<tr>
+<td>SLA（Service Level Agreement）</td>
+<td>对客户签的合同：达不到就赔钱的那种 SLO</td>
+<td><a href="vol-08-1.html">卷08-1</a> §2.1</td>
+</tr>
+<tr>
+<td>错误预算（Error Budget）</td>
+<td>一年允许坏的几十分钟是&quot;存款&quot;，花完就冻结新功能</td>
+<td><a href="vol-08-1.html">卷08-1</a> §2.5</td>
+</tr>
+<tr>
+<td>燃烧率（Burn Rate）</td>
+<td>错误预算的&quot;花钱速度&quot;：烧太快会提前破产，必须报警</td>
+<td><a href="vol-08-2.html">卷08-2</a> §3.5</td>
+</tr>
+<tr>
+<td>RED（Rate, Errors, Duration）</td>
+<td>服务监控三问：多忙？错多少？多慢？</td>
+<td><a href="vol-08-2.html">卷08-2</a> §3.2</td>
+</tr>
+<tr>
+<td>USE（Utilization, Saturation, Errors）</td>
+<td>资源体检三看：用多满？排多长队？报错没？</td>
+<td><a href="vol-08-2.html">卷08-2</a> §3.2</td>
+</tr>
+<tr>
+<td>Oncall（值班）</td>
+<td>可靠性的最后一道人肉防线：手机不能静音的那个人</td>
+<td><a href="vol-08-2.html">卷08-2</a> §4.1</td>
+</tr>
+<tr>
+<td>Postmortem（复盘）</td>
+<td>事故后只问&quot;系统怎么骗了我们&quot;，不追&quot;谁的锅&quot;</td>
+<td><a href="vol-08-2.html">卷08-2</a> §4.4</td>
+</tr>
+<tr>
+<td>混沌工程（Chaos Engineering）</td>
+<td>主动在自家放火演习，验证消防通道真的好使</td>
+<td><a href="vol-08-3.html">卷08-3</a> §5.4</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="五-ai-基建与-agent-篇00-10-卷06-07">五、AI 基建与 Agent（篇00-10 + 卷06/07）</h2>
+<blockquote>
+<p>本教程区别于传统架构课的核心词汇区。前半组管&quot;模型怎么跑得又快又便宜&quot;，后半组管&quot;Agent 怎么被管住&quot;——后者是全站后半程的通用语。</p>
+<p><strong>什么时候会密集遇到</strong>：篇01（Token/KV Cache/ReAct/Workflow）、卷06 两子页（推理性能与成本词汇）、篇05（Harness/Run）、篇07（沙箱/MCP/Skill）、篇08-09（记忆、评测门禁）、卷07（FDE）。如果这组词你有一半陌生，说明该从篇01 开始而不是从中间跳读。</p>
+</blockquote>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Token</td>
+<td>模型的&quot;最小文字积木&quot;，也是计费表上跳动的数字</td>
+<td><a href="chapter-01.html">篇01</a> §1.1</td>
+</tr>
+<tr>
+<td>KV Cache（Key-Value Cache）</td>
+<td>模型的&quot;草稿纸&quot;：前面算过的注意力留着不重算</td>
+<td><a href="chapter-01.html">篇01</a> §1.3</td>
+</tr>
+<tr>
+<td>ReAct（Reasoning + Acting）</td>
+<td>让模型&quot;想一步、做一步、看一眼&quot;滚动前进的循环</td>
+<td><a href="chapter-01.html">篇01</a> §2.2</td>
+</tr>
+<tr>
+<td>Workflow（工作流范式）</td>
+<td>把任务流程画成固定施工图，模型只砌墙不管设计</td>
+<td><a href="chapter-01.html">篇01</a> §2.3</td>
+</tr>
+<tr>
+<td>RAG（Retrieval-Augmented Generation）</td>
+<td>开卷考试：先查资料放桌上，再让模型作答</td>
+<td><a href="chapter-00-2.html">篇00-2</a> §5.3</td>
+</tr>
+<tr>
+<td>Roofline（屋顶线模型）</td>
+<td>一张图判断瓶颈：是算不动（算力），还是搬不快（带宽）</td>
+<td><a href="vol-06-1.html">卷06-1</a> §1.3</td>
+</tr>
+<tr>
+<td>量化（Quantization）</td>
+<td>把模型权重从精装书压成口袋书：省显存，略掉精度</td>
+<td><a href="vol-06-1.html">卷06-1</a> §2.2</td>
+</tr>
+<tr>
+<td>PagedAttention</td>
+<td>给 KV Cache 分页管理显存，像操作系统管内存一样不浪费</td>
+<td><a href="vol-06-1.html">卷06-1</a> §3.2</td>
+</tr>
+<tr>
+<td>TTFT（Time To First Token）</td>
+<td>点完菜到第一口上桌的时间，决定&quot;卡不卡&quot;的体感</td>
+<td><a href="vol-06-1.html">卷06-1</a> §3.3</td>
+</tr>
+<tr>
+<td>TPOT（Time Per Output Token）</td>
+<td>之后每吐一个字的节奏，决定&quot;顺不顺&quot;的体感</td>
+<td><a href="vol-06-1.html">卷06-1</a> §3.3</td>
+</tr>
+<tr>
+<td>HNSW（Hierarchical Navigable Small World）</td>
+<td>向量世界的&quot;多级地图&quot;：先找省、再找市、再找街</td>
+<td><a href="vol-06-2.html">卷06-2</a> §5.2</td>
+</tr>
+<tr>
+<td>Harness</td>
+<td>包住模型的&quot;脚手架 + 护栏&quot;：工具、校验、重试、权限都在这层</td>
+<td><a href="chapter-05-1.html">篇05-1</a> §2.1</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>一次任务的完整&quot;航班号&quot;：状态、步骤、事件、断点全挂它名下</td>
+<td><a href="chapter-05-1.html">篇05-1</a> §3.1</td>
+</tr>
+<tr>
+<td>沙箱（Sandbox）</td>
+<td>模型写的代码关进笼子跑：默认拒绝，越界即审计</td>
+<td><a href="chapter-05-2.html">篇05-2</a> §5.5</td>
+</tr>
+<tr>
+<td>MCP（Model Context Protocol）</td>
+<td>工具世界的&quot;USB 接口标准&quot;，插上就能被模型使用</td>
+<td><a href="chapter-07-2.html">篇07-2</a> §5.1</td>
+</tr>
+<tr>
+<td>Skill</td>
+<td>把一次成功做法固化成的&quot;菜谱文件&quot;：触发条件、步骤、验收</td>
+<td><a href="chapter-07-2.html">篇07-2</a> §4.2</td>
+</tr>
+<tr>
+<td>记忆三分类（工作 / 情景 / 语义记忆）</td>
+<td>工作记忆是当下桌面、情景记忆只存指针、语义记忆才进档案库</td>
+<td><a href="chapter-08-1.html">篇08-1</a> §1.1</td>
+</tr>
+<tr>
+<td>评测门禁（Regression Gate）</td>
+<td>Agent 上线前的&quot;安检门&quot;：分数掉线就不放行</td>
+<td><a href="chapter-09.html">篇09</a> §9.5</td>
+</tr>
+<tr>
+<td>FDE（Forward Deployed Engineer）</td>
+<td>进驻客户现场、对&quot;问题解决&quot;而非&quot;部署完成&quot;负责的工程师</td>
+<td><a href="vol-07.html">卷07</a> §1.1</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="六-方法论与其他-卷01-05-贯穿">六、方法论与其他（卷01-05 贯穿）</h2>
+<blockquote>
+<p>数量最少、复利最高的一组。它们是架构师&quot;把判断变成资产&quot;的基本功，也是从第一天就反复出现的暗线词——幂等在卷01-1 就埋下，一路用到篇07 的工具设计三原则。</p>
+<p><strong>什么时候会密集遇到</strong>：卷05-1 是主战场（质量属性/4+1/ATAM/ADR）；幂等与最终一致则分别在卷01-1、卷02-2 首次登场，之后全站无处不在。</p>
+</blockquote>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>一句话</th>
+<th>首次出现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>幂等（Idempotency）</td>
+<td>同一操作重复十次效果和一次一样：网络重试的保命符</td>
+<td><a href="vol-01-1.html">卷01-1</a> §1.3</td>
+</tr>
+<tr>
+<td>最终一致（Eventual Consistency）</td>
+<td>报表晚 3 秒没关系，只要保证最后一定对得上</td>
+<td><a href="vol-02-2.html">卷02-2</a> §4.3</td>
+</tr>
+<tr>
+<td>质量属性（Quality Attribute）</td>
+<td>&quot;快&quot;不是需求，&quot;P99 ≤ 300ms @ 500 QPS&quot;才是</td>
+<td><a href="vol-05-1.html">卷05-1</a> §3.1</td>
+</tr>
+<tr>
+<td>4+1 视图（4+1 View Model）</td>
+<td>一栋楼要出五套图纸：逻辑、开发、进程、物理，加场景串起来</td>
+<td><a href="vol-05-1.html">卷05-1</a> §4.1</td>
+</tr>
+<tr>
+<td>ATAM（Architecture Tradeoff Analysis Method）</td>
+<td>架构的&quot;公开听证会&quot;：把权衡摆上桌面逐个评</td>
+<td><a href="vol-05-1.html">卷05-1</a> §6.2</td>
+</tr>
+<tr>
+<td>ADR（Architecture Decision Record）</td>
+<td>给每个重大决定留一页&quot;当时为什么这么选&quot;的档案</td>
+<td><a href="vol-05-1.html">卷05-1</a> §7.2</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="反向用法-按页查词">反向用法：按页查词</h2>
+<p>如果你正在读某一页、想知道&quot;这一页会甩给我哪些生词&quot;，把上面的分組反过来看：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>你正在读</th>
+<th>本页词典里的相关组</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>卷01-1 / 卷01-2</td>
+<td>第一组全部</td>
+</tr>
+<tr>
+<td>卷02-1 / 卷02-2 / 卷02-3</td>
+<td>第二组全部 + 布隆过滤器</td>
+</tr>
+<tr>
+<td>卷03-1 / 卷03-2</td>
+<td>第三组前半（LSM 到 CAP）</td>
+</tr>
+<tr>
+<td>卷04-1 / 卷04-3</td>
+<td>第四组的治理与平台部分</td>
+</tr>
+<tr>
+<td>卷04-2</td>
+<td>第三组后半（BASE 到共识）</td>
+</tr>
+<tr>
+<td>卷05-1 / 卷05-2</td>
+<td>第六组全部</td>
+</tr>
+<tr>
+<td>篇00-2 / 篇01 / 篇02</td>
+<td>第五组的 Token、KV Cache、ReAct、Workflow、RAG</td>
+</tr>
+<tr>
+<td>卷06-1 / 卷06-2</td>
+<td>第五组的推理性能与检索部分（Roofline 到 HNSW）</td>
+</tr>
+<tr>
+<td>篇04 ~ 篇09</td>
+<td>第五组的 Agent 工程部分（Harness 到评测门禁）</td>
+</tr>
+<tr>
+<td>卷07</td>
+<td>FDE（全路径综合运用，无新术语）</td>
+</tr>
+<tr>
+<td>卷08-1 / 卷08-2 / 卷08-3</td>
+<td>第四组的 SRE 部分（SLI 到混沌工程）</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="给复习者的自测玩法">给复习者的自测玩法</h2>
+<p>学完全路径后，这本词典可以当抽认卡用：</p>
+<ol>
+<li><strong>遮住&quot;一句话&quot;列</strong>：只看术语，逼自己说出人话解释，说完对照——能说到 80% 就算毕业。</li>
+<li><strong>遮住&quot;首次出现&quot;列</strong>：看术语回忆它属于哪一卷、是因为什么症状被引入的。答不上来的，就是需要回读的章节。</li>
+<li><strong>跨组连线</strong>：随便挑两个不同组的词（比如&quot;幂等&quot;和&quot;评测门禁&quot;），说出它们之间的关系。能在任意两个词之间搭上桥的，是真懂了；搭不上的，说明还是背了地图没走过路。</li>
+</ol>
+<h2 id="收尾-术语是地图-不是目的地">收尾：术语是地图，不是目的地</h2>
+<p>查到词、读懂一句话，只完成了 10%。真正的理解发生在你点回正文、看到这个词是在什么症状下被引入、付出了什么代价的时候。所以这本词典刻意只给&quot;人话版&quot;——<strong>精确定义、推导过程和代码骨架，永远在正文里</strong>。</p>
+<p>如果某个词在这里查不到，先去该卷的「常见误区」和「参考与脚注」看看；仍然查不到，说明它超出本教程范围，带着你在正文里攒下的判断力去查原始资料即可——那时你已经不需要词典了。</p>
+<p>➡️ 回到<a href="guide.html">总纲</a> · 回到 <a href="index.html">README</a></p>
+
+    <nav class="prevnext">
+      <a class="prev" href="guide.html"><span class="pn-label">← 上一篇</span><span class="pn-title">总纲 · 学习路径</span></a>
+      <a class="next" href="vol-01-1.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷01-1 · HTTP 与网络基础</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#怎么用这本词典">怎么用这本词典</a>
+    <a class="toc-h2" href="#一次完整的查词示范">一次完整的查词示范</a>
+    <a class="toc-h2" href="#三组高频易混-先对一遍">三组高频易混，先对一遍</a>
+    <a class="toc-h2" href="#一-服务端基础-卷01">一、服务端基础（卷01）</a>
+    <a class="toc-h2" href="#二-架构演进-卷02">二、架构演进（卷02）</a>
+    <a class="toc-h2" href="#三-数据系统-卷03-卷04-2">三、数据系统（卷03 + 卷04-2）</a>
+    <a class="toc-h2" href="#四-平台与可靠性-卷04-1-3-卷08">四、平台与可靠性（卷04-1/3 + 卷08）</a>
+    <a class="toc-h2" href="#五-ai-基建与-agent-篇00-10-卷06-07">五、AI 基建与 Agent（篇00-10 + 卷06/07）</a>
+    <a class="toc-h2" href="#六-方法论与其他-卷01-05-贯穿">六、方法论与其他（卷01-05 贯穿）</a>
+    <a class="toc-h2" href="#反向用法-按页查词">反向用法：按页查词</a>
+    <a class="toc-h2" href="#给复习者的自测玩法">给复习者的自测玩法</a>
+    <a class="toc-h2" href="#收尾-术语是地图-不是目的地">收尾：术语是地图，不是目的地</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:glossary:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

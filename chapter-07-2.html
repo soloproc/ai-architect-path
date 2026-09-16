@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>篇07-2：工具与技能治理（下）——Skill 工程、MCP 与 CapabilityOps · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="篇07-2：工具与技能治理（下）——Skill 工程、MCP 与 CapabilityOps · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html" class="active">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="篇07-2-工具与技能治理-下-skill-工程-mcp-与-capabilityops">篇07-2：工具与技能治理（下）——Skill 工程、MCP 与 CapabilityOps</h1>
+<h2 id="导语">导语</h2>
+<p>上半篇解决&quot;单个工具怎么管&quot;，下半篇解决&quot;能力如何沉淀为资产、如何跨团队供给&quot;。本子页先讲 Skill Engineering：把一次成功的经营分析固化为带使命边界、领域原则、完成标准与 Validator 的领域能力，并用渐进式加载让 Skill 库规模增长时 Context 成本近似常数（第 4 节）；再讲 MCP 的正确定位——它是协议、不是治理方案，认证、租户隔离、限流、审计都要在协议之上自建，Capability Registry、Credential Broker、Tool Trace 与全链路红队测试共同构成 CapabilityOps（第 5 节）。篇末实战带你为 DataAgent 建一套从能力地图到 Skill 封装的完整工具治理体系 <sup class="fn-ref"><a href="#fn-gktime" id="ref-gktime">[1]</a></sup>。</p>
+<hr>
+<h2 id="4-skill-engineering-把一次成功的经营分析固化为领域能力">4. Skill Engineering：把一次成功的经营分析固化为领域能力</h2>
+<h3 id="4-1-skill-的任务边界-先搞清楚它-不是什么">4.1 Skill 的任务边界：先搞清楚它&quot;不是什么&quot;</h3>
+<p>Skill 被滥用，通常是因为没搞清楚边界：</p>
+<ul>
+<li><strong>Skill 不是 Prompt 模板</strong>。Prompt 是一次性指令；Skill 是带方法论、原则和验证标准的能力单元，能被选择、加载、验证、版本化。</li>
+<li><strong>Skill 不是 Tool</strong>。Tool 是单步能力；Skill 是&quot;何时用哪些 Tool、按什么顺序、做到什么程度算完成&quot;的知识。Skill 编排 Tool，而不是替代 Tool。</li>
+<li><strong>Skill 不是整个 Agent</strong>。Agent 有自己的目标、循环和工具全集；Skill 是 Agent 可以&quot;习得&quot;和&quot;卸载&quot;的一块领域能力。一个 DataAgent 可以同时装载&quot;异常诊断&quot;&quot;周报生成&quot;&quot;库存健康检查&quot;多个 Skill。</li>
+<li><strong>Skill 也不是 Workflow</strong>。Workflow 的步骤是代码写死的；Skill 给出的是方法论和判断原则，具体路径仍由模型在 Skill 约束下动态决策——这正是它适合&quot;经营异常诊断&quot;这类半结构化任务的原因。</li>
+</ul>
+<p>一句话定义：<strong>Skill = 一类任务的可复用方法论 + 完成标准 + 所需能力组合，以渐进式方式提供给模型。</strong></p>
+<p>封装一个 Skill 之前，先做&quot;值不值得封装&quot;的判断——不是所有高频任务都该变成 Skill：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>判断维度</th>
+<th>适合封装为 Skill</th>
+<th>不该封装（保持现状）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>任务结构</td>
+<td>半结构化：有稳定方法论，但路径需动态调整</td>
+<td>完全固定（用 Workflow）或完全开放（靠模型泛化）</td>
+</tr>
+<tr>
+<td>复用频率</td>
+<td>跨用户/跨租户反复出现</td>
+<td>一次性或极低频</td>
+</tr>
+<tr>
+<td>领域知识密度</td>
+<td>有&quot;老师傅经验&quot;需要固化（原则、禁忌、验收标准）</td>
+<td>通用常识即可解决</td>
+</tr>
+<tr>
+<td>完成标准</td>
+<td>能写出可检查的验收条件</td>
+<td>&quot;做得好&quot;只能靠感觉</td>
+</tr>
+<tr>
+<td>失败代价</td>
+<td>做错了有业务后果，需要 Validator 把关</td>
+<td>错了重来即可</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-2-skill-六层结构">4.2 Skill 六层结构</h3>
+<p>只有一个操作步骤清单的 Skill 是脆弱的：模型会机械执行步骤，却不知道什么时候该停下来、什么结论算合格。生产级 Skill 需要六层：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>内容</th>
+<th>回答的问题</th>
+<th>DataAgent 异常诊断 Skill 示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. 使命与边界</td>
+<td>这个 Skill 解决什么、明确不解决什么</td>
+<td>何时启用/禁用</td>
+<td>诊断 GMV/毛利/转化率等指标异常；不做实时定价决策</td>
+</tr>
+<tr>
+<td>2. 领域原则</td>
+<td>不随任务变化的专业判断准则</td>
+<td>怎么做才对</td>
+<td>&quot;先确认指标口径再比较数值&quot;&quot;任何原因假设必须有数据证据&quot;</td>
+</tr>
+<tr>
+<td>3. 方法论/步骤</td>
+<td>推荐的分析路径（可动态调整）</td>
+<td>按什么顺序做</td>
+<td>指标确认→提出假设→查询证据→分析验证→原因排序→生成报告</td>
+</tr>
+<tr>
+<td>4. 完成标准</td>
+<td>可检查的产出验收条件</td>
+<td>什么时候算做完</td>
+<td>报告必须含：异常指标、量化幅度、≥1 条排除掉的假设、证据引用</td>
+</tr>
+<tr>
+<td>5. 能力组合</td>
+<td>需要的 Tool/Workflow/SubAgent 清单</td>
+<td>用什么做</td>
+<td>query_metrics、run_python_analysis、generate_report</td>
+</tr>
+<tr>
+<td>6. 失败与升级</td>
+<td>什么情况停止并求助</td>
+<td>什么时候不做</td>
+<td>数据缺失超过 30% 时停止诊断并提示补齐数据，而非强行给结论</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="4-3-tool-workflow-subagent-的组合关系">4.3 Tool / Workflow / SubAgent 的组合关系</h3>
+<p>复杂 Skill 内部的调用关系必须<strong>显式声明且可审计</strong>，而不是藏在 Skill 文本里让模型自由联想：</p>
+<ul>
+<li>Skill 声明它<strong>允许使用</strong>的工具白名单——这是权限边界，Skill 加载时动态收窄 ToolSet；</li>
+<li>其中固定不变的部分（如&quot;报告生成→存档→通知&quot;）下沉为 Workflow 子流程，不让模型每次重新编排；</li>
+<li>真正需要独立推理循环的子目标（如&quot;对每个候选原因做深度下钻&quot;）才分派给 SubAgent，并明确其返回契约；</li>
+<li>禁止循环依赖：Skill A 调 Skill B、B 又调 A，必须在加载期做依赖检查。</li>
+</ul>
+<h3 id="4-4-渐进式加载-skill-越多-context-越省">4.4 渐进式加载：Skill 越多，Context 越省</h3>
+<p>当 Skill 从 3 个变成 30 个，全量注入 Context 既不经济也干扰选择。渐进式加载分三级：</p>
+<pre class="mermaid">flowchart LR
+    subgraph L1[常驻层 · 每轮都在]
+        A1[Skill 索引卡&lt;br/&gt;名称 + 一句话使命&lt;br/&gt;+ 触发条件]
+    end
+    subgraph L2[触发层 · 命中后加载]
+        A2[使命边界 + 领域原则&lt;br/&gt;+ 完成标准]
+    end
+    subgraph L3[执行层 · 按需展开]
+        A3[详细方法论&lt;br/&gt;+ 能力组合 + 失败处理&lt;br/&gt;+ 参考案例]
+    end
+    A1 -- 模型判断任务命中 --&gt; A2
+    A2 -- 进入具体步骤时 --&gt; A3
+</pre>
+<p>模型每轮只看到几十行的索引卡；命中后才加载该 Skill 的核心约束；真正执行到某一步时才展开细节。这样 Skill 库规模增长时，Context 成本近似常数。</p>
+<h3 id="4-5-skill-validator-不相信-我完成了">4.5 Skill Validator：不相信&quot;我完成了&quot;</h3>
+<p>模型声称&quot;诊断完成&quot;不等于真的完成。Skill Validator 是独立于执行模型的<strong>验收器</strong>（可以是规则、另一个模型或两者结合），对照完成标准逐项检查：报告里有量化幅度吗？每个原因假设都有证据引用吗？有没有至少排除一个竞争性假设？验收不通过，结果打回并附具体缺失项——这把&quot;完成&quot;从模型的自我感觉变成了可执行的契约。</p>
+<h3 id="4-6-skill-生命周期治理">4.6 Skill 生命周期治理</h3>
+<p>Skill 一旦进入生产就是资产，需要像代码一样治理：</p>
+<ul>
+<li><strong>版本化</strong>：每次修改产生新版本，保留旧版本可回滚；</li>
+<li><strong>兼容性评估</strong>：修改方法论或完成标准时，用历史任务集回归测试，评估行为变化是改进还是退化；</li>
+<li><strong>效果监控</strong>：按 Skill 维度统计任务成功率、Validator 通过率、人工接管率；</li>
+<li><strong>退役机制</strong>：长期低使用或持续退化的 Skill 进入弃用流程，而不是默默留在索引里继续被误触发。</li>
+</ul>
+<p><strong>组织级 Skill 生态的真实样本</strong>：金山办公在 WPS Comate 上实践了&quot;员工自建 Skill + 平台统一治理&quot;的模式——6000 多人的公司上线一个月，员工自发上传的 Skill 达 5000 个，平台侧负责版本、权限、责任人与安全检测，让一线经验在组织内复利流动<sup class="fn-ref"><a href="#fn-wpscomate" id="ref-wpscomate">[2]</a></sup>。这个案例恰好印证了本节与 4.4 节的两条结论：Skill 供给可以高度民主化（一线员工最懂场景），但<strong>治理必须集中化</strong>（没有安全检测与版本治理的 Skill 传播，等于让未经评审的代码全网扩散）；同时，当 Skill 数量到千级，渐进式加载与索引卡机制就从&quot;优化&quot;变成了&quot;生死线&quot;。</p>
+<hr>
+<h2 id="5-mcp-与-capabilityops">5. MCP 与 CapabilityOps</h2>
+<h3 id="5-1-mcp-的正确定位-它是协议-不是治理方案">5.1 MCP 的正确定位：它是协议，不是治理方案</h3>
+<p>MCP（Model Context Protocol）解决的是<strong>能力发现与调用的标准化</strong>：Host 可以用统一方式发现远程 Server 提供哪些 Tool/Resource、Schema 是什么、怎么调用。它类比的是&quot;USB 接口标准&quot;，而不是&quot;设备安全管理体系&quot;。</p>
+<p>先把协议本身的三个角色和三类原语说清楚，避免和治理概念混淆：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>MCP 概念</th>
+<th>是什么</th>
+<th>DataAgent 语境中的对应</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host</td>
+<td>发起连接的宿主应用（Agent Runtime 所在进程）</td>
+<td>DataAgent Runtime</td>
+</tr>
+<tr>
+<td>Client</td>
+<td>Host 内与某个 Server 保持 1:1 会话的连接器</td>
+<td>Runtime 里每个 MCP 适配器实例</td>
+</tr>
+<tr>
+<td>Server</td>
+<td>暴露能力的远程服务</td>
+<td>广告平台团队的预算操作服务</td>
+</tr>
+<tr>
+<td>Tools</td>
+<td>可被模型调用的函数（有 Schema）</td>
+<td><code>adjust_budget</code>、<code>query_campaigns</code></td>
+</tr>
+<tr>
+<td>Resources</td>
+<td>可读取的数据对象（类文件）</td>
+<td>广告投放报表模板</td>
+</tr>
+<tr>
+<td>Prompts</td>
+<td>Server 提供的提示词模板</td>
+<td>平台方沉淀的分析话术模板</td>
+</tr>
+</tbody>
+</table></div>
+<p>因此必须破除的迷思是：<strong>接入了 MCP ≠ 拥有了治理</strong>。MCP 协议本身不管你是谁（认证）、你能用谁的（授权与租户隔离）、你能用多少（限流）、你干了什么（审计）。这些都是生产化时必须自己补齐的——下文每一项都不是 MCP 给你的，而是你在 MCP 之上建的。</p>
+<h3 id="5-2-mcp-适用边界">5.2 MCP 适用边界</h3>
+<p>同样重要的是知道什么时候<strong>不该</strong>用 MCP：</p>
+<ul>
+<li>单体内部的纯函数、内部模块——直接 import，协议化纯属增加成本；</li>
+<li>只有一个消费者、同一个团队维护的内部服务——普通 RPC/HTTP 客户端更简单；</li>
+<li>真正适合 MCP 的场景：<strong>能力的提供方和消费方是不同团队/不同系统</strong>，需要标准化的自我描述和发现机制，且提供方会服务多个消费方。DataAgent 接广告平台能力就是典型：广告团队维护 MCP Server，DataAgent、营销自动化系统等多个 Host 消费。</li>
+</ul>
+<h3 id="5-3-生产级-mcp-server-清单">5.3 生产级 MCP Server 清单</h3>
+<p>一个只有 Tool Schema 的 MCP Server 是 demo，不是产品。上线清单至少包括：</p>
+<ul>
+<li><strong>认证</strong>：OAuth/mTLS，Host 与应用身份都可验证；</li>
+<li><strong>租户隔离</strong>：Server 端按凭据解析租户上下文，绝不信任调用方自报的 tenant_id；</li>
+<li><strong>限流与配额</strong>：按租户、按工具、按时间窗；</li>
+<li><strong>审计</strong>：每次调用记录谁、何时、调了什么、参数摘要、结果状态；</li>
+<li><strong>版本管理</strong>：Schema 变更走兼容策略，旧版本有明确的 sunset 时间；</li>
+<li><strong>错误语义</strong>：返回第 2 节定义的标准错误（可重试/改参数/停止），而不是裸异常。</li>
+</ul>
+<p>一次跨团队 MCP 调用在补齐治理之后，真实链路长这样——注意协议层只占了中间一小段：</p>
+<pre class="mermaid">flowchart LR
+    subgraph HOST[&quot;DataAgent Host 侧&quot;]
+        M[&quot;模型提议&quot;] --&gt; TB2[&quot;Tool Broker&lt;br/&gt;最小 ToolSet 编译&quot;]
+        TB2 --&gt; CB[&quot;Credential Broker&lt;br/&gt;申请短期委托凭据&quot;]
+    end
+    subgraph GOV[&quot;治理层（自建，非协议自带）&quot;]
+        CB --&gt; AUTH[&quot;认证 + 租户解析&quot;]
+        AUTH --&gt; RL[&quot;限流/配额&quot;]
+        RL --&gt; AUD[&quot;审计 Tool Trace&quot;]
+    end
+    subgraph SERVER[&quot;广告平台 MCP Server 侧&quot;]
+        AUD --&gt; SV[&quot;MCP Server&lt;br/&gt;Schema 版本检查&quot;]
+        SV --&gt; BIZ[&quot;真实业务接口&quot;]
+    end
+    BIZ --&gt; VR[&quot;验真回读&quot;] --&gt; AUD
+</pre>
+<p>这张图要带走的一句话：<strong>MCP 标准化的只是 SV 那一小段&quot;怎么发现、怎么调用&quot;；左右两侧的编译、凭据、认证、限流、审计、验真，全是你要自己建的 CapabilityOps。</strong></p>
+<h3 id="5-4-capability-registry-能力的-cmdb">5.4 Capability Registry：能力的&quot;CMDB&quot;</h3>
+<p>当能力来自进程内插件、本地 Tool、多个远程 MCP Server，系统必须回答：现在到底有哪些能力？谁负责？哪个版本可用于生产？这就是 Capability Registry——一份包含能力标识、形态、端点、负责人、版本、风险等级、租户可见性、健康状态的注册表。动态 ToolSet 编译（第 2.4 节）的数据源就是它；治理审计、下线评估、事故定责也都以它为准。</p>
+<h3 id="5-5-进程内插件-vs-远程-mcp-capability-seam-对照">5.5 进程内插件 vs 远程 MCP（Capability Seam 对照）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>进程内插件接口</th>
+<th>远程 MCP Server</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>延迟与可靠性</td>
+<td>进程内调用，毫秒级</td>
+<td>网络调用，需超时/重试/熔断</td>
+</tr>
+<tr>
+<td>权限边界</td>
+<td>与宿主共享，靠代码自律</td>
+<td>天然进程边界，可独立鉴权</td>
+</tr>
+<tr>
+<td>部署与升级</td>
+<td>随宿主发版</td>
+<td>独立部署，独立演进</td>
+</tr>
+<tr>
+<td>治理责任</td>
+<td>宿主团队全责</td>
+<td>提供方背 SLA，消费方管接入策略</td>
+</tr>
+<tr>
+<td>适用</td>
+<td>核心路径、高频、需共享数据权限上下文</td>
+<td>跨团队供给、需独立演进、多消费方</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="5-6-动态-toolset-编译-针对-mcp-的再次强调">5.6 动态 ToolSet 编译（针对 MCP 的再次强调）</h3>
+<p>MCP Server 倾向于暴露大量工具（广告平台可能暴露 40 个）。把它们全部交给模型，等于把第 1.5 节解决的问题重新制造一遍。正确做法不变：Host 侧按（租户 × 角色 × 任务阶段）编译最小 ToolSet，MCP 只是能力来源之一，不改变最小可见面原则。</p>
+<h3 id="5-7-credential-broker-与-tool-trace">5.7 Credential Broker 与 Tool Trace</h3>
+<p>最后两块拼图：</p>
+<ul>
+<li><strong>Credential Broker</strong>：Host/Runtime 与 MCP Server 之间的凭据中介。模型和 Agent 上下文永远不接触凭据；执行器按 Action 申请短期凭据（见 3.3）。跨团队场景下，它还负责把&quot;用户身份&quot;安全地转换为&quot;对下游系统有效的委托凭据&quot;。</li>
+<li><strong>Tool Trace</strong>：每一次工具调用产生一条完整轨迹——谁发起（用户/租户）、模型提议了什么、Runtime 决策是什么、执行参数与结果摘要、耗时、证据引用。Trace 串联起&quot;提议→决策→执行&quot;全链路，是事故追责、红队测试和效果评估的共同数据底座。</li>
+</ul>
+<h3 id="5-8-全链路红队测试">5.8 全链路红队测试</h3>
+<p>工具体系是否真正生效，要用攻击来验证，而不是用正常路径来演示。DataAgent 的最小红队用例集：</p>
+<ol>
+<li><strong>跨租户访问</strong>：用租户 A 的会话尝试调用工具访问租户 B 的数据/预算（应在 ToolSet 编译和 Server 端双重拦截）；</li>
+<li><strong>伪造结果</strong>：让工具返回伪造的&quot;执行成功&quot;，验证验真环节是否回读真实状态；</li>
+<li><strong>重复执行</strong>：重放同一 ActionRequest，验证幂等键是否阻止二次扣款/二次调整；</li>
+<li><strong>版本漂移</strong>：MCP Server 升级 Schema 后，验证 Registry 版本检查与 Host 兼容策略是否生效，而不是静默失败。</li>
+</ol>
+<hr>
+<h2 id="常见误区">常见误区</h2>
+<ol>
+<li><strong>&quot;工具越多 Agent 越强&quot;</strong>。恰恰相反：工具越多，误选率越高、Context 越贵、权限面越大。强的是&quot;在正确时刻看到正确工具&quot;的 Agent。</li>
+<li><strong>把审批写进 Prompt</strong>。&quot;调预算前请先征求用户同意&quot;写在系统提示里，等于用概率执行合规。审批必须是 Runtime 状态机里的硬门禁。</li>
+<li><strong>Tool Call 即执行</strong>。模型输出即副作用，是最经典的生产事故根源。提议与执行之间永远隔着校验、授权和（高风险时的）审批。</li>
+<li><strong>把 MCP 当治理方案</strong>。协议标准化的是&quot;怎么发现和调用&quot;，不是&quot;谁被允许&quot;。认证、隔离、限流、审计都要自己建。</li>
+<li><strong>Skill 写成操作手册</strong>。只有步骤没有使命边界和完成标准的 Skill，模型会在不该用时乱用、在该停时不停。</li>
+<li><strong>万能工具图省事</strong>。<code>run_sql(sql)</code> 一个工具顶所有，短期省事，长期赔上安全性、可审计性和调用成功率。</li>
+</ol>
+<h2 id="本篇实战-为-dataagent-建一套工具治理体系">本篇实战：为 DataAgent 建一套工具治理体系</h2>
+<h3 id="第-1-步-画能力地图-认知层">第 1 步：画能力地图（认知层）</h3>
+<ul>
+<li><strong>目标</strong>：把&quot;哪些能力该以什么形态存在&quot;想清楚，落到纸面。</li>
+<li><strong>操作</strong>：为 DataAgent 列出 8 项能力（指标查询、明细查询、Python 分析、报告生成、工单创建、预算调整、库存预警、用户反馈收集），为每项选择形态（Tool/Skill/Workflow/SubAgent/MCP）并写出三条选型理由；特别标注哪几项被你有意识地排除在&quot;模型可见&quot;之外。</li>
+<li><strong>验收标准</strong>：每项能力的形态选择能用 1.1 节的三个问题（谁决策/决策频率/失败代价）解释；至少 2 项能力被显式排除在模型可见面之外并说明理由。</li>
+</ul>
+<h3 id="第-2-步-写三层契约-设计层">第 2 步：写三层契约（设计层）</h3>
+<ul>
+<li><strong>目标</strong>：把第 1 步的两个关键工具落到可评审的契约文档。</li>
+<li><strong>操作</strong>：用 2.6 节代码骨架为 <code>query_business_metrics</code> 和 <code>adjust_ad_budget</code> 各写一份完整 ToolContract，两者治理层风险等级必须不同；再写一段动态 ToolSet 过滤伪代码（输入：租户能力包、角色、任务阶段；输出：可见工具列表）。</li>
+<li><strong>验收标准</strong>：契约三层齐全且每层的变更互不影响能举例说明；<code>adjust_ad_budget</code> 的 Runtime 层显式声明幂等策略与 <code>expected_state</code>；过滤伪代码覆盖 2.4 节的四个输入因子。</li>
+</ul>
+<h3 id="第-3-步-推演审批闭环-机制层">第 3 步：推演审批闭环（机制层）</h3>
+<ul>
+<li><strong>目标</strong>：验证你设计的状态机真的能拦住三类经典攻击。</li>
+<li><strong>操作</strong>：为预算调整 Action 手工推演一次完整状态机迁移（提议→…→验真），然后设计三个攻击场景（重复请求、审批期间预算被他人修改、接口假成功），说明状态机在哪一步拦住了它们；用本篇 Demo（tool-permission）复演 r5/r6 两个请求对照检查。</li>
+<li><strong>验收标准</strong>：三个攻击场景各自定位到具体拦截环节（幂等键 / expected_state 比对 / 验真回读），且能说明如果缺少该环节会发生什么。</li>
+</ul>
+<h3 id="第-4-步-封装一个-skill-资产层">第 4 步：封装一个 Skill（资产层）</h3>
+<ul>
+<li><strong>目标</strong>：把&quot;周报生成&quot;从一次性 Prompt 升级为可治理的领域资产。</li>
+<li><strong>操作</strong>：按六层结构编写&quot;周报生成 Skill&quot;，重点写第 2 层（领域原则）和第 4 层（完成标准），并为完成标准设计一个基于规则的 Validator 检查清单。</li>
+<li><strong>验收标准</strong>：六层无空缺；领域原则不少于 3 条且每条&quot;不随任务变化&quot;；Validator 清单每条可机械执行（是/否判定），不含&quot;写得好&quot;这类主观项。</li>
+</ul>
+<h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
+<p>① <strong>可复制提示词模板</strong>（把第 2 步的契约设计委托给 AI 起草）：</p>
+<pre><code class="language-text">你是企业级 Agent 平台的工具治理架构师。背景：多租户零售经营分析 DataAgent。
+请为工具「&lt;工具名&gt;」设计三层 ToolContract，输出 Python dataclass 代码：
+1. 模型理解层：业务语义命名、一句话职责、何时该用/不该用（至少 1 条反例）、
+   每个参数的业务含义与受控取值（枚举优先，禁止自由文本）；
+2. Runtime 执行层：JSON Schema、超时、重试、幂等策略、副作用标记；
+3. 治理层：负责人、版本、风险等级（L1 只读/L2 可逆写/L3 资金生产变更）、
+   数据分级、租户可见性、审计要求。
+另附：标准 ToolResult 对象，错误语义必须区分 RETRY / FIX_PARAMS / STOP，
+每种失败类型写明&quot;模型下一步该怎么办&quot;。
+</code></pre>
+<p>② <strong>AI 初版人工评审清单</strong>：</p>
+<ul>
+<li class="task-item"><input type="checkbox"> 参数是否全部受控（枚举/正则约束），有没有自由文本参数被放行？</li>
+<li class="task-item"><input type="checkbox"> 风险分级是否与动作真实后果匹配（AI 常把写操作低估为 L1）？</li>
+<li class="task-item"><input type="checkbox"> 错误语义是否每种失败都指定了模型的应对动作，还是只有笼统的 error？</li>
+<li class="task-item"><input type="checkbox"> 幂等策略是否显式写出（AI 常默认省略），副作用标记是否为 true？</li>
+<li class="task-item"><input type="checkbox"> 模型理解层有没有写反例（when_not_to_use），还是只有正面描述？</li>
+</ul>
+<p>③ <strong>验收标准</strong>：契约通过评审清单全部条目；用 AI 生成 5 个&quot;模型可能发起的错误调用&quot;（参数错、越权、重复、超范围、伪造租户），逐条对照契约能说出在哪一层被如何处理。</p>
+<h2 id="自测清单">自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox"> 能说清 API/Tool/Skill/Workflow/SubAgent/MCP 的决策者差异，并为给定能力选出形态并给出理由</li>
+<li class="task-item"><input type="checkbox"> 能解释&quot;模型决策与系统执行分离&quot;，并指出自己系统中哪里违反了这条红线</li>
+<li class="task-item"><input type="checkbox"> 能写出三层 ToolContract，并说明每层变更时哪些层不受影响</li>
+<li class="task-item"><input type="checkbox"> 能设计标准错误语义，让模型区分&quot;重试 / 改参数 / 停止&quot;</li>
+<li class="task-item"><input type="checkbox"> 能画出&quot;提议-校验-授权-审批-执行-验真&quot;闭环，并说明每一步防的是什么故障</li>
+<li class="task-item"><input type="checkbox"> 能解释幂等键与 expected_state 分别解决什么问题，并说出四种幂等实现的防护强度排序</li>
+<li class="task-item"><input type="checkbox"> 能写出 Skill 六层结构，并说明 Skill 与 Prompt/Tool/Workflow/Agent 的边界</li>
+<li class="task-item"><input type="checkbox"> 能解释渐进式加载如何让 Skill 库规模增长时 Context 成本近似常数</li>
+<li class="task-item"><input type="checkbox"> 能列出生产级 MCP Server 上线清单，并说明哪些不是协议自带的</li>
+<li class="task-item"><input type="checkbox"> 能设计至少 4 个红队用例验证工具治理体系</li>
+</ul>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：篇08-1 · Agent 记忆治理（上）——记忆契约与可信写入链路</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-gktime">极客时间《企业级 Agent 工程化》课程（工具治理、Skill 工程与 CapabilityOps 相关章节）——本篇的能力形态选型、Action Runtime 与 Skill 六层结构在该课程大纲基础上扩展改写。 <a class="fn-back" href="#ref-gktime" aria-label="回到正文">↩</a></li>
+<li id="fn-wpscomate">珠海网《金山办公将在7月中旬发布WPS Comate，直击企业AI&quot;落地难&quot;》，2026-07-05（6000 余员工、上线一个月自发上传 Skill 达 5000 个；&quot;三通一平&quot;组织级 AI 基建理念），<a href="https://pub-zhtb.hizh.cn/a/202607/05/AP6a4a6250e4b082bf2149917e.html">https://pub-zhtb.hizh.cn/a/202607/05/AP6a4a6250e4b082bf2149917e.html</a> 。本站存档见<a href="ref-04.html">资料04</a>。 <a class="fn-back" href="#ref-wpscomate" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-07-1.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇07-1 · 能力形态与受控执行</span></a>
+      <a class="next" href="chapter-08-1.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇08-1 · 记忆契约与可信写入</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#导语">导语</a>
+    <a class="toc-h2" href="#4-skill-engineering-把一次成功的经营分析固化为领域能力">4. Skill Engineering：把一次成功的经营分析固化为领域能力</a>
+    <a class="toc-h3" href="#4-1-skill-的任务边界-先搞清楚它-不是什么">4.1 Skill 的任务边界：先搞清楚它"不是什么"</a>
+    <a class="toc-h3" href="#4-2-skill-六层结构">4.2 Skill 六层结构</a>
+    <a class="toc-h3" href="#4-3-tool-workflow-subagent-的组合关系">4.3 Tool / Workflow / SubAgent 的组合关系</a>
+    <a class="toc-h3" href="#4-4-渐进式加载-skill-越多-context-越省">4.4 渐进式加载：Skill 越多，Context 越省</a>
+    <a class="toc-h3" href="#4-5-skill-validator-不相信-我完成了">4.5 Skill Validator：不相信"我完成了"</a>
+    <a class="toc-h3" href="#4-6-skill-生命周期治理">4.6 Skill 生命周期治理</a>
+    <a class="toc-h2" href="#5-mcp-与-capabilityops">5. MCP 与 CapabilityOps</a>
+    <a class="toc-h3" href="#5-1-mcp-的正确定位-它是协议-不是治理方案">5.1 MCP 的正确定位：它是协议，不是治理方案</a>
+    <a class="toc-h3" href="#5-2-mcp-适用边界">5.2 MCP 适用边界</a>
+    <a class="toc-h3" href="#5-3-生产级-mcp-server-清单">5.3 生产级 MCP Server 清单</a>
+    <a class="toc-h3" href="#5-4-capability-registry-能力的-cmdb">5.4 Capability Registry：能力的"CMDB"</a>
+    <a class="toc-h3" href="#5-5-进程内插件-vs-远程-mcp-capability-seam-对照">5.5 进程内插件 vs 远程 MCP（Capability Seam 对照）</a>
+    <a class="toc-h3" href="#5-6-动态-toolset-编译-针对-mcp-的再次强调">5.6 动态 ToolSet 编译（针对 MCP 的再次强调）</a>
+    <a class="toc-h3" href="#5-7-credential-broker-与-tool-trace">5.7 Credential Broker 与 Tool Trace</a>
+    <a class="toc-h3" href="#5-8-全链路红队测试">5.8 全链路红队测试</a>
+    <a class="toc-h2" href="#常见误区">常见误区</a>
+    <a class="toc-h2" href="#本篇实战-为-dataagent-建一套工具治理体系">本篇实战：为 DataAgent 建一套工具治理体系</a>
+    <a class="toc-h3" href="#第-1-步-画能力地图-认知层">第 1 步：画能力地图（认知层）</a>
+    <a class="toc-h3" href="#第-2-步-写三层契约-设计层">第 2 步：写三层契约（设计层）</a>
+    <a class="toc-h3" href="#第-3-步-推演审批闭环-机制层">第 3 步：推演审批闭环（机制层）</a>
+    <a class="toc-h3" href="#第-4-步-封装一个-skill-资产层">第 4 步：封装一个 Skill（资产层）</a>
+    <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
+    <a class="toc-h2" href="#自测清单">自测清单</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:chapter-07-2:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

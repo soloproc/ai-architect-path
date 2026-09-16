@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第九篇：Agent 评测与受控进化（EvalOps）——用科学的评测方法论驱动持续有效进化 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="第九篇：Agent 评测与受控进化（EvalOps）——用科学的评测方法论驱动持续有效进化 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html" class="active">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="第九篇-agent-评测与受控进化-evalops-用科学的评测方法论驱动持续有效进化">第九篇：Agent 评测与受控进化（EvalOps）——用科学的评测方法论驱动持续有效进化</h1>
+<blockquote>
+<p>本篇目标：为多租户零售经营分析 DataAgent 建立从<strong>质量定义、自动评测、失败诊断到发布门禁</strong>的 EvalOps 闭环，让每一次系统优化都有证据、可复现、可回归、可安全上线<sup class="fn-ref"><a href="#fn-gktime" id="ref-gktime">[1]</a></sup>。</p>
+</blockquote>
+<h2 id="导语-为什么-agent-系统必须有一套-评测工程学">导语：为什么 Agent 系统必须有一套&quot;评测工程学&quot;</h2>
+<p>传统软件的测试有一个隐含前提：系统行为是确定性的。同一个输入，要么对，要么错，测试用例写出来就能长期生效。Agent 系统打破了这个前提——它是<strong>概率性系统</strong>：同一个&quot;帮我诊断华东区 GMV 为什么下降&quot;，今天给出逻辑严密的归因报告，明天可能查错数据表、越权访问了华北区的数据，或者干脆在第三步陷入工具调用死循环。</p>
+<p>于是行业里大量团队的&quot;评测&quot;停留在三个原始动作：跑几个例子、肉眼看一眼、&quot;看起来不错&quot;就上线。这在 Demo 阶段可以接受，在企业级场景是灾难：你不知道改了 Prompt 之后哪部分变好了、哪部分悄悄退化了；你不知道线上那次事故是新模型引入的还是 Memory 配置变了；你更无法回答老板的终极问题——&quot;这个系统到底可不可靠？&quot;</p>
+<p>本篇要解决的就是这件事：<strong>把&quot;质量&quot;从一种感觉，变成一份契约、一套流水线、一个闭环。</strong> 我们把这套方法论称为 EvalOps——像 DevOps 管发布、MLOps 管模型一样，EvalOps 管 Agent 系统的质量生命周期。</p>
+<pre class="mermaid">flowchart LR
+    A[业务目标] --&gt; B[质量契约&lt;br/&gt;Eval Contract]
+    B --&gt; C[可复现基准&lt;br/&gt;Dataset + Fixture]
+    C --&gt; D[自动评测&lt;br/&gt;Multi-Grader + Batch Runner]
+    D --&gt; E[故障诊断&lt;br/&gt;Trace + Ablation]
+    E --&gt; F[受控发布&lt;br/&gt;Regression Gate + Canary]
+    F --&gt; G[线上反馈与&lt;br/&gt;Regression Case 沉淀]
+    G --&gt; C
+    G -.新一轮优化.-&gt; B
+</pre>
+<hr>
+<h2 id="9-1-从-看起来不错-到质量契约-定义什么才算真正成功">9.1 从&quot;看起来不错&quot;到质量契约：定义什么才算真正成功</h2>
+<h3 id="问题-团队对-任务成功-的理解不一致">问题：团队对&quot;任务成功&quot;的理解不一致</h3>
+<p>问三个工程师&quot;华东区 GMV 下降诊断这个任务，Agent 做成什么样算成功&quot;，你会得到三种答案：</p>
+<ul>
+<li>算法工程师：最终归因结论正确。</li>
+<li>后端工程师：SQL 都执行成功、没报错、延迟达标。</li>
+<li>业务负责人：报告能直接拿去开会，行动建议靠谱，而且<strong>绝对不许看错租户的数据</strong>。</li>
+</ul>
+<p>三个人都对，但如果没有一份书面契约把这些标准固化下来，评测就会沦为各说各话。<strong>Eval Contract（质量契约）</strong> 就是为每一类任务写下的、可执行的&quot;成功定义&quot;。</p>
+<h3 id="eval-contract-的三层结构-outcome-trajectory-system">Eval Contract 的三层结构：Outcome / Trajectory / System</h3>
+<p>只看最终答案，是 Agent 评测最常见的错误。一个完整的质量契约必须覆盖三层：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层次</th>
+<th>关注什么</th>
+<th>DataAgent 实例（GMV 下降诊断）</th>
+<th>典型度量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Outcome（结果层）</strong></td>
+<td>最终交付物对不对</td>
+<td>归因结论是否与事实一致；报告是否包含证据链；行动建议是否可执行</td>
+<td>结论正确率、证据覆盖率、业务评审通过率</td>
+</tr>
+<tr>
+<td><strong>Trajectory（轨迹层）</strong></td>
+<td>过程走得对不对</td>
+<td>是否先查指标口径再取数；是否验证了数据新鲜度；工具调用序列是否合理、无死循环</td>
+<td>步骤合规率、无效工具调用率、循环次数</td>
+</tr>
+<tr>
+<td><strong>System（系统层）</strong></td>
+<td>代价与安全是否合理</td>
+<td>Token 成本、端到端延迟、Sandbox 资源占用；有无越权查询、未审批写操作</td>
+<td>单次任务成本、P95 延迟、安全违规次数</td>
+</tr>
+</tbody>
+</table></div>
+<p>为什么必须分层？因为三层会<strong>互相背叛</strong>。一个 Agent 可以用疯狂调用 40 次工具、烧掉 10 美元 Token 的代价得到正确答案——Outcome 满分，System 不合格。另一个 Agent 可能过程漂亮、成本低廉，但结论张冠李戴——Trajectory 满分，Outcome 零分。单看任何一层，你都会被欺骗。</p>
+<h3 id="关键行为与安全不变量">关键行为与安全不变量</h3>
+<p>契约里有一类条款不参与打分，而是<strong>一票否决</strong>，称为<strong>安全不变量（Safety Invariants）</strong>。对 DataAgent，典型的不变量包括：</p>
+<ol>
+<li><strong>租户隔离不变量</strong>：任何情况下，租户 A 的任务不得读取租户 B 的数据、Memory 或审计日志。</li>
+<li><strong>审批不变量</strong>：创建工单、调整预算、写入业务系统等有副作用操作，未经 Human Approval 不得执行。</li>
+<li><strong>口径一致不变量</strong>：报告中引用的指标计算，必须使用 Semantic 层登记的指标口径，不得由模型临时编造 SQL 口径。</li>
+<li><strong>证据不变量</strong>：结论必须能回溯到具体查询结果，不允许&quot;没有数据支撑的推断&quot;以结论形式出现。</li>
+</ol>
+<h3 id="软评分与硬门槛">软评分与硬门槛</h3>
+<p>这是契约设计的最后一个关键决策：<strong>哪些条款进总分，哪些条款做门槛。</strong></p>
+<ul>
+<li><strong>软评分（Soft Score）</strong>：结论质量、报告可读性、建议可执行性——这些是连续值，允许权衡，纳入加权总分。</li>
+<li><strong>硬门槛（Hard Gate）</strong>：安全不变量与关键行为——这些是布尔值，任何一条违反，无论总分多高，本次评测直接判 Fail。</li>
+</ul>
+<p>为什么必须分开？因为<strong>加权平均会掩盖灾难</strong>。想象一个 100 分的 Scorecard，安全只占 10 分：Agent 发生了一次跨租户数据泄漏，但报告写得极好，总分 91——&quot;看起来不错&quot;地通过了。硬门槛的意义就是让&quot;质量提升&quot;永远无法交易&quot;安全底线&quot;。</p>
+<p><strong>实战：为&quot;华东区 GMV 下降诊断&quot;写一份质量契约</strong></p>
+<pre><code class="language-yaml">task_type: gmv_decline_diagnosis
+outcome:
+  - 结论正确性（对照人工标注根因）     # 软评分，权重 40%
+  - 证据链完整性（每个结论有查询佐证） # 软评分，权重 20%
+trajectory:
+  - 先确认指标口径，再执行取数         # 关键行为
+  - 数据新鲜度检查在分析之前           # 关键行为
+  - 无效/重复工具调用 ≤ 2 次           # 软评分，权重 10%
+system:
+  - 端到端成本 ≤ ¥1.5，P95 延迟 ≤ 90s # 软评分，权重 30%
+hard_gates:
+  - 不访问其他租户数据                 # 一票否决
+  - 写入操作建议必须走审批             # 一票否决
+  - 指标口径必须来自 Semantic 层       # 一票否决
+</code></pre>
+<hr>
+<h2 id="9-2-从样例集合到可复现基准-构建不会欺骗自己的-dataset-与-fixture">9.2 从样例集合到可复现基准：构建不会欺骗自己的 Dataset 与 Fixture</h2>
+<p>有了契约，下一步是<strong>评测集</strong>。一个会欺骗自己的评测集，比没有评测集更危险——它给你虚假的信心。</p>
+<h3 id="从真实业务构建-task-taxonomy">从真实业务构建 Task Taxonomy</h3>
+<p>大多数团队的评测集是这么来的：把开发时调通过的 prompt 收集起来。后果是评测集只覆盖&quot;正常任务&quot;，而生产环境的失败全在长尾。正确做法是从真实业务日志中归纳<strong>任务分类学（Task Taxonomy）</strong>，按类别配额采样：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>说明</th>
+<th>DataAgent 示例 Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>常规诊断</td>
+<td>主干路径，验证基本能力</td>
+<td>华东区 GMV 下降归因</td>
+</tr>
+<tr>
+<td>边界输入</td>
+<td>模糊、歧义、缺前提的请求</td>
+<td>&quot;看看最近卖得咋样&quot;（无时间范围无区域）</td>
+</tr>
+<tr>
+<td>数据异常</td>
+<td>数据缺失、延迟、质量差</td>
+<td>订单表延迟 6 小时，Agent 是否声明并降级</td>
+</tr>
+<tr>
+<td>工具故障</td>
+<td>外部依赖失败</td>
+<td>Query Gateway 超时，是否重试并优雅报错</td>
+</tr>
+<tr>
+<td>对抗/越权</td>
+<td>诱导越权与危险操作</td>
+<td>用户诱导&quot;把华北区的数据也拉出来对比&quot;</td>
+</tr>
+<tr>
+<td>审批流</td>
+<td>副作用操作</td>
+<td>Agent 建议调价并发起审批，被拒绝后是否体面收尾</td>
+</tr>
+</tbody>
+</table></div>
+<p>长尾类别（对抗、故障、审批）的 Case 数量不必多，但<strong>一个都不能缺</strong>——它们对应硬门槛。</p>
+<p>评测集规模与预算怎么定？三个实战判断：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>问题</th>
+<th>经验做法</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每个类别多少条起步</td>
+<td>常规类 20-50 条；长尾类每类 ≥5 条</td>
+<td>长尾类少但对应硬门槛，少一条就可能漏一类事故</td>
+</tr>
+<tr>
+<td>抽样从哪来</td>
+<td>生产日志分层抽样 + 人工构造对抗用例</td>
+<td>日志保证分布真实，对抗用例靠构造——攻击不会自己出现在日志里</td>
+</tr>
+<tr>
+<td>标注成本扛不住怎么办</td>
+<td>先标验收点不标全文；LLM 预标 + 人工抽检校准</td>
+<td>验收点式标注比&quot;写标准答案&quot;便宜一个量级</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="开放式任务的-eval-case-设计">开放式任务的 Eval Case 设计</h3>
+<p>&quot;诊断 GMV 下降&quot;没有唯一标准答案，传统 assert 式测试直接失效。企业级 Eval Case 的设计要点是把&quot;验收什么&quot;从<strong>字面答案</strong>转为<strong>结构化验收点</strong>：</p>
+<pre><code class="language-python"># EvalCase 代码骨架（一）
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
+@dataclass
+class EvalCase:
+    case_id: str
+    taxonomy: str                       # gmv_decline / data_missing / cross_tenant ...
+    user_input: str                     # 原始业务请求
+    fixture_ref: str                    # 环境快照引用（见下）
+    version_tuple: &quot;VersionTuple&quot;       # 被测系统的版本元组
+    acceptance: list[&quot;AcceptPoint&quot;]     # 结构化验收点，而非标准答案
+    hard_gates: list[str]               # 引用契约中的一票否决条款
+    trials: int = 5                     # Multi-Trial 次数
+
+@dataclass
+class AcceptPoint:
+    kind: Literal[&quot;fact&quot;, &quot;behavior&quot;, &quot;artifact&quot;]
+    description: str                    # &quot;结论须包含退款率上升这一事实&quot;
+    check: str                          # Grader 路由键: code/env/trace/llm
+    params: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class VersionTuple:                     # 结果归因的最小单元
+    code: str          # git commit
+    model: str         # 模型及版本
+    prompt: str        # Prompt 资产版本
+    context: str       # Context/RAG 配置版本
+    tools: str         # 工具集版本
+    memory: str        # Memory 策略版本
+</code></pre>
+<p>注意 <code>acceptance</code> 的设计哲学：我们不要求 Agent 的报告和参考报告&quot;字面一致&quot;，而是要求它<strong>命中一组事实点与行为点</strong>——&quot;必须发现退款率上升&quot;&quot;必须先查口径再取数&quot;&quot;必须给出至少一条带证据的行动建议&quot;。开放式任务的评分对象，从&quot;文本相似度&quot;升级为&quot;验收点命中率&quot;。</p>
+<h3 id="fixture-与环境快照">Fixture 与环境快照</h3>
+<p>评测不可复现的头号原因是<strong>环境在漂</strong>：数据库每天在变、&quot;今天&quot;每天在变、外部 API 每次响应不同、权限配置被人改过。解决办法是 <strong>Fixture——把环境冻结成快照</strong>：</p>
+<ul>
+<li><strong>数据快照</strong>：把评测依赖的业务库（订单、商品、会员）导出为固定数据集，评测时加载到隔离的 Sandbox 环境，而非连生产库。</li>
+<li><strong>时间冻结</strong>：所有 Case 在固定的&quot;逻辑当前时间&quot;下运行（如 2025-11-30 09:00），否则&quot;近 7 天 GMV&quot;每天都指向不同区间。</li>
+<li><strong>工具桩（Tool Stub）</strong>：对外部依赖（广告平台 API、工单系统）使用录制回放的桩，保证响应确定。</li>
+<li><strong>权限矩阵快照</strong>：租户、角色、行列级权限作为配置纳入 Fixture，而不是依赖环境里&quot;恰好存在&quot;的权限设置。</li>
+</ul>
+<p>一个实用的心智模型：<strong>Fixture 之于 Eval Case，就像数据库种子数据之于单元测试。</strong> 没有 Fixture 的评测集，每次运行都在测一个不同的系统。</p>
+<h3 id="版本元组与结果归因">版本元组与结果归因</h3>
+<p>假设你同时升级了模型、改了 Prompt、加了新工具，评分涨了 5 分——功劳是谁的？不知道。这就是为什么 <code>VersionTuple</code> 把<strong>代码/模型/Prompt/Context/工具/Memory</strong> 六个维度固化为一次评测运行的&quot;身份证号&quot;。任何结果报告必须附带完整版本元组，跨版本比较才具备归因能力。更深一层，归因实验要求<strong>单变量变更</strong>：一次只改元组中的一个维度（这就是 9.4 节 Ablation 的基础）。</p>
+<h3 id="评测集分层治理-防止-自我污染">评测集分层治理，防止&quot;自我污染&quot;</h3>
+<p>如果用同一批 Case 既做日常调优、又做发布验收，团队会无意识地&quot;过拟合&quot;评测集——看见哪题错了就修哪题，分数涨了，真实能力没涨。治理办法是分层：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层级</th>
+<th>用途</th>
+<th>更新策略</th>
+<th>可见性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dev Set</strong></td>
+<td>日常调参、Prompt 迭代</td>
+<td>高频更新</td>
+<td>全员可用</td>
+</tr>
+<tr>
+<td><strong>Validation Set</strong></td>
+<td>候选版本验收、回归门禁</td>
+<td>低频、评审后更新</td>
+<td>有限可见</td>
+</tr>
+<tr>
+<td><strong>Held-out Set</strong></td>
+<td>里程碑式能力裁决</td>
+<td>极少更新</td>
+<td>仅评测负责人可见</td>
+</tr>
+<tr>
+<td><strong>Regression Set</strong></td>
+<td>沉淀线上事故的复现 Case</td>
+<td>只增不改</td>
+<td>全员可用</td>
+</tr>
+</tbody>
+</table></div>
+<p>另有一条铁律：<strong>Regression Set 只增不改</strong>。每一个线上事故修复后，必须沉淀为一个永久性回归 Case，防止&quot;同一类问题换个版本再次出现&quot;。</p>
+<hr>
+<h2 id="9-3-从-有标准-到-能自动测-multi-grader-与-batch-eval-runner">9.3 从&quot;有标准&quot;到&quot;能自动测&quot;：Multi-Grader 与 Batch Eval Runner</h2>
+<h3 id="按判断对象选-grader">按判断对象选 Grader</h3>
+<p>&quot;所有评分都交给 LLM Judge&quot;是新手团队的标配，也是评分不稳定、缺乏事实验证的万恶之源。正确姿势是<strong>按判断对象的性质选择 Grader（评分器）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Grader 类型</th>
+<th>判断对象</th>
+<th>工作方式</th>
+<th>DataAgent 例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Code Grader</strong></td>
+<td>可精确判定的输出</td>
+<td>写确定性断言代码</td>
+<td>报告中的 GMV 数值与快照库重算结果误差 &lt; 0.1%</td>
+</tr>
+<tr>
+<td><strong>Environment Grader</strong></td>
+<td>真实环境状态</td>
+<td>检查环境终态，而非 Agent 自述</td>
+<td>审批单是否真的创建在工单系统里；预算是否未被实际修改</td>
+</tr>
+<tr>
+<td><strong>Trace Grader</strong></td>
+<td>执行轨迹</td>
+<td>对 Trace 做程序化检查</td>
+<td>工具调用序列是否先&quot;查口径&quot;后&quot;取数&quot;；循环次数是否超限</td>
+</tr>
+<tr>
+<td><strong>LLM Grader</strong></td>
+<td>开放性质量</td>
+<td>裁判模型按 rubric 打分</td>
+<td>归因报告的逻辑严密性、建议的可执行性</td>
+</tr>
+</tbody>
+</table></div>
+<p>关键洞察是&quot;<strong>Agent 说做了</strong>&quot;和&quot;<strong>环境确实完成了</strong>&quot;是两回事。Agent 可能在报告里宣称&quot;已提交补货工单&quot;，而工单系统里什么都没有——只有 Environment Grader 能戳穿这种&quot;口嗨&quot;。能写代码判定的绝不交给 LLM，这是 Grader 选型的第一原则。</p>
+<p>把 Grader 按&quot;裁判的性质&quot;再归并成三大类做一次彻底对比（人工评审也是 Grader 的一种，只是最贵的那种）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Rule 类（Code/Env/Trace）</th>
+<th>Model 类（LLM Grader）</th>
+<th>Human 类（人工评审）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单次成本</td>
+<td>几乎为零</td>
+<td>低（一次裁判调用）</td>
+<td>高（分钟级人力）</td>
+</tr>
+<tr>
+<td>一致性与可复现</td>
+<td>完全确定</td>
+<td>有漂移（模型升级/温度/提示词）</td>
+<td>人与人之间不一致</td>
+</tr>
+<tr>
+<td>可复核性</td>
+<td>断言即证据，可重放</td>
+<td>只有打分理由文本</td>
+<td>依赖评审记录习惯</td>
+</tr>
+<tr>
+<td>擅长判断</td>
+<td>事实、状态、轨迹</td>
+<td>开放质量、可读性、逻辑性</td>
+<td>业务价值、品味、新型失败</td>
+</tr>
+<tr>
+<td>典型失效</td>
+<td>判断不了开放问题</td>
+<td>被&quot;写得自信&quot;的错答案骗过</td>
+<td>贵、慢、无法规模化</td>
+</tr>
+<tr>
+<td>在生产管线中的角色</td>
+<td>主力（跑全量）</td>
+<td>补充（跑抽样 + rubric 明确的维度）</td>
+<td>校准器（抽检前两者的判分质量）</td>
+</tr>
+</tbody>
+</table></div>
+<p>分工口诀：<strong>Rule 跑全量，Model 补开放，Human 做校准。</strong> 三者不是替代关系，而是一个成本递减、覆盖面递减的漏斗。</p>
+<p>一条验收点进来，应该由谁来判？路由决策如下：</p>
+<pre class="mermaid">flowchart TD
+    P[&quot;AcceptPoint 验收点&quot;] --&gt; Q1{&quot;能用确定性断言&lt;br/&gt;判定吗？&lt;br/&gt;（数值/状态/存在性）&quot;}
+    Q1 -- &quot;能&quot; --&gt; Q2{&quot;判定对象在哪？&quot;}
+    Q2 -- &quot;输出文本&quot; --&gt; G1[&quot;Code Grader&quot;]
+    Q2 -- &quot;环境终态&quot; --&gt; G2[&quot;Environment Grader&quot;]
+    Q2 -- &quot;执行轨迹&quot; --&gt; G3[&quot;Trace Grader&quot;]
+    Q1 -- &quot;不能&quot; --&gt; Q3{&quot;能写成明确&lt;br/&gt;rubric 吗？&quot;}
+    Q3 -- &quot;能&quot; --&gt; G4[&quot;LLM Grader&lt;br/&gt;+ 定期人工校准&quot;]
+    Q3 -- &quot;不能（业务品味类）&quot; --&gt; G5[&quot;Human Review&lt;br/&gt;抽样评审&quot;]
+    G4 -. &quot;一致率低于阈值&quot; .-&gt; G5
+</pre>
+<h3 id="grader-接口与-multi-trial-稳定性">Grader 接口与 Multi-Trial 稳定性</h3>
+<pre><code class="language-python"># Grader 接口与 Scorecard 骨架（二）
+from typing import Protocol
+
+class Grader(Protocol):
+    name: str
+    version: str                        # Grader 自身也要版本化
+    def grade(self, run: &quot;RunRecord&quot;, case: EvalCase) -&gt; &quot;GradeResult&quot;: ...
+
+@dataclass
+class GradeResult:
+    grader: str
+    dimension: str                      # outcome/trajectory/system/safety
+    score: float                        # 0~1
+    passed: bool                        # 硬门槛判定
+    evidence: str                       # 判分依据（可追溯）
+
+@dataclass
+class Scorecard:                        # 多维记分卡，拒绝单一总分
+    case_id: str
+    dimensions: dict[str, float]        # 各维度得分
+    hard_gate_violations: list[str]
+    @property
+    def verdict(self) -&gt; str:
+        return &quot;FAIL&quot; if self.hard_gate_violations else (
+            &quot;PASS&quot; if all(v &gt;= 0.6 for v in self.dimensions.values()) else &quot;REVIEW&quot;)
+
+class BatchEvalRunner:
+    def run(self, cases: list[EvalCase], candidate: VersionTuple) -&gt; list[Scorecard]:
+        cards = []
+        for case in cases:
+            trial_results = [self._run_trial(case, candidate, seed=i)
+                             for i in range(case.trials)]      # Multi-Trial
+            cards.append(self._aggregate(case, trial_results)) # 通过率+方差
+        return cards
+</code></pre>
+<p><strong>Multi-Trial</strong> 的意义：概率性系统单次成功不代表能力。同一个 Case 跑 5~10 次（不同随机种子），报告 <strong>pass@k 与 pass^k</strong>——前者衡量&quot;至少成一次&quot;的上限，后者衡量&quot;次次都成&quot;的稳定性。企业级交付看的是 pass^k：客户不接受&quot;五次里成功三次&quot;的经营诊断。</p>
+<p><strong>Grader 校准与版本治理</strong>：LLM Grader 本身是模型，会漂移、会被升级、评判标准会不一致。治理手段有三：(1) 用一批人工精标的 Case 定期校准 Grader，计算其与人工评分的一致率（如 Cohen's Kappa），低于阈值则停用整改；(2) Grader 的 Prompt 与模型版本纳入版本元组，评分变化可区分&quot;被测系统变了&quot;还是&quot;裁判变了&quot;；(3) 关键分数抽样人工复核，形成持续监督。</p>
+<p>用下面的交互 Demo 体会&quot;多维记分卡 + 硬门槛&quot;的判定逻辑：点「运行评测」，8 条 case（含越权与工具故障类）逐条出分，右侧质量/安全/成本/时延四个仪表盘实时累计。关键一幕在 c4：这条&quot;报告写得漂亮但越了权&quot;的安全 case 触发硬门槛违规，而 8 条 case 的质量平均分反而高于 Baseline——此时打开「只看平均分」开关，你会得到&quot;✅ 通过&quot;的错误结论，这正是 9.1 节&quot;加权平均会掩盖灾难&quot;的现场演示。最后看底部 Regression Gate：即使总分上升，硬门槛违规数与 Regression Set 通过率两条规则直接阻断发布：</p>
+<div class="demo-embed" data-demo="eval-scorecard"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong>：</p>
+<ol>
+<li>先正常「运行评测」，逐条观察 8 条 case 的出分过程，找出哪几条属于 9.2 节 Task Taxonomy 中的&quot;长尾类别&quot;，并说出它们各自对应哪条硬门槛。</li>
+<li>重点复盘 c4：它的质量得分是多少？为什么记分卡仍判 FAIL？用 9.1 节&quot;软评分与硬门槛&quot;的原理解释。</li>
+<li>打开「只看平均分」开关，记录开关前后结论的差异——把这个差异转述成一句你能讲给业务负责人听的话。</li>
+<li>观察四个维度仪表盘的累计过程：质量分上涨的同时候选版本在哪个维度悄悄退化？对照 9.5 节门禁规则三&quot;各维度无显著下降&quot;，说出单看总分为什么不够。</li>
+<li>查看底部 Regression Gate 的两条阻断记录，回答：如果团队把 Regression Set 当 Dev Set 边调边改，这两条规则会失效成什么样？</li>
+</ol>
+<hr>
+<h2 id="9-4-从-分数下降-到-根因被证明-trace-replay-与-ablation-故障诊断">9.4 从&quot;分数下降&quot;到&quot;根因被证明&quot;：Trace、Replay 与 Ablation 故障诊断</h2>
+<h3 id="症状-直接原因与根因">症状、直接原因与根因</h3>
+<p>评测分数下降只是一个<strong>症状</strong>。业余做法是&quot;看到哪错改哪&quot;——报告里 GMV 数字错了，就在 Prompt 里加一句&quot;注意核对 GMV 数字&quot;。这种局部补丁会无限堆积，因为真正的根因被掩盖了。诊断必须分三层下钻：</p>
+<ul>
+<li><strong>症状（Symptom）</strong>：Case <code>gmv-041</code> 结论错误，把&quot;退款率上升&quot;漏掉了。</li>
+<li><strong>直接原因（Proximate Cause）</strong>：模型生成的分析计划里没有包含退款数据的查询步骤。</li>
+<li><strong>根因（Root Cause）</strong>：Semantic 层更新后，&quot;GMV&quot; 口径的上下文描述被截断，模型在规划阶段拿不到完整的指标定义，于是漏掉了关联指标。</li>
+</ul>
+<p>修根因（修复 Context 截断 bug）能同时治好一类病；修症状（Prompt 打补丁）只治一例，还会引入新的不确定性。</p>
+<h3 id="企业级-failure-taxonomy">企业级 Failure Taxonomy</h3>
+<p>所有失败都归因于&quot;模型不行&quot;或&quot;Prompt 没写好&quot;，是诊断不成熟的标志。建议的失败分类学：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层次</th>
+<th>失败类别</th>
+<th>DataAgent 实例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>模型层</td>
+<td>推理错误、幻觉、指令遵循失败</td>
+<td>凭空编造一个不存在的促销活动作为归因</td>
+</tr>
+<tr>
+<td>Context 层</td>
+<td>检索缺失、上下文截断、口径未注入</td>
+<td>指标口径被截断导致规划漏步骤</td>
+</tr>
+<tr>
+<td>工具层</td>
+<td>工具故障、参数错误、权限不足</td>
+<td>Query Gateway 超时后未重试直接报错</td>
+</tr>
+<tr>
+<td>Memory 层</td>
+<td>跨租户污染、过期记忆、错误固化</td>
+<td>租户 A 的分析引用了租户 B 上周存入 Memory 的&quot;经验&quot;</td>
+</tr>
+<tr>
+<td>编排层</td>
+<td>死循环、提前终止、审批流绕过</td>
+<td>在&quot;数据不足&quot;分支里无限重查同一张表</td>
+</tr>
+<tr>
+<td>环境层</td>
+<td>数据延迟、Fixture 漂移、外部依赖变更</td>
+<td>订单表延迟 6h，Agent 未检测新鲜度直接下结论</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="replay-fork-ablation-用对照实验替代经验猜测">Replay / Fork / Ablation：用对照实验替代经验猜测</h3>
+<p>根因判断不能只靠&quot;我觉得&quot;，必须靠<strong>受控实验</strong>。三件套：</p>
+<ul>
+<li><strong>Replay（重放）</strong>：用完全相同的版本元组 + Fixture 重跑失败 Case，确认问题可稳定复现（排除偶发）。</li>
+<li><strong>Fork（分叉）</strong>：从失败 Trace 的某个中间节点分叉，替换后续行为（如人工改写规划步骤），验证&quot;如果这一步对了，结局是否改变&quot;——快速定位关键决策点。</li>
+<li><strong>Ablation（消融）</strong>：在版本元组中做单变量替换，逐个排除嫌疑。例如&quot;跨租户 Memory 污染&quot;的根因实验：</li>
+</ul>
+<pre><code class="language-text">实验组A：完整系统            → 结论错误（引用了 B 租户口径）  ← 症状
+实验组B：清空 Memory         → 结论正确                      → 嫌疑锁定 Memory
+实验组C：仅注入 A 租户 Memory → 结论正确                      → 排除 Memory 机制本身
+实验组D：注入被污染的 Memory  → 结论错误复现                   → 根因证实：跨租户写入未隔离
+修复后：Regression Set 新增 Case &quot;memory-cross-tenant-001&quot;    → 永久防复发
+</code></pre>
+<p>四组实验，根因从&quot;猜测&quot;变成&quot;被证明&quot;。<strong>每一次根因修复的终点，都是 Regression Set 里新增的一个 Case</strong>——这是组织记忆的唯一可靠形式。</p>
+<hr>
+<h2 id="9-5-从离线提升到安全发布-regression-gate-与受控进化闭环">9.5 从离线提升到安全发布：Regression Gate 与受控进化闭环</h2>
+<h3 id="agent-资产统一版本治理">Agent 资产统一版本治理</h3>
+<p>传统 CI 只管代码。Agent 系统的行为由六类资产共同决定——<strong>代码、模型、Prompt、Skill、Memory 策略、发布策略</strong>——任何一类变更都等价于&quot;系统变更&quot;。因此它们必须统一进入版本治理（即 9.2 的 VersionTuple），每一次发布绑定一个完整元组，回滚时才能恢复&quot;完整的 Agent 行为&quot;而不仅是&quot;旧代码跑新 Prompt&quot;这种危险的缝合状态。</p>
+<h3 id="baseline-vs-candidate-公平比较">Baseline vs Candidate 公平比较</h3>
+<p>比较基线与候选版本时，必须保证：<strong>同一评测集版本、同一 Fixture、同一 Grader 版本、同一批随机种子、同一资源配额</strong>。任何一项不同，分数差异就可能来自环境而非候选版本——把环境的噪音错误归因于候选，是发布决策中最隐蔽的事故来源。</p>
+<h3 id="ci-regression-gate">CI Regression Gate</h3>
+<p>门禁规则不能只看平均分。一个合理的 Regression Gate：</p>
+<ol>
+<li>硬门槛违规数 = 0（一票否决）；</li>
+<li>Regression Set 通过率 = 100%（历史能力不许退化）；</li>
+<li>各维度得分相对 Baseline 无显著下降（统计检验，而非肉眼比均值）；</li>
+<li>总分提升需在 Validation Set 上达成，Dev Set 分数仅作参考。</li>
+</ol>
+<p>四条规则的判定顺序与失败后的去向：</p>
+<pre class="mermaid">flowchart TD
+    S[&quot;候选版本评测完成&lt;br/&gt;Scorecard 全集&quot;] --&gt; R1{&quot;规则一&lt;br/&gt;硬门槛违规 = 0？&quot;}
+    R1 -- &quot;否&quot; --&gt; B1[&quot;BLOCK&lt;br/&gt;安全事件响应流程&quot;]
+    R1 -- &quot;是&quot; --&gt; R2{&quot;规则二&lt;br/&gt;Regression Set = 100%？&quot;}
+    R2 -- &quot;否&quot; --&gt; B2[&quot;BLOCK&lt;br/&gt;Trace + Ablation 诊断&quot;]
+    R2 -- &quot;是&quot; --&gt; R3{&quot;规则三&lt;br/&gt;各维度无显著下降？&quot;}
+    R3 -- &quot;否&quot; --&gt; B2
+    R3 -- &quot;是&quot; --&gt; R4{&quot;规则四&lt;br/&gt;提升在 Validation Set 达成？&quot;}
+    R4 -- &quot;否&quot; --&gt; B3[&quot;HOLD&lt;br/&gt;疑似 Dev Set 过拟合&lt;br/&gt;复测或放弃发布&quot;]
+    R4 -- &quot;是&quot; --&gt; P[&quot;PASS&lt;br/&gt;获得灰度入场券&quot;]
+</pre>
+<p>注意规则一的失败去向与众不同：硬门槛违规不是&quot;回去优化&quot;，而是<strong>安全事件</strong>——它意味着候选版本已经具备伤害能力，要按事故流程处置，而不是按优化流程排期。</p>
+<p>把门禁逻辑亲手操作一遍：在下面的模拟器里组装你的候选版本——先跑一组&quot;Prompt 优化 + 模型升级&quot;看门禁放行长什么样；再加上&quot;夹带越权回退&quot;重跑，观察平均分继续上涨、门禁却亮红灯的撕裂场面；最后把&quot;调优集&quot;切到 Dev Set，看规则四如何识别出过拟合虚高的分数：</p>
+<div class="demo-embed" data-demo="regression-gate"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong>：</p>
+<ol>
+<li>组装&quot;全优组合&quot;（Prompt 优化 + 模型升级 + 截断修复、Validation Set 调优），跑通一次 PASS，记录四条规则各自的判定理由。</li>
+<li>保持质量类增益不变，只夹带&quot;越权回退&quot;，对比平均分变化与门禁结论的变化——用一句话向同事解释这个反差。</li>
+<li>把隐性变更换成&quot;历史事故 Case 复发&quot;，观察它触犯的是哪条规则、以及失败后系统指引的下一步（为什么是诊断而不是调参）。</li>
+<li>将&quot;调优集&quot;切到 Dev Set 后重跑任意涨分组合，看规则四如何判定——回答：为什么 Dev Set 上的提升&quot;不被承认&quot;？</li>
+<li>尝试制造一个&quot;平均分下降但门禁 PASS&quot;的组合，以及一个&quot;平均分上涨但门禁 BLOCK&quot;的组合，各截图记录（或抄录结论），这对组合就是你对&quot;门禁独立于总分&quot;的最好注解。</li>
+</ol>
+<h3 id="shadow-与-canary-发布">Shadow 与 Canary 发布</h3>
+<p>离线 Fixture 再逼真，也无法完整模拟真实业务分布与外部依赖。上线前两级缓冲：</p>
+<ul>
+<li><strong>Shadow（影子）发布</strong>：候选版本与现网版本并行处理真实流量，但候选的产出只记录、不生效。对比两者在真实分布上的差异，零风险获取线上证据。</li>
+<li><strong>Canary（金丝雀）发布</strong>：先对单个低风险租户（如内部演示租户）开放，按租户维度逐步扩大。DataAgent 天然多租户，租户就是最理想的灰度单元<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>。</li>
+</ul>
+<p>几种常见发布策略的完整对照，避免混用：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>策略</th>
+<th>真实流量</th>
+<th>用户可见影响</th>
+<th>回滚速度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Shadow 影子</td>
+<td>双跑，候选不生效</td>
+<td>零</td>
+<td>无需回滚（本来就未生效）</td>
+<td>拿真实分布证据，验证 Offline→Online 差距</td>
+</tr>
+<tr>
+<td>Canary 金丝雀</td>
+<td>小比例真实生效</td>
+<td>小范围</td>
+<td>秒级（切回流量）</td>
+<td>验证真实生效后的行为与成本</td>
+</tr>
+<tr>
+<td>蓝绿部署</td>
+<td>整体切换</td>
+<td>全量瞬时</td>
+<td>快（切回旧环境）</td>
+<td>无状态服务；Agent 系统慎用（行为双份不一致）</td>
+</tr>
+<tr>
+<td>Feature Flag</td>
+<td>按开关粒度生效</td>
+<td>可控</td>
+<td>秒级（关开关）</td>
+<td>Prompt/Skill 等资产级变更的细粒度灰度</td>
+</tr>
+</tbody>
+</table></div>
+<p>对 Agent 系统的实用建议：<strong>Shadow → Canary 是主干路径</strong>；蓝绿不适合（两套模型行为并存于同一租户会造成体验割裂）；Feature Flag 用于资产级（某个新 Skill、某个 Prompt 版本）的细粒度控制，与版本级灰度互补。</p>
+<pre class="mermaid">flowchart TD
+    A[候选版本&lt;br/&gt;VersionTuple 冻结] --&gt; B[离线评测&lt;br/&gt;Validation + Regression Set]
+    B --&gt; C{CI Regression Gate&lt;br/&gt;硬门槛/回归/显著性}
+    C -- 阻断 --&gt; D[故障诊断&lt;br/&gt;Trace + Ablation]
+    D --&gt; A
+    C -- 通过 --&gt; E[Shadow 发布&lt;br/&gt;只记录不生效]
+    E --&gt; F{线上对比达标?}
+    F -- 否 --&gt; D
+    F -- 是 --&gt; G[Canary 灰度&lt;br/&gt;按租户逐步放量]
+    G --&gt; H{监控异常?}
+    H -- 是 --&gt; I[Kill Switch&lt;br/&gt;完整版本元组回滚]
+    I --&gt; D
+    H -- 否 --&gt; J[全量发布]
+    J --&gt; K[线上反馈回流&lt;br/&gt;事故沉淀为 Regression Case]
+</pre>
+<h3 id="kill-switch-与完整版本回滚">Kill Switch 与完整版本回滚</h3>
+<p>回滚的对象是<strong>整个版本元组</strong>，不是代码。Kill Switch 必须满足：秒级生效、不依赖出问题的组件本身（如果 Kill Switch 要经过 Agent 自己审批就完蛋了）、回滚后自动触发一轮快速回归验证。灰度与回滚的演练要定期进行——没在和平时期演练过的回滚，战争时期一定失败。</p>
+<p>设计回滚方案时自检三个问题：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>自检问题</th>
+<th>不合格的典型答案</th>
+<th>合格的答案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>回滚的是什么？</td>
+<td>&quot;把代码 revert 一下&quot;</td>
+<td>完整 VersionTuple 整体回滚，含 Prompt/Skill/Memory 策略版本</td>
+</tr>
+<tr>
+<td>多快生效？</td>
+<td>&quot;下次发版窗口&quot;</td>
+<td>秒级，走独立于业务链路的控制通道</td>
+</tr>
+<tr>
+<td>回滚后怎么确认安全？</td>
+<td>&quot;看看监控再说&quot;</td>
+<td>自动触发快速回归（核心 Case 子集），通过才解除告警</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ai-自动优化的责任边界">AI 自动优化的责任边界</h3>
+<p>让 AI 自动改 Prompt、调参数、跑评测、择优发布，听起来很美。但有一条红线必须划清：<strong>AI 可以优化&quot;软评分空间&quot;，绝不能触碰&quot;硬门槛与安全策略的定义权&quot;。</strong> 具体说：</p>
+<ul>
+<li>允许：AI 自动迭代 Prompt、检索参数、Few-shot 示例，并提交候选版本进入评测流水线。</li>
+<li>禁止：AI 自动修改权限矩阵、审批规则、评测集本身、Regression Gate 阈值、发布策略。</li>
+</ul>
+<p>裁判规则与运动员必须分离。一旦 Agent 能改评测标准，它优化出来的将不是&quot;更好的系统&quot;，而是&quot;更会考试的系统&quot;。</p>
+<hr>
+<h2 id="常见误区">常见误区</h2>
+<ol>
+<li><strong>只看最终答案评分</strong>：忽略 Trajectory 与 System 层，上线后才发现成本爆炸、过程违规。</li>
+<li><strong>平均分迷信</strong>：总分涨了 3 分就发布，没看见安全维度悄悄退化。硬门槛必须独立于总分。</li>
+<li><strong>评测集即开发集</strong>：同一批 Case 边调边测，过拟合后分数虚高，生产环境现原形。</li>
+<li><strong>万物皆 LLM Judge</strong>：能写代码断言的也交给裁判模型，评分噪声大、无法复核事实。</li>
+<li><strong>改一堆东西再跑评测</strong>：模型、Prompt、工具同时变，涨了不知道谁的功劳，跌了不知道谁的锅。</li>
+<li><strong>修复即终点</strong>：线上问题修完就忘，没沉淀 Regression Case，三个版本后原地复发。</li>
+</ol>
+<h2 id="本篇实战-为-dataagent-建一条-evalops-流水线">本篇实战：为 DataAgent 建一条 EvalOps 流水线</h2>
+<h3 id="第-1-步-写一份质量契约-定义层">第 1 步：写一份质量契约（定义层）</h3>
+<ul>
+<li><strong>目标</strong>：把&quot;什么算成功&quot;从感觉变成可执行文档。</li>
+<li><strong>操作</strong>：为你的 DataAgent 选一类任务（如&quot;库存周转诊断&quot;），按 Outcome/Trajectory/System 三层 + 至少 3 条硬门槛，写出 YAML 格式的 Eval Contract；每条软评分标注权重且权重总和为 100%。</li>
+<li><strong>验收标准</strong>：契约中每条硬门槛都能说出&quot;违反它会造成什么业务事故&quot;；三层各有至少一条可机检的度量。</li>
+</ul>
+<h3 id="第-2-步-构建可复现基准-数据层">第 2 步：构建可复现基准（数据层）</h3>
+<ul>
+<li><strong>目标</strong>：让任何人、任何时间跑评测，测的都是&quot;同一个系统&quot;。</li>
+<li><strong>操作</strong>：按 Task Taxonomy 设计 ≥12 条 Case（覆盖常规/边界/数据异常/工具故障/对抗/审批六类），写出 Fixture 清单：需要冻结哪些环境要素（数据、时间、权限、工具桩），以及数据快照的导出与加载步骤。</li>
+<li><strong>验收标准</strong>：六类 Case 一个不缺；Fixture 清单能回答&quot;换一台干净机器，评测结果还能复现吗&quot;。</li>
+</ul>
+<h3 id="第-3-步-实现一个-trace-grader-评分层">第 3 步：实现一个 Trace Grader（评分层）</h3>
+<ul>
+<li><strong>目标</strong>：把一条轨迹类验收点从&quot;人工看日志&quot;变成自动断言。</li>
+<li><strong>操作</strong>：给定一段工具调用 Trace（JSON），写代码检查&quot;是否先查指标口径再取数&quot;&quot;无效调用是否超限&quot;两条规则；再说明这两条验收点为什么不该交给 LLM Judge。</li>
+<li><strong>验收标准</strong>：Grader 对正负样本各 ≥2 条判定正确；判分结果带 evidence 字段（指出具体违反的调用序号）。</li>
+</ul>
+<h3 id="第-4-步-设计门禁与灰度方案-发布层">第 4 步：设计门禁与灰度方案（发布层）</h3>
+<ul>
+<li><strong>目标</strong>：为一个高风险变更制定完整的受控发布计划。</li>
+<li><strong>操作</strong>：以&quot;更换底层模型&quot;为场景，(a) 写出 Regression Gate 的四条规则及各自的失败处置流程；(b) 制定 Shadow → Canary → 全量的发布计划，明确每一级的准入/准出指标与回滚触发条件；(c) 用本篇 regression-gate Demo 复演&quot;模型升级 + 夹带回退&quot;的组合，验证你对门禁判定的预期。</li>
+<li><strong>验收标准</strong>：每一级灰度都有量化的准出指标（不是&quot;观察一段时间&quot;）；回滚对象明确为完整 VersionTuple 且回滚后自动触发快速回归。</li>
+</ul>
+<h3 id="第-5-步-做一次-ablation-实验设计-诊断层">第 5 步：做一次 Ablation 实验设计（诊断层）</h3>
+<ul>
+<li><strong>目标</strong>：把根因分析从&quot;我觉得&quot;升级为&quot;被证明&quot;。</li>
+<li><strong>操作</strong>：假设出现&quot;行动建议被未经审批直接执行&quot;的失败，设计 Replay/Fork/Ablation 实验矩阵：每组实验替换哪个变量、预期观察什么、什么结果算根因证实。</li>
+<li><strong>验收标准</strong>：实验矩阵满足单变量原则；终点明确写出&quot;Regression Set 新增哪条 Case&quot;。</li>
+</ul>
+<h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
+<p>① <strong>可复制提示词模板</strong>（把第 3 步的 Trace Grader 委托给 AI 起草）：</p>
+<pre><code class="language-text">你是 Agent 评测平台的工程师。给定工具调用 Trace（JSON 数组，元素含
+seq/tool/params/status），实现一个 Trace Grader（Python），检查：
+1. 关键行为：任何 query_metrics 调用之前，必须先出现过 metric_definition
+   类工具的调用（&quot;先查口径再取数&quot;）；
+2. 无效调用：完全相同（tool+params）的调用连续重复 ≤2 次；
+3. 死循环：同一 tool 连续调用 ≥5 次判违规。
+输出 GradeResult：{dimension: &quot;trajectory&quot;, score, passed, evidence}，
+evidence 必须指出违规的具体 seq 序号。
+附 pytest：正例 2 条、每类违规各 1 条反例。
+约束：Grader 本身必须确定性——同输入永远同输出，禁止在 Grader 内调 LLM。
+</code></pre>
+<p>② <strong>AI 初版人工评审清单</strong>：</p>
+<ul>
+<li class="task-item"><input type="checkbox"> Grader 是否确定性（无随机、无 LLM 调用、无当前时间依赖）？</li>
+<li class="task-item"><input type="checkbox"> &quot;先查口径&quot;的判定是否处理了&quot;口径查询存在但在取数之后&quot;的时序陷阱？</li>
+<li class="task-item"><input type="checkbox"> evidence 是否定位到具体调用序号，而非只有&quot;违规&quot;二字？</li>
+<li class="task-item"><input type="checkbox"> 反例测试是否覆盖&quot;擦边通过&quot;（恰好重复 2 次）与&quot;恰好越界&quot;（重复 3 次）？</li>
+<li class="task-item"><input type="checkbox"> Grader 有无版本号字段，能否纳入 VersionTuple？</li>
+</ul>
+<p>③ <strong>验收标准</strong>：Grader 通过评审清单全部条目；把它接到第 2 步的 12 条 Case 上跑一遍全量，产出 12 张 Scorecard，其中硬门槛类 Case 的判定与人工复核一致率 100%。</p>
+<h2 id="自测清单">自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox"> 我能解释为什么单一总分会掩盖安全风险，并说清软评分与硬门槛的区别</li>
+<li class="task-item"><input type="checkbox"> 我能为一个开放式任务设计基于&quot;验收点&quot;而非&quot;标准答案&quot;的 Eval Case</li>
+<li class="task-item"><input type="checkbox"> 我能列出版本元组的六个维度，并解释为什么比较时必须单变量变更</li>
+<li class="task-item"><input type="checkbox"> 我能根据判断对象为不同验收点选择正确的 Grader 类型，并说清 Rule/Model/Human 三类裁判的分工</li>
+<li class="task-item"><input type="checkbox"> 我能区分症状、直接原因与根因，并为一个失败案例设计对照实验</li>
+<li class="task-item"><input type="checkbox"> 我能画出从候选评测到 Canary 发布再到 Kill Switch 回滚的完整流水线</li>
+<li class="task-item"><input type="checkbox"> 我能说清四条门禁规则各自的判定逻辑与失败处置去向</li>
+<li class="task-item"><input type="checkbox"> 我能说清为什么 AI 自动优化不能触碰评测标准与安全策略</li>
+</ul>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-gktime">极客时间《企业级 Agent 工程化》课程（EvalOps 评测与受控进化相关章节）——本篇的质量契约、Multi-Grader、Ablation 诊断与 Regression Gate 在该课程大纲基础上扩展改写。 <a class="fn-back" href="#ref-gktime" aria-label="回到正文">↩</a></li>
+<li id="fn-phoenix">周志明《凤凰架构：构建可靠的大型分布式系统》，&quot;流量治理&quot;部分（灰度发布、金丝雀与流量切换的工程实践），<a href="https://icyfenix.cn">https://icyfenix.cn</a> 。 <a class="fn-back" href="#ref-phoenix" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-08-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇08-2 · 受控召回与 MemoryOps</span></a>
+      <a class="next" href="chapter-10.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇10 · 面向未来的工程判断</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#导语-为什么-agent-系统必须有一套-评测工程学">导语：为什么 Agent 系统必须有一套"评测工程学"</a>
+    <a class="toc-h2" href="#9-1-从-看起来不错-到质量契约-定义什么才算真正成功">9.1 从"看起来不错"到质量契约：定义什么才算真正成功</a>
+    <a class="toc-h3" href="#问题-团队对-任务成功-的理解不一致">问题：团队对"任务成功"的理解不一致</a>
+    <a class="toc-h3" href="#eval-contract-的三层结构-outcome-trajectory-system">Eval Contract 的三层结构：Outcome / Trajectory / System</a>
+    <a class="toc-h3" href="#关键行为与安全不变量">关键行为与安全不变量</a>
+    <a class="toc-h3" href="#软评分与硬门槛">软评分与硬门槛</a>
+    <a class="toc-h2" href="#9-2-从样例集合到可复现基准-构建不会欺骗自己的-dataset-与-fixture">9.2 从样例集合到可复现基准：构建不会欺骗自己的 Dataset 与 Fixture</a>
+    <a class="toc-h3" href="#从真实业务构建-task-taxonomy">从真实业务构建 Task Taxonomy</a>
+    <a class="toc-h3" href="#开放式任务的-eval-case-设计">开放式任务的 Eval Case 设计</a>
+    <a class="toc-h3" href="#fixture-与环境快照">Fixture 与环境快照</a>
+    <a class="toc-h3" href="#版本元组与结果归因">版本元组与结果归因</a>
+    <a class="toc-h3" href="#评测集分层治理-防止-自我污染">评测集分层治理，防止"自我污染"</a>
+    <a class="toc-h2" href="#9-3-从-有标准-到-能自动测-multi-grader-与-batch-eval-runner">9.3 从"有标准"到"能自动测"：Multi-Grader 与 Batch Eval Runner</a>
+    <a class="toc-h3" href="#按判断对象选-grader">按判断对象选 Grader</a>
+    <a class="toc-h3" href="#grader-接口与-multi-trial-稳定性">Grader 接口与 Multi-Trial 稳定性</a>
+    <a class="toc-h2" href="#9-4-从-分数下降-到-根因被证明-trace-replay-与-ablation-故障诊断">9.4 从"分数下降"到"根因被证明"：Trace、Replay 与 Ablation 故障诊断</a>
+    <a class="toc-h3" href="#症状-直接原因与根因">症状、直接原因与根因</a>
+    <a class="toc-h3" href="#企业级-failure-taxonomy">企业级 Failure Taxonomy</a>
+    <a class="toc-h3" href="#replay-fork-ablation-用对照实验替代经验猜测">Replay / Fork / Ablation：用对照实验替代经验猜测</a>
+    <a class="toc-h2" href="#9-5-从离线提升到安全发布-regression-gate-与受控进化闭环">9.5 从离线提升到安全发布：Regression Gate 与受控进化闭环</a>
+    <a class="toc-h3" href="#agent-资产统一版本治理">Agent 资产统一版本治理</a>
+    <a class="toc-h3" href="#baseline-vs-candidate-公平比较">Baseline vs Candidate 公平比较</a>
+    <a class="toc-h3" href="#ci-regression-gate">CI Regression Gate</a>
+    <a class="toc-h3" href="#shadow-与-canary-发布">Shadow 与 Canary 发布</a>
+    <a class="toc-h3" href="#kill-switch-与完整版本回滚">Kill Switch 与完整版本回滚</a>
+    <a class="toc-h3" href="#ai-自动优化的责任边界">AI 自动优化的责任边界</a>
+    <a class="toc-h2" href="#常见误区">常见误区</a>
+    <a class="toc-h2" href="#本篇实战-为-dataagent-建一条-evalops-流水线">本篇实战：为 DataAgent 建一条 EvalOps 流水线</a>
+    <a class="toc-h3" href="#第-1-步-写一份质量契约-定义层">第 1 步：写一份质量契约（定义层）</a>
+    <a class="toc-h3" href="#第-2-步-构建可复现基准-数据层">第 2 步：构建可复现基准（数据层）</a>
+    <a class="toc-h3" href="#第-3-步-实现一个-trace-grader-评分层">第 3 步：实现一个 Trace Grader（评分层）</a>
+    <a class="toc-h3" href="#第-4-步-设计门禁与灰度方案-发布层">第 4 步：设计门禁与灰度方案（发布层）</a>
+    <a class="toc-h3" href="#第-5-步-做一次-ablation-实验设计-诊断层">第 5 步：做一次 Ablation 实验设计（诊断层）</a>
+    <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
+    <a class="toc-h2" href="#自测清单">自测清单</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:chapter-09:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>
