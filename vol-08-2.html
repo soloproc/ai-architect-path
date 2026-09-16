@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷08-2：监控告警与事故管理——观测是数据，告警是决策 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷08-2：监控告警与事故管理——观测是数据，告警是决策 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html" class="active">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷08-2-监控告警与事故管理-观测是数据-告警是决策">卷08-2：监控告警与事故管理——观测是数据，告警是决策</h1>
+<blockquote>
+<p>导语：这是卷08「SRE 与可靠性工程」三子页的第 2 页，覆盖原卷 §3–§4，承接卷08-1 的 SLO 与错误预算体系。SLO 定了目标，接下来是两个工程问题：什么情况下把熟睡中的人叫起来（告警），以及人被叫醒之后怎么办（事故管理）。本子页前半讲监控告警——四个黄金信号、症状告警原则、燃烧率告警的数学；后半讲事故管理全周期——值班、分级、应急指挥与不追责复盘。主线只有一句话：观测是数据，告警是决策，复盘是学习。</p>
+</blockquote>
+<hr>
+<h2 id="3-监控与告警-观测是数据-告警是决策">3. 监控与告警：观测是数据，告警是决策</h2>
+<h3 id="3-1-四个黄金信号">3.1 四个黄金信号</h3>
+<p>卷04 讲过可观测性三支柱（Metrics/Logs/Traces），那是&quot;数据怎么采&quot;。告警要解决的是另一个问题：<strong>什么情况下把熟睡中的人叫起来</strong>。Google SRE 给出四个黄金信号，覆盖绝大多数服务<sup class="fn-ref"><a href="#fn-sre-book" id="ref-sre-book">[1]</a></sup>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>信号</th>
+<th>定义</th>
+<th>采集要点</th>
+<th>RetailHub 例子</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>延迟（Latency）</td>
+<td>请求耗时</td>
+<td>成功与失败<strong>分开统计</strong>——失败 5ms 返回会污染平均值；用分位数（P95/P99）不用均值</td>
+<td>订单查询 P99、推理请求 TTFT</td>
+</tr>
+<tr>
+<td>流量（Traffic）</td>
+<td>系统承载的需求强度</td>
+<td>按系统类型选单位：HTTP 用 QPS，消息系统用条/s，AI 服务用 tokens/s</td>
+<td>QPS、并发会话数、推理 tokens/s</td>
+</tr>
+<tr>
+<td>错误（Errors）</td>
+<td>失败请求的比例</td>
+<td>显式失败（5xx）+ 隐式失败（200 但内容错误）+ 策略失败（超时熔断兜底）</td>
+<td>5xx 率、推理超时率、对账失败数</td>
+</tr>
+<tr>
+<td>饱和度（Saturation）</td>
+<td>资源距离极限还有多远</td>
+<td>测&quot;水位&quot;而非&quot;用量&quot;：连接池用了 80% 比 CPU 用了 80% 更接近悬崖</td>
+<td>CPU/内存/磁盘、GPU 显存占用、连接池水位、推理排队深度</td>
+</tr>
+</tbody>
+</table></div>
+<p>四个信号中<strong>饱和度最容易被忽视也最有预测价值</strong>：延迟和错误是&quot;已经出事&quot;，饱和度是&quot;快要出事&quot;。一个成熟的看板应该让值班者一眼看到&quot;距离悬崖还有多远&quot;，而不只是&quot;现在有没有掉下去&quot;。</p>
+<h3 id="3-2-red-与-use-两套落地口诀">3.2 RED 与 USE：两套落地口诀</h3>
+<p>四个黄金信号是原则，落地时社区总结出两套更好记的口诀，分别对应&quot;服务视角&quot;和&quot;资源视角&quot;：</p>
+<p><strong>RED 方法（面向请求驱动的服务）</strong>——每个微服务至少监控三个指标：</p>
+<ul>
+<li><strong>R</strong>ate（速率）：每秒请求数，即流量；</li>
+<li><strong>E</strong>rrors（错误）：每秒失败请求数或错误率；</li>
+<li><strong>D</strong>uration（时长）：请求延迟分布。</li>
+</ul>
+<p>RetailHub 的订单、库存、报表三个服务，每个都该有一张三指标小卡。<strong>RED 回答的是&quot;用户正在经历什么&quot;</strong>。</p>
+<p><strong>USE 方法（面向资源）</strong>——每种硬件/软件资源至少监控三个指标：</p>
+<ul>
+<li><strong>U</strong>tilization（利用率）：资源忙于工作的时间比例（CPU 60%、GPU 显存占用 78%）；</li>
+<li><strong>S</strong>aturation（饱和度）：排队等待的程度（CPU load 超过核数、推理排队深度、连接池等待线程数）；</li>
+<li><strong>E</strong>rrors（错误）：资源级错误计数（磁盘 IO 错误、OOM Kill、GPU ECC 错误）。</li>
+</ul>
+<p><strong>USE 回答的是&quot;系统内部哪里快撑不住了&quot;</strong>。两套方法互为表里：RED 发现症状，USE 定位病根。告警用 RED（症状），排查用 USE（原因）——这正是 3.4 节&quot;症状告警 vs 原因告警&quot;的落地分工。</p>
+<h3 id="3-3-指标基数爆炸-监控系统自己的可靠性问题">3.3 指标基数爆炸：监控系统自己的可靠性问题</h3>
+<p>一个新手常踩的坑：给指标随意加标签（label），结果监控系统先被自己压垮。原理是<strong>时间序列的数量 = 指标数 × 各标签取值的笛卡尔积</strong>：</p>
+<pre><code class="language-plaintext">http_requests_total{service, code, path, tenant_id}
+= 3 个服务 × 6 种状态码 × 200 条路径 × 500 个租户
+= 1,800,000 条活跃时间序列
+</code></pre>
+<p>每条序列都要占内存、定期落盘，百万级序列足以让 Prometheus 内存爆掉、查询变慢——<strong>你用来观测系统的系统，成了新的故障源</strong>。治理原则三条：</p>
+<ol>
+<li><strong>高基数字段永远不进 label</strong>：<code>tenant_id</code>、<code>user_id</code>、<code>order_id</code>、完整 URL，这类取值成千上万的信息属于日志和 Trace，不属于指标。</li>
+<li><strong>label 只放枚举型低基数维度</strong>：服务名、状态码族（<code>2xx/4xx/5xx</code> 而非具体码）、环境、版本。</li>
+<li><strong>需要按租户看时走聚合</strong>：按租户分析用日志/数仓离线算，指标只保留&quot;top N 租户&quot;这种有界维度。</li>
+</ol>
+<p>记住一个类比：<strong>指标是体温计，日志是病历，Trace 是 CT</strong>——你不会把整本病历写进体温计。</p>
+<h3 id="3-4-症状告警-vs-原因告警">3.4 症状告警 vs 原因告警</h3>
+<p>这是告警设计的第一原则：<strong>告警只报症状，不报原因</strong>。</p>
+<ul>
+<li>❌ 原因告警：&quot;订单服务的 JVM Old GC 超过 2 秒&quot;——也许根本没人受影响。</li>
+<li>✅ 症状告警：&quot;订单查询错误率过去 5 分钟 &gt; 2%（SLO 消耗速度超标）&quot;——用户正在受害，必须有人起来。</li>
+</ul>
+<p>原因信息去哪？进看板和诊断面板，作为人被叫醒后的排查线索。<strong>判断标准只有一条：这个告警如果凌晨三点响起，接电话的人需要立刻做什么？</strong> 如果答案是&quot;看一眼，没事，继续睡&quot;，它就不该是告警。</p>
+<p>为什么这条原则如此重要？算一笔账：一个 50 个服务的系统，每个服务 10 个资源指标，如果按原因告警，理论上有 500 条规则会响；但其中真正&quot;用户正在受害&quot;的时刻可能一年只有几十次。<strong>原因告警把&quot;罕见的重要信号&quot;稀释在&quot;常见的无关噪音&quot;里</strong>，结局一定是告警疲劳（3.6 节）。症状告警天然收敛——用户的症状就那么几种：慢了、错了、没了。</p>
+<h3 id="3-5-燃烧率告警-多窗口多燃烧率的数学">3.5 燃烧率告警：多窗口多燃烧率的数学</h3>
+<blockquote>
+<p><strong>数学铺垫（比例换算，小学六年级水平）</strong>：这一节只用到一个动作——<strong>用除法比较快慢</strong>。想知道&quot;钱花得快不快&quot;，就拿&quot;现在花钱的速度&quot;除以&quot;允许花钱的速度&quot;：一个月允许错 0.1%，现在正以 0.1% 的速度错，0.1% ÷ 0.1% = 1，意思是&quot;照此速度恰好一个月花完&quot;；如果商是 14.4，就是&quot;花快了 14.4 倍&quot;，30 天 ÷ 14.4 ≈ 2 天就花完。先给一个数值样例：SLO 99.9% 允许 0.1% 错误，实测错误率 1.44%，商 = 1.44% ÷ 0.1% = 14.4，对应 2 天烧光整月预算——下面那张四档告警表，全是这个例子的变形。所以&quot;燃烧率&quot;不是新概念，只是&quot;实际速度 ÷ 预算速度&quot;这个商；所有告警阈值，都是先定&quot;几天烧完该叫人&quot;，再倒推出商该是多少。</p>
+</blockquote>
+<p>症状告警解决了&quot;报什么&quot;，下一个问题是&quot;<strong>阈值定多少</strong>&quot;。拍脑袋定&quot;错误率 &gt;2% 告警&quot;有两个无解的矛盾：</p>
+<ul>
+<li>阈值低了：夜间低流量时，3 个请求里 1 个失败就是 33% 错误率，电话把人叫醒，其实是某个用户手滑——<strong>误报</strong>；</li>
+<li>阈值高了：错误率 0.5% 的慢性泄漏持续半个月，从不告警，月底一算 SLO 已经破了——<strong>漏报</strong>。</li>
+</ul>
+<p>Google SRE 工作簿给出的答案是<strong>基于燃烧率（burn rate）的告警</strong><sup class="fn-ref"><a href="#fn-sre-workbook" id="ref-sre-workbook">[2]</a></sup>。先定义：</p>
+<pre><code class="language-plaintext">燃烧率 = 当前错误率 ÷ SLO 允许的错误率
+</code></pre>
+<p>SLO 99.9% 允许 0.1% 错误率。如果系统长期以 0.1% 出错的速率运行（燃烧率 = 1），30 天恰好烧完整月预算；燃烧率 = 14.4 意味着按这个速度 <strong>2 天烧完 30 天的预算</strong>；燃烧率 = 6 意味着 5 天烧完。</p>
+<p>于是告警逻辑从&quot;错误率绝对值&quot;变成&quot;<strong>烧钱速度</strong>&quot;：烧得快，立刻叫人；烧得慢但持续，进工单；烧得极其缓慢，每日巡检看一眼。Google 推荐的多窗口配置（针对 99.9% SLO，其他档位同比缩放）<sup class="fn-ref"><a href="#fn-sre-workbook" id="ref-sre-workbook">[2]</a></sup>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>档位</th>
+<th>燃烧率</th>
+<th>烧完月预算时间</th>
+<th>长窗口</th>
+<th>短窗口</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>快燃</td>
+<td>14.4×</td>
+<td>2 天</td>
+<td>1 小时</td>
+<td>5 分钟</td>
+<td>☎ 立即叫人</td>
+</tr>
+<tr>
+<td>中燃</td>
+<td>6×</td>
+<td>5 天</td>
+<td>6 小时</td>
+<td>30 分钟</td>
+<td>☎ 立即叫人</td>
+</tr>
+<tr>
+<td>慢燃</td>
+<td>3×</td>
+<td>10 天</td>
+<td>1 天</td>
+<td>2 小时</td>
+<td>✉ 工单跟进</td>
+</tr>
+<tr>
+<td>阴燃</td>
+<td>1×</td>
+<td>30 天</td>
+<td>3 天</td>
+<td>6 小时</td>
+<td>✉ 每日巡检</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>为什么要长短双窗口？</strong> 只看长窗口：故障已经烧了 50 分钟，1 小时窗口的平均值还没过线，告警迟到；只看短窗口：一个 5 分钟的毛刺就把人叫醒，而且故障恢复后短窗口立刻回落、告警立刻复位，值班者被&quot;告警-复位-告警-复位&quot;反复横跳折磨。<strong>长窗口保证&quot;这不是毛刺&quot;（降低误报），短窗口保证&quot;检出快、复位快&quot;（降低漏报）</strong>——两个条件取&quot;与&quot;，兼得两者。</p>
+<pre class="mermaid">flowchart TD
+    M[&quot;每分钟计算两个窗口的错误率&lt;br/&gt;短窗口 5 分钟 / 长窗口 1 小时&quot;] --&gt; C{&quot;长短窗口错误率&lt;br/&gt;都 ≥ 14.4 × 0.1%？&quot;}
+    C --&gt;|&quot;是&quot;| P1[&quot;☎ 快燃告警&lt;br/&gt;立即电话叫人&lt;br/&gt;2 天将烧完月预算&quot;]
+    C --&gt;|&quot;否&quot;| C2{&quot;6 小时 + 30 分钟窗口&lt;br/&gt;都 ≥ 6 × 0.1%？&quot;}
+    C2 --&gt;|&quot;是&quot;| P2[&quot;☎ 中燃告警&lt;br/&gt;立即叫人&quot;]
+    C2 --&gt;|&quot;否&quot;| C3{&quot;1 天 + 2 小时窗口&lt;br/&gt;都 ≥ 3 × 0.1%？&quot;}
+    C3 --&gt;|&quot;是&quot;| T1[&quot;✉ 工单&lt;br/&gt;工作时间处理&quot;]
+    C3 --&gt;|&quot;否&quot;| T2[&quot;✅ 无需动作&lt;br/&gt;数据沉淀进周报&quot;]
+</pre>
+<p>数学上还有一个值得知道的细节：14.4 这个数不是拍脑袋，而是从&quot;<strong>误报率与检出时间的权衡</strong>&quot;反推出来的——1 小时窗口消耗 2% 月预算（30 天 × 2% ÷ 60 分钟 ≈ 14.4 倍燃烧率），是在&quot;足够快到值得叫人&quot;和&quot;足够大到不可能是抖动&quot;之间找到的平衡点。</p>
+<p>用下面的模拟器亲手验证这套机制：设定 SLO 和背景错误率，注入一段&quot;错误脉冲&quot;（比如模拟一次发布事故：错误率 2%、持续 1 小时），看四档告警各自会不会响、多久之后响：</p>
+<div class="demo-embed" data-demo="burn-rate-alert"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong>（建议按顺序观察）：</p>
+<ol>
+<li>用默认参数（99.9% SLO、2% 错误率 × 60 分钟）跑一次，记录快燃档的&quot;检出延迟&quot;——理解为什么不是故障一发生就告警。</li>
+<li>把持续时长缩到 10 分钟再跑：观察哪些档不响了，解释长短双窗口如何避免&quot;毛刺叫人&quot;。</li>
+<li>把峰值错误率降到 0.15%（燃烧率 ≈1.5）、持续时长拉满 720 分钟：观察只有&quot;慢燃/阴燃&quot;档触发——体会慢性泄漏为什么必须靠慢档抓。</li>
+<li>把背景错误率调到 0.1%（恰好 = 允许错误率）：什么都不注入，想想这个系统 30 天后预算剩多少。</li>
+<li>切到 99.99% SLO 再跑默认脉冲：注意各档阈值同比收紧，理解&quot;SLO 越高，告警越敏感&quot;。</li>
+</ol>
+<h3 id="3-6-告警疲劳治理">3.6 告警疲劳治理</h3>
+<p>告警疲劳是可靠的隐形杀手：收件箱里每天 200 条告警，第 201 条真正致命的就被淹没了——人对告警的注意力是有限资源，和 GPU 显存一样需要精打细算。治理三板斧：</p>
+<ol>
+<li><strong>每条告警必须可行动</strong>：不能触发动作的告警降级为看板指标或周报项。接到告警后的动作只有三类：立即修复、立即缓解（回滚/切流/扩容）、立即升级（摇更懂的人）——如果一条告警三者都不沾，它不配叫醒任何人。</li>
+<li><strong>定期审阅告警记录</strong>：每月回顾，把&quot;响了但没人处理、处理了但没必要&quot;的告警删掉或调阈值。告警规则也要有生命周期。一个量化参考：<strong>健康的值班周期内，page 级告警每周不应超过 2-3 次</strong>——超过这个频率，值班者会学会忽略告警，这是组织的失败而不是个人的失职。</li>
+<li><strong>告警收敛与聚合</strong>：一个数据库挂了引发 50 个服务告警，应该收敛成一条&quot;数据库 X 不可用，影响 50 个服务&quot;，而不是 50 通电话。实现手段：告警分组（同根因合并）、抑制（上游告警期间屏蔽下游）、静默（维护窗口期提前声明）。</li>
+</ol>
+<h3 id="3-7-与卷04-可观测性的关系">3.7 与卷04 可观测性的关系</h3>
+<p>一句话：<strong>观测是数据，告警是决策</strong>。卷04 的三支柱解决&quot;系统内部状态如何被看见&quot;，本节的黄金信号与预算告警解决&quot;看见之后何时行动&quot;。没有观测的告警是瞎叫，没有告警的观测是自言自语——两者在 SLO 上交汇：SLO 既是告警阈值的来源，也是看板组织的中心。</p>
+<hr>
+<h2 id="4-事故管理-值班-应急与复盘">4. 事故管理：值班、应急与复盘</h2>
+<h3 id="4-1-值班-oncall-可靠性的最后一道人肉防线">4.1 值班（Oncall）：可靠性的最后一道人肉防线</h3>
+<p>自动化能处理已知问题，值班处理的是未知问题。健康的值班制度有几个硬指标：</p>
+<ul>
+<li><strong>轮换周期</strong>：单人连续值班不超过一周——连续高压下判断力会显著下降，第 7 天的值班者和第 1 天不是同一个人。常见形态是&quot;主备双人、按周轮换&quot;（见下图）。</li>
+<li><strong>人数红线</strong>：值班组少于 3 人就是高风险（一人请假另一人就连轴转）；Google 的经验是一个值班组 6-8 人，每人每周至多一次 oncall<sup class="fn-ref"><a href="#fn-sre-book" id="ref-sre-book">[1]</a></sup>。</li>
+<li><strong>告警预算</strong>：单次值班期 page 告警 ≤2-3 次（见 3.6），超过就该治理告警或修系统，而不是换人硬扛。</li>
+<li><strong>补偿机制</strong>：告警风暴后有补休、值班津贴真实发放。</li>
+<li><strong>授权</strong>：最重要的一条——<strong>值班者有权叫停发布、有权拉任何人进群，事后不被追责</strong>。</li>
+</ul>
+<pre class="mermaid">flowchart LR
+    subgraph 一周值班轮换
+        W1[&quot;第 1 周&lt;br/&gt;主值：小张&lt;br/&gt;备值：小李&quot;]
+        W2[&quot;第 2 周&lt;br/&gt;主值：小李&lt;br/&gt;备值：小王&quot;]
+        W3[&quot;第 3 周&lt;br/&gt;主值：小王&lt;br/&gt;备值：小张&quot;]
+    end
+    W1 --&gt; W2 --&gt; W3 --&gt; W1
+    H[&quot;交接纪律：每周一 30 分钟交接会&lt;br/&gt;未关闭告警逐条过&lt;br/&gt;在途变更逐条过&lt;br/&gt;近期容量与演练安排同步&quot;]
+    W1 -.-&gt; H
+</pre>
+<p><strong>主备双人是关键设计</strong>：主值被叫醒后 15 分钟无响应，告警自动升级到备值；重大事故主值一个人忙不过来时，备值是第一援军。RetailHub 只有 6 个人，可以全员轮值主备——这也倒逼每个人都必须懂全链路，值班制度顺便解决了&quot;知识只在一个人脑子里&quot;的单点问题。</p>
+<h3 id="4-2-事故分级与升级机制">4.2 事故分级与升级机制</h3>
+<p>不是所有事故都值得全公司跳起来。没有分级的事故响应有两个极端结局：小事故动用十个人，大事故却只有值班者孤军奋战。一个务实的四级标准：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>定义（满足其一）</th>
+<th>响应要求</th>
+<th>RetailHub 示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td>核心链路完全不可用；数据丢失或泄露；资损</td>
+<td>全员响应，15 分钟内 IC 到位，每 30 分钟对外同步</td>
+<td>下单接口全量 500；租户数据串库</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>核心链路严重劣化或部分不可用；错误预算小时级燃烧</td>
+<td>值班者 + 备值响应，1 小时内 IC 到位</td>
+<td>订单查询错误率 30%；推理服务全挂</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>非核心功能不可用；核心功能降级可用</td>
+<td>值班者处理，工作时间内响应</td>
+<td>报表生成延迟但可查历史；看板退回静态数据</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>体验瑕疵，无功能损失</td>
+<td>进 backlog，随迭代修复</td>
+<td>某图表加载慢 2 秒；文案错误</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>升级机制（Escalation）解决的是&quot;叫醒链&quot;</strong>：告警 → 主值（15 分钟无响应）→ 备值（15 分钟无响应）→ SRE 负责人 → 技术负责人。每一级的超时时间和联系方式必须提前写成 runbook，<strong>升级不是告状，是制度设计</strong>——值班者发现超出自己能力时立刻升级是专业行为，硬扛两小时不吭声才是失职。</p>
+<p>事故的完整生命周期与角色配合，用一条时间线看更清楚：</p>
+<pre class="mermaid">flowchart LR
+    T0[&quot;14:03&lt;br/&gt;告警触发&lt;br/&gt;燃烧率越线&quot;] --&gt; T1[&quot;14:05&lt;br/&gt;值班者确认&lt;br/&gt;定级 P1，担任 IC&quot;]
+    T1 --&gt; T2[&quot;14:08&lt;br/&gt;拉事故群&lt;br/&gt;操作/沟通/记录到位&quot;]
+    T2 --&gt; T3[&quot;14:20&lt;br/&gt;定位并缓解&lt;br/&gt;回滚 / 切流 / 限流&quot;]
+    T3 --&gt; T4[&quot;14:50&lt;br/&gt;服务恢复&lt;br/&gt;错误率回基线&quot;]
+    T4 --&gt; T5[&quot;17:00&lt;br/&gt;初步公告&lt;br/&gt;影响面与时间线&quot;]
+    T5 --&gt; T6[&quot;T+3 天&lt;br/&gt;复盘会&lt;br/&gt;blameless postmortem&quot;]
+    T6 --&gt; T7[&quot;T+14 天&lt;br/&gt;改进项验收&lt;br/&gt;闭环归档&quot;]
+    style T3 fill:#f0fdfa,stroke:#0f766e
+    style T6 fill:#f0fdfa,stroke:#0f766e
+</pre>
+<p>注意这条时间线的两个纪律：<strong>从告警到缓解以分钟计</strong>（先恢复），<strong>从恢复到复盘以天计</strong>（后查因）。复盘要趁热（记忆新鲜、日志未过期）但不必当夜（疲惫的团队写不出好复盘）。</p>
+<h3 id="4-3-应急指挥-混乱中建立秩序">4.3 应急指挥：混乱中建立秩序</h3>
+<p>事故现场的敌人不是故障本身，而是混乱：五个人同时改五处、没人记时间线、领导在群里不停问&quot;好了没&quot;。业界成熟做法是明确的角色分工<sup class="fn-ref"><a href="#fn-sre-book" id="ref-sre-book">[1]</a></sup>：</p>
+<pre class="mermaid">flowchart LR
+    subgraph 事故响应角色分工
+        IC[&quot;事故指挥官 IC&lt;br/&gt;唯一决策人&lt;br/&gt;协调全局，不亲自上手改&quot;]
+        OPS[&quot;操作负责人&lt;br/&gt;执行排查与修复&lt;br/&gt;唯一动系统的人&quot;]
+        COM[&quot;沟通负责人&lt;br/&gt;对内同步进展&lt;br/&gt;对外（客户/公关）统一口径&quot;]
+        SCR[&quot;记录员&lt;br/&gt;记时间线：谁在何时做了什么&lt;br/&gt;复盘的第一手材料&quot;]
+    end
+    IC --&gt; OPS
+    IC --&gt; COM
+    IC --&gt; SCR
+</pre>
+<p>三个人也能跑：IC 兼记录，一人操作，一人沟通。<strong>角色比人数重要</strong>——哪怕只有两个人，明确&quot;谁指挥、谁动手&quot;也能避免互相踩踏。另一个关键纪律：<strong>先恢复，后查因</strong>。能重启恢复就先重启，能回滚就先回滚，根因分析留给复盘——MTTR（平均恢复时间）比&quot;根因报告多漂亮&quot;重要得多。</p>
+<p>补充一个反直觉的点：<strong>IC 不亲自上手改系统</strong>。原因有两个：一是动手的人视野会缩窄到眼前的终端，失去全局判断；二是权力与操作分离形成天然复核——&quot;IC 决定回滚、OPS 执行回滚&quot;意味着每个动作都过了两个人的脑子，慌乱中的错误率直接减半。</p>
+<h3 id="4-4-blameless-postmortem-不追责复盘">4.4 Blameless Postmortem：不追责复盘</h3>
+<p>事故复盘是可靠性工程最重要的学习机制，而其文化基石是 <strong>blameless（不追责）</strong>：假设每个人在当时的信息和压力下都做出了他认知内的合理决策，事故的责任在系统（流程、工具、架构）而不在个人<sup class="fn-ref"><a href="#fn-sre-book" id="ref-sre-book">[1]</a></sup>。</p>
+<p><strong>为什么 blameless 不是&quot;和稀泥&quot;而是硬工程？</strong> 两个机制层面的原因：</p>
+<ol>
+<li><strong>追责的第一个代价是信息断流</strong>。如果&quot;报事故会被处分&quot;，团队的理性选择是瞒报小事故——而小事故恰恰是大事故的彩排。Etsy、Google 等公司公开过同一组经验：blameless 文化推行后，上报的事故数量<strong>上升</strong>了，但严重事故数量<strong>下降</strong>了——因为小问题在萌芽期就被摊开解决了。</li>
+<li><strong>追责的第二个代价是学到错误的教训</strong>。&quot;小张手滑了&quot;这个结论不产生任何工程改进；真正的问法是&quot;为什么系统允许一次手滑造成全站故障？为什么手滑没有被防护机制拦住？&quot;——<strong>人的错误是免费的压力测试，系统的缺陷才是复盘的猎物</strong>。</li>
+</ol>
+<p>blameless 不等于无责（accountability）：责任从&quot;你搞砸的&quot;变成&quot;你负责把改进项落地&quot;。不惩罚引发事故的人，但要追踪改进项的负责人到闭环。</p>
+<p><strong>时间线的写法细则</strong>。时间线是复盘文档的心脏，三条纪律：</p>
+<ul>
+<li><strong>全部用同一时区、精确到分钟</strong>，以告警/日志时间戳为准，不靠回忆；</li>
+<li><strong>只记事实不记判断</strong>：&quot;14:20 决定回滚&quot;是事实，&quot;14:20 英明决定回滚&quot;不是；</li>
+<li><strong>记失败的尝试</strong>：&quot;14:12 尝试重启无效&quot;和最终成功的操作同样重要——它防止下一个复盘者重走弯路。</li>
+</ul>
+<p><strong>行动项的跟踪纪律</strong>。每条改进项必须有：明确负责人（一个人，不是一个组）、截止日期、可验证的完成标准（&quot;上线 X 告警&quot;而非&quot;加强监控&quot;）、以及在两周后的复查会议上过一遍状态。<strong>复盘的价值 = 改进项的闭环率</strong>，会议室里的顿悟不值钱。</p>
+<p>一份合格的复盘文档模板：</p>
+<pre><code class="language-markdown"># 事故复盘：YYYY-MM-DD &lt;一句话标题，如&quot;订单服务因缓存穿透不可用 47 分钟&quot;&gt;
+
+## 1. 影响面
+- 时间段：14:03–14:50（47 分钟）
+- 影响：订单查询接口错误率峰值 38%，约 1200 次请求失败；无数据丢失
+- 错误预算消耗：本月预算 43.2 分钟，本次消耗 28.5 分钟（66%）
+
+## 2. 时间线（全部用 UTC+8，精确到分钟）
+- 14:03 告警触发：订单查询错误率 &gt;2%
+- 14:05 值班工程师确认，定级 P1，启动事故响应，担任 IC
+- 14:12 定位为缓存命中率骤降（热 key 失效）
+- 14:20 决定：开启兜底直连数据库 + 限流保护
+- 14:50 错误率恢复 &lt;0.1%，事故关闭
+
+## 3. 根因分析（5 Whys）
+- 为什么错误率高？缓存命中率从 99% 跌到 12%
+- 为什么命中率跌？一个热 key（top100 商品列表）过期
+- 为什么过期会打穿？该 key 重建需全表扫描 30s，并发请求同时打到 DB（缓存击穿）
+- 为什么没有保护？未对该 key 使用互斥重建/逻辑过期（卷02 讲过的手段，未落实）
+- 为什么没落实？上线检查清单中没有&quot;热 key 防护&quot;一项 ← 真正的根因
+
+## 4. 改进项（每条有负责人与截止日期）
+| # | 改进项 | 类型 | 负责人 | 截止 |
+|---|---|---|---|---|
+| 1 | top100 key 改为逻辑过期 + 单飞重建 | 代码 | 张三 | 本周五 |
+| 2 | 上线检查清单增加&quot;热 key 防护&quot;项 | 流程 | 李四 | 下周三 |
+| 3 | 增加缓存命中率 &lt;80% 的预警（症状前置） | 监控 | 王五 | 下周三 |
+
+## 5. 经验与教训（至少一条&quot;下次怎么更快恢复&quot;）
+</code></pre>
+<p>复盘的终点不是文档，而是<strong>改进项进入 backlog 并被追踪完成</strong>——复盘会议开完两周后，如果改进项一条没动，这次事故就白疼了。</p>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：卷08-3-发布工程与AI服务SRE.md（发布工程、容量规划与混沌工程；金山办公案例；AI 服务的 SRE 特殊性；本卷实战）</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-sre-book">Betsy Beyer 等，《Site Reliability Engineering: How Google Runs Production Systems》（O'Reilly, 2016），Google 官方在线公开版：<a href="https://sre.google/sre-book/table-of-contents">https://sre.google/sre-book/table-of-contents</a> 。本卷引及：第 1 章（SRE 起源与定义）、第 3 章（拥抱风险）、第 4 章（SLO）、第 5 章（消除 toil 与 50% 规则）、第 6 章（监控与四个黄金信号）、第 13–14 章（事故响应与角色分工）、第 15 章（postmortem 文化）。 <a class="fn-back" href="#ref-sre-book" aria-label="回到正文">↩</a></li>
+<li id="fn-sre-workbook">Betsy Beyer 等，《The Site Reliability Workbook》（O'Reilly, 2018），在线公开版：<a href="https://sre.google/workbook/table-of-contents/">https://sre.google/workbook/table-of-contents/</a> 。本卷引及：第 2 章（SLO 工程与 SLI 规格/实现两栏写法）、第 5 章（Alerting on SLOs：多窗口多燃烧率告警，14.4/6/3/1 配置表）、第 5–7 章（SRE 团队组建模式）。 <a class="fn-back" href="#ref-sre-workbook" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-08-1.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷08-1 · SLO 与错误预算</span></a>
+      <a class="next" href="vol-08-3.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷08-3 · 发布工程与 AI 服务 SRE</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#3-监控与告警-观测是数据-告警是决策">3. 监控与告警：观测是数据，告警是决策</a>
+    <a class="toc-h3" href="#3-1-四个黄金信号">3.1 四个黄金信号</a>
+    <a class="toc-h3" href="#3-2-red-与-use-两套落地口诀">3.2 RED 与 USE：两套落地口诀</a>
+    <a class="toc-h3" href="#3-3-指标基数爆炸-监控系统自己的可靠性问题">3.3 指标基数爆炸：监控系统自己的可靠性问题</a>
+    <a class="toc-h3" href="#3-4-症状告警-vs-原因告警">3.4 症状告警 vs 原因告警</a>
+    <a class="toc-h3" href="#3-5-燃烧率告警-多窗口多燃烧率的数学">3.5 燃烧率告警：多窗口多燃烧率的数学</a>
+    <a class="toc-h3" href="#3-6-告警疲劳治理">3.6 告警疲劳治理</a>
+    <a class="toc-h3" href="#3-7-与卷04-可观测性的关系">3.7 与卷04 可观测性的关系</a>
+    <a class="toc-h2" href="#4-事故管理-值班-应急与复盘">4. 事故管理：值班、应急与复盘</a>
+    <a class="toc-h3" href="#4-1-值班-oncall-可靠性的最后一道人肉防线">4.1 值班（Oncall）：可靠性的最后一道人肉防线</a>
+    <a class="toc-h3" href="#4-2-事故分级与升级机制">4.2 事故分级与升级机制</a>
+    <a class="toc-h3" href="#4-3-应急指挥-混乱中建立秩序">4.3 应急指挥：混乱中建立秩序</a>
+    <a class="toc-h3" href="#4-4-blameless-postmortem-不追责复盘">4.4 Blameless Postmortem：不追责复盘</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-08-2:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷08-1：SRE 世界观与 SLO 体系——把"稳定性"变成可谈判的数字 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷08-1：SRE 世界观与 SLO 体系——把"稳定性"变成可谈判的数字 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html" class="active">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷08-1-sre-世界观与-slo-体系-把-稳定性-变成可谈判的数字">卷08-1：SRE 世界观与 SLO 体系——把&quot;稳定性&quot;变成可谈判的数字</h1>
+<blockquote>
+<p>导语：这是卷08「SRE 与可靠性工程」三子页的第 1 页，覆盖原卷 §1–§2（SRE 是什么、SLI/SLO/SLA、错误预算）。卷06 结束时 RetailHub 的平台拼图看似完整，但请回答一个问题：<strong>如果明天上午十点推理服务挂了，谁会知道？多久能恢复？你能对业务方承诺&quot;一年最多坏多久&quot;吗？</strong> 三个问题答不上来，系统就只是&quot;能跑&quot;，谈不上&quot;可承诺&quot;。本子页先讲清 SRE 是什么——Google 发明的、用软件工程消灭运维的方法论；再拿下全卷灵魂：用 SLI/SLO 与错误预算把&quot;稳定性&quot;从玄学变成可定量谈判的工程指标。Agent 的一切可靠性承诺都建立在底座之上——先学会给传统服务立承诺，才配给智能体立承诺。</p>
+</blockquote>
+<hr>
+<h2 id="1-sre-是什么-用软件工程消灭运维">1. SRE 是什么：用软件工程消灭运维</h2>
+<h3 id="1-1-三类角色对比-运维-devops-sre">1.1 三类角色对比：运维、DevOps、SRE</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>传统运维（Ops）</th>
+<th>DevOps（理念/运动）</th>
+<th>SRE（具体岗位与方法）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>核心目标</td>
+<td>系统别挂，变更别动</td>
+<td>开发与运维协作，交付更快</td>
+<td>用工程手段同时获得速度与稳定</td>
+</tr>
+<tr>
+<td>工作方式</td>
+<td>手工操作、工单驱动</td>
+<td>自动化流水线、文化融合</td>
+<td>写代码消灭重复劳动（消除 toil）</td>
+</tr>
+<tr>
+<td>与开发的关系</td>
+<td>部门墙两侧，互相甩锅</td>
+<td>&quot;You build it, you run it&quot;</td>
+<td>同一套工程标准，SRE 本身也是软件工程师</td>
+</tr>
+<tr>
+<td>稳定性如何度量</td>
+<td>凭感觉、&quot;最近挺稳的&quot;</td>
+<td>较少量化</td>
+<td>SLI/SLO/错误预算，全部量化</td>
+</tr>
+<tr>
+<td>变更态度</td>
+<td>能不变就不变</td>
+<td>持续交付</td>
+<td>用错误预算决定变更节奏</td>
+</tr>
+<tr>
+<td>一句话</td>
+<td>看机器的人</td>
+<td>一种文化主张</td>
+<td>一套可执行、可招聘、可考核的工程学科</td>
+</tr>
+</tbody>
+</table></div>
+<p>可以这么理解三者的关系：<strong>DevOps 提出了&quot;开发运维应该一体&quot;的愿景，SRE 是 Google 给出的具体实现</strong>——Google SRE 有句名言：&quot;SRE is what happens when you ask a software engineer to design an operations team.&quot;（当你让软件工程师来设计运维团队时，得到的就是 SRE。）Google 副总裁 Ben Treynor 还有一句更技术味的表述：&quot;SRE 类实现了 DevOps 接口&quot;（class SRE implements interface DevOps）——DevOps 是抽象理念，SRE 是它的一套具体方法集<sup class="fn-ref"><a href="#fn-sre-book" id="ref-sre-book">[1]</a></sup>。</p>
+<h3 id="1-2-google-sre-的起源与组织形态">1.2 Google SRE 的起源与组织形态</h3>
+<p><strong>起源</strong>。2003 年，Google 的软件工程师 Ben Treynor 受命组建一个 7 人团队，负责生产系统的可用性。他的选择在当时是离经叛道的：不招系统管理员，而是让软件工程师干运维的活——结果这些人厌恶重复劳动到骨子里，凡是要做第二遍的手工操作就写成代码。这支团队后来长成上千人的 SRE 部门，扛住了 Google 搜索、Gmail 等顶级规模服务，2016 年 Google 把方法论公开成书，SRE 从此成为行业通用词<sup class="fn-ref"><a href="#fn-sre-book" id="ref-sre-book">[1]</a></sup>。这段历史对零基础读者有一个重要启示：<strong>SRE 不是&quot;运维岗位的改名&quot;，而是用工程文化对运维岗位的重新发明</strong>。</p>
+<p><strong>SRE 团队的组建模式</strong>。公司规模不同，SRE 的组织方式也不同，主要有四种<sup class="fn-ref"><a href="#fn-sre-workbook" id="ref-sre-workbook">[2]</a></sup>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>做法</th>
+<th>适合阶段</th>
+<th>风险</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>嵌入式（Embedded）</td>
+<td>SRE 直接编入业务开发团队，同甘共苦</td>
+<td>单个核心服务、团队小</td>
+<td>SRE 被业务节奏同化，沦为&quot;高级运维&quot;</td>
+</tr>
+<tr>
+<td>参与式（Engaged）</td>
+<td>独立 SRE 团队，对服务做&quot;成熟度评估&quot;后才接管</td>
+<td>多服务、有平台雏形</td>
+<td>评估标准不清会变成权力寻租</td>
+</tr>
+<tr>
+<td>咨询式（Consulting）</td>
+<td>SRE 不接管服务，输出工具、评审与培训</td>
+<td>SRE 人力稀缺的早期</td>
+<td>说了没人听，落不了地</td>
+</tr>
+<tr>
+<td>中央平台式（Centralized）</td>
+<td>SRE 建设统一平台（监控/发布/告警），服务自助接入</td>
+<td>规模化阶段（如金山办公 KAE）</td>
+<td>平台脱离业务实际，变成新衙门</td>
+</tr>
+</tbody>
+</table></div>
+<p>RetailHub 当前 6 人团队的现实选择是<strong>咨询式 + 嵌入式混合</strong>：不设专职 SRE 岗位，但指定一名&quot;SRE 负责人&quot;（可以是你），把本卷的方法论作为团队纪律推行。<strong>方法论不挑团队规模，挑的是有没有人愿意为可靠性负责</strong>。</p>
+<p><strong>50% 工程时间规则的运作细节</strong>。Google 给 SRE 定了一条硬规矩：琐事（toil）不能超过工作时间的 50%，其余时间必须用于工程改进<sup class="fn-ref"><a href="#fn-sre-book" id="ref-sre-book">[1]</a></sup>。这条规则的运作机制值得拆解开看：</p>
+<ol>
+<li><strong>先认清什么是 toil</strong>。Google 的定义有五个特征：手工的、重复性的、可自动化的、战术性的（而非长期价值）、随服务规模线性增长的。手工重启是 toil，写重启脚本不是；手工扩容是 toil，做自动扩缩容不是；给领导手工导周报是 toil，做自助看板不是。<strong>判断标准：这件事做完之后，世界有没有变得更好一点？</strong></li>
+<li><strong>超限怎么办</strong>。如果一个 SRE 团队的 toil 持续超过 50%，Google 的做法是把部分工单<strong>退回给开发团队</strong>——让开发者亲自感受自己设计出来的系统有多难伺候，这比任何架构评审都更能激励&quot;可运维性设计&quot;。</li>
+<li><strong>为什么必须是 50% 而不是&quot;尽量&quot;</strong>。因为 toil 有自我繁殖能力：系统越大，手工活越多；手工活越多，越没时间写自动化；越没有自动化，手工活更多——这是死亡螺旋。50% 是一条用行政纪律强制保留的&quot;研发再投资率&quot;，和财务上的研发投入占比是同一个道理。</li>
+</ol>
+<h3 id="1-3-google-sre-的核心命题">1.3 Google SRE 的核心命题</h3>
+<p>传统运维团队的规模随系统规模线性增长：机器多一倍，人就得加一倍——这在商业上不可持续。SRE 的破局点是把运维当软件工程问题来做：</p>
+<ol>
+<li><strong>消除 toil（琐事）</strong>：如上节所述，用 50% 规则强制保留工程时间，让&quot;消灭重复劳动&quot;永远有时间发生。</li>
+<li><strong>拥抱风险，而不是消灭风险</strong>：100% 可靠不是目标，也不是用户需要的（用户家里的 Wi-Fi 比你的服务更容易断）。目标是把可靠性定在&quot;用户满意且成本可承受&quot;的水平，然后把剩余的不可靠额度当成<strong>预算</strong>来花。</li>
+<li><strong>用数据而非职位做决定</strong>：发布能不能上、架构要不要改，拿 SLO 数据说话，不听嗓门最大的。</li>
+</ol>
+<h3 id="1-4-为什么架构师必须懂-sre">1.4 为什么架构师必须懂 SRE</h3>
+<p>你在卷05 学过&quot;质量属性&quot;：可用性是每个架构文档里都会写的词。但架构师写&quot;系统可用性 99.9%&quot;和 SRE 兑现&quot;99.9%&quot;之间隔着一整套工程体系——<strong>架构图上的每一个冗余设计、每一个降级开关，最终都要靠 SLO、告警、值班、复盘这套机制才能真正生效</strong>。反过来，不懂 SRE 的架构师会犯两类典型错误：过度设计（为一个没人承诺过的可用性堆三地五中心，烧钱）或设计缺位（架构里根本没有可观测性和降级的位置，上线后补都补不上）。架构决定可靠性的上限，SRE 决定可靠性的下限。</p>
+<hr>
+<h2 id="2-sli-slo-sla-与错误预算-sre-的灵魂">2. SLI/SLO/SLA 与错误预算：SRE 的灵魂</h2>
+<p>这是本卷最重要的一节，请慢读。</p>
+<h3 id="2-1-三个概念一张表">2.1 三个概念一张表</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>概念</th>
+<th>全称</th>
+<th>定义</th>
+<th>例子（以 RetailHub 订单查询为例）</th>
+<th>性质</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLI</td>
+<td>Service Level Indicator，指标</td>
+<td>对服务水平的<strong>可测量</strong>量化指标</td>
+<td>28 天窗口内，延迟 &lt; 300ms 且返回 2xx 的请求占比</td>
+<td>测量值</td>
+</tr>
+<tr>
+<td>SLO</td>
+<td>Service Level Objective，目标</td>
+<td>SLI 应该达到的内部目标</td>
+<td>SLI ≥ 99.9%（滚动 30 天）</td>
+<td>内部承诺</td>
+</tr>
+<tr>
+<td>SLA</td>
+<td>Service Level Agreement，协议</td>
+<td>与用户的合同，违约要赔钱/赔额度</td>
+<td>可用性 ≥ 99.5%，未达标按合同赔付</td>
+<td>商业合同</td>
+</tr>
+</tbody>
+</table></div>
+<p>记住一句话：<strong>SLI 是温度计，SLO 是你对自己承诺的体温红线，SLA 是你对别人签的合同红线</strong>。工程上有一个重要纪律：<strong>SLO 必须比 SLA 严格</strong>，中间留出的缓冲带就是你的反应时间——等 SLA 破了才告警，赔偿金已经在路上了。</p>
+<h3 id="2-2-sli-的选择方法-四族指标-口径之争与规格说明书">2.2 SLI 的选择方法：四族指标、口径之争与规格说明书</h3>
+<p><strong>选哪些 SLI？</strong> 常用四族：</p>
+<ul>
+<li><strong>可用性（Availability）</strong>：成功请求占比。注意分母怎么定义（健康探测请求算不算？），口径之争是 SLO 谈判的第一战场。</li>
+<li><strong>延迟（Latency）</strong>：P95/P99 分位延迟，而不是平均值——平均延迟会掩盖长尾用户的地狱体验。注意成功请求与失败请求的延迟要分开统计：一个 500 错误 5ms 就返回了，混进平均值会让&quot;延迟&quot;看起来更健康。</li>
+<li><strong>新鲜度（Freshness）</strong>：数据系统特有——用户看到的报表数据落后真实世界多久？RetailHub 的经营日报 T+1 还是 T+5 分钟，就是新鲜度 SLI。</li>
+<li><strong>正确性（Correctness）</strong>：返回了 200 但算错了，比返回 500 更恶劣。对账单、库存这类数据，需要&quot;对账一致率&quot;这样的 SLI。</li>
+</ul>
+<p><strong>四族指标怎么落地测量？</strong> 每一族都要回答&quot;数据从哪来&quot;：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>SLI 族</th>
+<th>测量位置（优先级从高到低）</th>
+<th>RetailHub 落点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>可用性</td>
+<td>负载均衡/网关日志 &gt; 服务端指标 &gt; 客户端上报 &gt; 探测脚本</td>
+<td>网关的 access log 统计 2xx 占比</td>
+</tr>
+<tr>
+<td>延迟</td>
+<td>服务端直方图（histogram bucket）</td>
+<td><code>http_request_duration_seconds_bucket</code></td>
+</tr>
+<tr>
+<td>新鲜度</td>
+<td>数据时间戳与当前时间之差，周期性采样</td>
+<td><code>time() - dashboard_data_timestamp</code></td>
+</tr>
+<tr>
+<td>正确性</td>
+<td>对账任务、双写比对、人工抽检</td>
+<td>每日订单总额 vs 支付渠道对账单</td>
+</tr>
+</tbody>
+</table></div>
+<p>为什么强调&quot;测量位置&quot;？因为<strong>同一个 SLI 在不同位置测出来的值可能差出一个 9</strong>：在服务端测可用性，测不到客户端到机房之间的网络故障；在网关测，测不到网关本身的故障。原则是<strong>测量点尽量靠近用户</strong>——用户的体验才是 SLI 的本体，服务端指标只是它最方便的代理。</p>
+<p><strong>分母口径之争：SLO 谈判的第一战场</strong>。看一个真实感很强的例子——订单查询可用性 SLI：</p>
+<ul>
+<li>口径 A：<code>成功请求数 / 全部请求数</code>——分母含健康检查、含爬虫、含恶意扫描，数值天然虚高。</li>
+<li>口径 B：<code>成功请求数 / 剔除健康检查与内部探测后的请求数</code>——更接近真实用户体验。</li>
+<li>口径 C：<code>成功请求数 / 有效业务请求数（再剔除 4xx）</code>——客户端传错参数导致的 400 算不算服务不可用？业务方说不算，用户说我明明失败了。</li>
+</ul>
+<p>三种口径没有绝对对错，但<strong>选定后必须写进 SLO 文档并冻结</strong>——否则每次事故复盘都会演变成口径扯皮。经验法则：分母取&quot;用户视角的有效请求&quot;，剔除机器流量，保留所有服务端责任范围内的失败（含 5xx、超时、限流 429）。</p>
+<p><strong>SLI 规格说明书（SLI Specification）</strong>。Google SRE 工作簿建议每个 SLI 写一份两栏规格<sup class="fn-ref"><a href="#fn-sre-workbook" id="ref-sre-workbook">[2]</a></sup>：</p>
+<pre><code class="language-markdown">## SLI：订单查询可用性
+### 规格（Specification）——用户视角的定义
+请求返回 2xx 且 P95 延迟 &lt; 300ms 的占比，用户视角&quot;能用&quot;的标准。
+### 实现（Implementation）——工程视角的测量
+数据源：网关 access log（filebeat → ES）
+分子：status=~&quot;2..&quot; 且 upstream_response_time &lt; 0.3 的条数
+分母：剔除 /healthz、/metrics 与内网探测 IP 后的总条数
+窗口：28 天滚动，每小时聚合一次
+已知偏差：不含网关自身故障期间（网关挂了 log 也没了），
+         该时段按不可用计入（保守处理）
+</code></pre>
+<p><strong>先写规格再写实现</strong>——规格回答&quot;用户的什么体验&quot;，实现回答&quot;我们怎么近似测量它&quot;。两者之间的差距（已知偏差）必须显式承认，否则你会把&quot;指标好看&quot;误认为&quot;用户满意&quot;。</p>
+<h3 id="2-3-slo-制定方法-从用户出发-不从能力出发">2.3 SLO 制定方法：从用户出发，不从能力出发</h3>
+<p>错误的制定顺序：先测出系统现在能跑 99.95%，然后把 SLO 定为 99.9%——这叫&quot;向后看&quot;，定出来的 SLO 既不保护用户也不约束自己。正确的顺序是：</p>
+<ol>
+<li><strong>找出用户旅程</strong>：RetailHub 用户的核心旅程是&quot;打开经营看板 → 看昨日数据 → 下钻异常门店&quot;。SLO 只保这条旅程上的服务，不为边缘功能立军令状。</li>
+<li><strong>问用户能容忍什么</strong>：内部工具用户容忍度低吗？未必——经营看板早上 9 点开会用，夜里挂了没人关心。这直接影响你的值班策略和维护窗口。</li>
+<li><strong>选一个&quot;用户开始抱怨但还没流失&quot;的点</strong>：SLO 定得太松，用户流失了你还&quot;达标&quot;；定得太紧，你为最后一个 9 付出十倍成本（见下表）。99.9% 是很多 B 端内部系统的甜蜜点。</li>
+<li><strong>写下来，让所有相关方签字</strong>：SLO 是一份&quot;工程部与业务部的停火协议&quot;，没签字的 SLO 在第一次事故后就会被撕毁。</li>
+</ol>
+<p><strong>可用性档位换算表（必背）</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>SLO 等级</th>
+<th>每年允许不可用</th>
+<th>每月允许（30 天月）</th>
+<th>每天允许</th>
+<th>形象理解</th>
+<th>典型成本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>99%（两个 9）</td>
+<td>3.65 天</td>
+<td>7.2 小时</td>
+<td>14.4 分钟</td>
+<td>每周可以坏一次大的</td>
+<td>单机房 + 基本监控即可</td>
+</tr>
+<tr>
+<td>99.5%</td>
+<td>1.83 天</td>
+<td>3.6 小时</td>
+<td>7.2 分钟</td>
+<td>每月一次中事故</td>
+<td>单机房 + 快速恢复预案</td>
+</tr>
+<tr>
+<td>99.9%（三个 9）</td>
+<td>8.76 小时</td>
+<td>43.2 分钟</td>
+<td>1.44 分钟</td>
+<td>一个月只允许一次中等事故</td>
+<td>需要冗余 + 自动故障转移</td>
+</tr>
+<tr>
+<td>99.95%</td>
+<td>4.38 小时</td>
+<td>21.6 分钟</td>
+<td>43 秒</td>
+<td>事故要半自动恢复</td>
+<td>冗余 + 自动切换 + 严格变更管控</td>
+</tr>
+<tr>
+<td>99.99%（四个 9）</td>
+<td>52.6 分钟</td>
+<td>4.32 分钟</td>
+<td>8.6 秒</td>
+<td>事故必须在人工反应前自愈</td>
+<td>多活架构、秒级切换，成本陡增</td>
+</tr>
+</tbody>
+</table></div>
+<p>记忆口诀：<strong>&quot;9 的个数翻一倍，允许的停机时间除以十&quot;</strong>——99% 是每月 7.2 小时，99.9% 是 43.2 分钟，99.99% 是 4.32 分钟。最后这个 9 的代价不是线性而是指数——从三个 9 到四个 9，往往意味着从&quot;单机房 + 快速恢复&quot;跳到&quot;多机房双活&quot;的架构代际变化。<strong>这是架构决策，不是运维目标</strong>，必须在卷05 那种正式架构评审里过。</p>
+<h3 id="2-4-slo-数学-串联-并联与滚动窗口">2.4 SLO 数学：串联、并联与滚动窗口</h3>
+<blockquote>
+<p><strong>数学铺垫（小学数学就够，30 秒读完）</strong>：这一节只用到两个知识点。第一是<strong>乘法原理</strong>：一件事的成功率是 99.9%，两件互不相干的事&quot;都成功&quot;的概率就是 0.999 × 0.999——因为第二件事只能在第一件事成功的那 99.9% 里再挑 99.9%。第二是<strong>倒着想</strong>：一个副本坏掉的概率是 1 − 0.999 = 0.001，两个备份&quot;同时都坏&quot;才算真坏，那就是 0.001 × 0.001。所谓&quot;n 次方&quot;只是把同一个数连乘 n 遍，0.999⁵ 就是 5 个 0.999 相乘。掌握这两句，下面的公式全是它们的直接应用——本节你只需要会&quot;连乘&quot;和&quot;用 1 去减&quot;，不需要任何新数学。</p>
+</blockquote>
+<p><strong>串联可用性：0.999 的 n 次方</strong>。用户的每一次请求都不是只经过一个服务，而是穿过一条链。以 RetailHub 智能看板为例：网关 → 订单服务 → Redis → PostgreSQL → 推理服务，五环串联。假设每个环节各自可用性都是 99.9%，且故障相互独立，那么整条链的可用性是：</p>
+<pre><code class="language-plaintext">链路可用性 = 0.999 × 0.999 × 0.999 × 0.999 × 0.999 = 0.999⁵ ≈ 99.50%
+</code></pre>
+<p>每个环节单独看都达标&quot;三个 9&quot;，用户看到的却是 99.5%——月停机从 43.2 分钟变成 3.6 小时。<strong>串联系统的可用性上限由最薄弱的一环决定，且每增加一环就再乘一次</strong>。这就是为什么微服务拆得越细，每个服务的 SLO 必须定得越高：10 个 99.9% 的微服务串成的链路只有 99%，用户不管你内部怎么分工。</p>
+<pre class="mermaid">flowchart LR
+    U[&quot;用户请求&quot;] --&gt; GW[&quot;网关&lt;br/&gt;99.9%&quot;]
+    GW --&gt; OS[&quot;订单服务&lt;br/&gt;99.9%&quot;]
+    OS --&gt; RC[&quot;Redis&lt;br/&gt;99.9%&quot;]
+    OS --&gt; PG[&quot;PostgreSQL&lt;br/&gt;99.9%&quot;]
+    OS --&gt; AI[&quot;推理服务&lt;br/&gt;99.5%&quot;]
+    GW --&gt; R[&quot;用户看到的可用性&lt;br/&gt;≈ 0.999⁴ × 0.995 ≈ 99.10%&quot;]
+    style R fill:#fef2f2,stroke:#dc2626
+</pre>
+<p><strong>并联可用性：冗余为什么能救命</strong>。同一个环节部署两个独立副本（任何一个是活的就能服务），可用性变成：</p>
+<pre><code class="language-plaintext">并联可用性 = 1 − (1 − a)²
+两个 99.9% 并联 = 1 − 0.001² = 99.9999%（六个 9）
+</code></pre>
+<p>两个&quot;三个 9&quot;的平庸副本，并联后接近&quot;六个 9&quot;——<strong>冗余是用便宜硬件换高可用的数学杠杆</strong>。但注意前提&quot;独立&quot;：如果两个副本跑在同一台宿主机、共用同一个数据库、由同一次发布同时更新，那它们的故障不是独立的，(1−a)² 的公式就失效——这就是第 6 节两地三中心要解决的&quot;相关性故障&quot;问题。</p>
+<p><strong>错误预算的滚动窗口计算</strong>。SLO 按&quot;滚动 30 天&quot;统计，意思是：任意时刻往回看 30 天的 SLI。这带来两个实操后果：</p>
+<ol>
+<li><strong>预算会自己恢复</strong>。30 天前的那场大事故，今天会从窗口里&quot;滑出去&quot;，预算余额自动回升——不需要任何人特赦。</li>
+<li><strong>月初清零是反模式</strong>。如果按自然月统计，月初预算满额时大家疯狂变更、月末预算见底时什么都不敢动——人为制造了节奏抖动。滚动窗口让预算水位连续变化，决策更平滑。</li>
+</ol>
+<pre class="mermaid">flowchart LR
+    subgraph W1[&quot;第 1 天的窗口&quot;]
+        A1[&quot;覆盖过去 30 天&lt;br/&gt;含上月末那场事故&lt;br/&gt;预算余额 20%&quot;]
+    end
+    W1 --&gt; W2
+    subgraph W2[&quot;第 15 天的窗口&quot;]
+        A2[&quot;事故仍在窗口内&lt;br/&gt;继续冻结非必要变更&lt;br/&gt;预算余额 35%&quot;]
+    end
+    W2 --&gt; W3
+    subgraph W3[&quot;第 31 天的窗口&quot;]
+        A3[&quot;事故滑出窗口&lt;br/&gt;预算恢复 100%&lt;br/&gt;发布节奏回绿&quot;]
+    end
+</pre>
+<p>先用交互 Demo 亲手感受串联衰减：默认拓扑就是 RetailHub 下单链路，拖动任一环节的可用性档位、或给它勾选&quot;双活并联&quot;，盯着&quot;链路总可用性&quot;和&quot;最薄弱一环&quot;怎么变：</p>
+<div class="demo-embed" data-demo="serial-availability"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong>（建议按顺序观察）：</p>
+<ol>
+<li>保持默认五环节不动，记下&quot;链路总可用性&quot;——对照上文 0.999ⁿ 的口算，验证 demo 的连乘结果。</li>
+<li>把&quot;推理服务&quot;从 99.5% 拉到 99.9%，观察总可用性提升了多少；再改回去，改为给它勾选&quot;双活并联&quot;，对比两种修法谁的收益大、成本是什么。</li>
+<li>把所有环节都设成 99.99%，看总可用性能否达到 99.9%——理解&quot;下游服务数 × 故障率&quot;这道紧箍咒。</li>
+<li>连续点&quot;＋ 增加环节&quot;加到 8 个，观察每加一环总可用性的衰减幅度，解释为什么微服务拆分要克制。</li>
+<li>找到让链路恰好回到 99.9% 的最省方案（提示：只治理短板），写下你的组合。</li>
+</ol>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：卷08-2-监控告警与事故管理.md（监控与告警：观测是数据，告警是决策；事故管理：值班、应急与复盘）</p>
+<h3 id="2-5-错误预算-把可靠性变成可花费的资源">2.5 错误预算：把可靠性变成可花费的资源</h3>
+<p>这是 SRE 方法论里最精妙的发明。逻辑链条是：</p>
+<ol>
+<li>SLO 定了 99.9%，意味着每月有 43.2 分钟的&quot;合法不可靠额度&quot;——这就是<strong>错误预算（Error Budget）</strong>。</li>
+<li>预算没花完，说明可靠性有余量：<strong>可以用来冒险</strong>——加快发布频率、上线实验性功能、做架构重构。研发团队拿到了数据支撑的&quot;冒险许可证&quot;。</li>
+<li>预算花完了，说明系统在裸奔：<strong>冻结非必要变更</strong>，全员优先做稳定性改进（修 bug、补冗余、写演练），直到预算恢复。</li>
+</ol>
+<p>于是&quot;开发想快、运维想稳&quot;这个千古死结被解开了：<strong>双方不再吵架，而是共同管理同一个账户</strong>。快与稳不再是价值观之争，而是会计问题。</p>
+<pre class="mermaid">flowchart TD
+    A[&quot;SLO 99.9%&lt;br/&gt;月错误预算 43.2 分钟&quot;] --&gt; B{&quot;本月预算余额？&quot;}
+    B --&gt;|&quot;充足（&gt;50%）&quot;| C[&quot;绿灯：正常发布节奏&lt;br/&gt;可上实验特性 / 架构重构&quot;]
+    B --&gt;|&quot;吃紧（10%-50%）&quot;| D[&quot;黄灯：降低发布频率&lt;br/&gt;高风险变更需评审&quot;]
+    B --&gt;|&quot;耗尽（≤10% 或 &lt;0）&quot;| E[&quot;红灯：冻结变更&lt;br/&gt;只允许修复性发布&lt;br/&gt;全员投入稳定性改进&quot;]
+    E --&gt; F[&quot;稳定性改进见效&lt;br/&gt;预算随窗口滚动恢复&quot;]
+    F --&gt; C
+</pre>
+<p>在真机上配置这套机制之前，先用下面的交互 Demo 建立直觉：设定 SLO 档位，往 30 天时间线里注入事故（自己指定持续时长与影响面，或让随机模拟替你&quot;倒霉&quot;），盯着错误预算条被一点点吃掉——特别注意预算耗尽时&quot;冻结变更&quot;是如何改变发布次数的，再切到&quot;无预算约束&quot;对照组，看看没有预算纪律的团队会用发布次数付出什么隐性代价：</p>
+<div class="demo-embed" data-demo="error-budget"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong>（建议按顺序观察）：</p>
+<ol>
+<li>先把 SLO 切到 99.99%，什么都不要做——只看&quot;月度错误预算&quot;变成约 4.3 分钟，理解为什么四个 9 几乎不允许人工反应。</li>
+<li>切回 99.9%，注入一次&quot;60 分钟 × 100% 影响面&quot;的事故，观察预算条一次性透支——这相当于一次大促故障的量级。</li>
+<li>点&quot;随机模拟 30 天&quot;三次，比较三次的发布冻结次数差异——体会&quot;同样的事故率，落在窗口不同位置，对发布节奏的影响完全不同&quot;。</li>
+<li>勾选&quot;无预算约束（对照）&quot;再模拟一次：发布次数上去了，但注意结论区说的隐性代价是什么。</li>
+<li>找到&quot;预算恰好不耗尽&quot;的最大事故组合（几次、各多长），写下它对 RetailHub 大促预案的启示。</li>
+</ol>
+
+<section class="footnotes">
+<ol>
+<li id="fn-sre-book">Betsy Beyer 等，《Site Reliability Engineering: How Google Runs Production Systems》（O'Reilly, 2016），Google 官方在线公开版：<a href="https://sre.google/sre-book/table-of-contents">https://sre.google/sre-book/table-of-contents</a> 。本卷引及：第 1 章（SRE 起源与定义）、第 3 章（拥抱风险）、第 4 章（SLO）、第 5 章（消除 toil 与 50% 规则）、第 6 章（监控与四个黄金信号）、第 13–14 章（事故响应与角色分工）、第 15 章（postmortem 文化）。 <a class="fn-back" href="#ref-sre-book" aria-label="回到正文">↩</a></li>
+<li id="fn-sre-workbook">Betsy Beyer 等，《The Site Reliability Workbook》（O'Reilly, 2018），在线公开版：<a href="https://sre.google/workbook/table-of-contents/">https://sre.google/workbook/table-of-contents/</a> 。本卷引及：第 2 章（SLO 工程与 SLI 规格/实现两栏写法）、第 5 章（Alerting on SLOs：多窗口多燃烧率告警，14.4/6/3/1 配置表）、第 5–7 章（SRE 团队组建模式）。 <a class="fn-back" href="#ref-sre-workbook" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-06-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷06-2 · 推理成本、向量检索与 LLMOps</span></a>
+      <a class="next" href="vol-08-2.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷08-2 · 监控告警与事故管理</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-sre-是什么-用软件工程消灭运维">1. SRE 是什么：用软件工程消灭运维</a>
+    <a class="toc-h3" href="#1-1-三类角色对比-运维-devops-sre">1.1 三类角色对比：运维、DevOps、SRE</a>
+    <a class="toc-h3" href="#1-2-google-sre-的起源与组织形态">1.2 Google SRE 的起源与组织形态</a>
+    <a class="toc-h3" href="#1-3-google-sre-的核心命题">1.3 Google SRE 的核心命题</a>
+    <a class="toc-h3" href="#1-4-为什么架构师必须懂-sre">1.4 为什么架构师必须懂 SRE</a>
+    <a class="toc-h2" href="#2-sli-slo-sla-与错误预算-sre-的灵魂">2. SLI/SLO/SLA 与错误预算：SRE 的灵魂</a>
+    <a class="toc-h3" href="#2-1-三个概念一张表">2.1 三个概念一张表</a>
+    <a class="toc-h3" href="#2-2-sli-的选择方法-四族指标-口径之争与规格说明书">2.2 SLI 的选择方法：四族指标、口径之争与规格说明书</a>
+    <a class="toc-h3" href="#2-3-slo-制定方法-从用户出发-不从能力出发">2.3 SLO 制定方法：从用户出发，不从能力出发</a>
+    <a class="toc-h3" href="#2-4-slo-数学-串联-并联与滚动窗口">2.4 SLO 数学：串联、并联与滚动窗口</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+    <a class="toc-h3" href="#2-5-错误预算-把可靠性变成可花费的资源">2.5 错误预算：把可靠性变成可花费的资源</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-08-1:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

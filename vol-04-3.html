@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷04-3：可观测性、容器化与平台工程——从"扛得住"到"人人能用" · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷04-3：可观测性、容器化与平台工程——从"扛得住"到"人人能用" · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html" class="active">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷04-3-可观测性-容器化与平台工程-从-扛得住-到-人人能用">卷04-3：可观测性、容器化与平台工程——从&quot;扛得住&quot;到&quot;人人能用&quot;</h1>
+<blockquote>
+<p>导语：前两页让 RetailHub&quot;扛得住&quot;，本页让它&quot;看得见、交得稳、人人能用&quot;：配置与发布怎么不翻车（配置中心与发布治理）、系统内部状态怎么看得见（可观测性三支柱）、代码怎么被标准化地交付和调度（容器与 Kubernetes 最小必要知识）。最后站高一层，引入平台工程（Platform Engineering，PI 架构）的思想：当团队里每个项目组都自己搭一遍上面这些东西时，组织会系统性失血——并用金山办公 KAE 这个工业级案例看&quot;平台即产品&quot;的真实样子。这正是卷06（AI Infra 平台）和阶段九（Agent 企业工程化）要反复使用的世界观。</p>
+</blockquote>
+<hr>
+<h2 id="4-配置中心与发布治理">4. 配置中心与发布治理</h2>
+<p>服务从 3 个变成 13 个之后，两个新痛点出现：改一个配置（比如把降级开关打开）要登录 13 台机器改文件重启；发新版时直接全量替换，一出 bug 全员陪葬。</p>
+<p><strong>配置中心</strong>（Nacos、Apollo、Consul KV）解决第一个问题：配置集中存储、按服务/环境分组、客户端监听变更热更新。治理要点：配置也是代码——要评审、要版本、要能回滚；降级开关、限流阈值这类&quot;运行时旋钮&quot;放配置中心，数据库密码这类密钥放专用密钥管理（K8s Secret / Vault），两者不要混。</p>
+<p><strong>发布治理</strong>解决第二个问题，三种基本策略：</p>
+<ul>
+<li><strong>滚动更新</strong>：分批替换实例，K8s 默认策略；简单但出问题影响面已扩散。</li>
+<li><strong>蓝绿发布</strong>：新旧两套环境并存，流量一次性切到新版本，出问题秒级切回；资源双倍。</li>
+<li><strong>金丝雀发布</strong>：先放 5% 流量到新版本，观察指标正常再逐步放大；需要网关按权重分流的能力，是互联网大厂默认姿势。</li>
+</ul>
+<p>对 RetailHub 现阶段：K8s 滚动更新 + readinessProbe（就绪探针，没准备好的实例不接流量）已经能挡住 80% 的发版事故，金丝雀留给流量真的大起来之后。</p>
+<hr>
+<h2 id="5-可观测性三支柱-metrics-logging-tracing-融合来源-opentelemetry-社区实践-凤凰架构-可观测性-论述">5. 可观测性三支柱：Metrics、Logging、Tracing（融合来源：OpenTelemetry 社区实践<sup class="fn-ref"><a href="#fn-3" id="ref-3">[1]</a></sup> + 凤凰架构&quot;可观测性&quot;论述<sup class="fn-ref"><a href="#fn-1" id="ref-1">[2]</a></sup>）</h2>
+<p>分布式的本质代价之一是：<strong>你再也不能靠&quot;登录那台机器看日志&quot;排查问题了</strong>。一次请求穿过网关、订单、库存三个服务，日志散落在十几个容器里。可观测性（Observability）就是回答&quot;系统内部正在发生什么&quot;的能力，业界共识的三支柱：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>支柱</th>
+<th>回答的问题</th>
+<th>典型工具</th>
+<th>粒度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Metrics（指标）</td>
+<td>系统整体健康吗？趋势如何？</td>
+<td>Prometheus + Grafana</td>
+<td>聚合数值：QPS、错误率、P99 延迟</td>
+</tr>
+<tr>
+<td>Logging（日志）</td>
+<td>这个具体请求/事件发生了什么？</td>
+<td>Loki / ELK</td>
+<td>离散事件，最细但最贵</td>
+</tr>
+<tr>
+<td>Tracing（链路追踪）</td>
+<td>这次请求经过了哪些服务，慢在哪一跳？</td>
+<td>Jaeger / Tempo</td>
+<td>单请求的完整路径</td>
+</tr>
+</tbody>
+</table></div>
+<p>三者的关系不是并列可选，而是<strong>排查动线</strong>：Metrics 告警发现&quot;订单接口 P99 飙升&quot;→ Tracing 定位到&quot;慢在调用库存服务那一跳&quot;→ Logging 看那一跳的具体报错。没有 Metrics 你不知道出事了，没有 Tracing 你不知道在哪出事，没有 Logging 你不知道为什么出事。把这条动线画出来——它也是你值班时的标准排查路径：</p>
+<pre class="mermaid">flowchart LR
+    M[&quot;① Metrics&lt;br/&gt;Prometheus 告警&lt;br/&gt;订单接口 P99 从 200ms 飙到 2s&quot;] --&gt; T[&quot;② Tracing&lt;br/&gt;Jaeger 按 trace_id 查&lt;br/&gt;慢在库存服务那一跳&quot;]
+    T --&gt; L[&quot;③ Logging&lt;br/&gt;用同一 trace_id 捞日志&lt;br/&gt;锁等待超时&quot;]
+    L --&gt; FIX[定位根因&lt;br/&gt;大租户批量锁库存行]
+    M -.没有它：不知道出事了.-&gt; X1[盲区]
+    T -.没有它：不知道在哪出事.-&gt; X1
+    L -.没有它：不知道为什么出事.-&gt; X1
+</pre>
+<p><strong>三支柱各有一个&quot;上手后才会撞见&quot;的深水区，提前告诉你：</strong></p>
+<ul>
+<li><strong>Metrics 的深水区是基数（cardinality）</strong>。给指标打标签（label）是免费的错觉：<code>http_requests_total{status, path}</code> 很美好，一旦有人把 <code>user_id</code> 或 <code>order_id</code> 打进 label，时间序列数量爆炸（每用户一条序列），Prometheus 直接被撑爆。纪律：<strong>label 只能放低基数维度</strong>（状态码、方法、服务名），高基数维度（用户、订单、trace_id）去日志和 Trace 里找。</li>
+<li><strong>Logging 的深水区是成本与结构</strong>。全量 INFO 日志在高 QPS 下是 TB 级/天，存储和检索都烧钱。纪律：<strong>结构化日志（JSON）+ 必带 trace_id</strong>（否则排查动线到日志这一环就断了）+ 按级别分层保留（ERROR 留 30 天，DEBUG 只留 3 天）。</li>
+<li><strong>Tracing 的深水区是采样</strong>。全量采集 Trace，头部大流量系统扛不住；只采 1%，出问题时大概率没采到出事的那条。工程答案：<strong>尾部采样</strong>（等一条 Trace 走完，发现含错误/超时才保留）或&quot;错误全采 + 正常请求低比例采&quot;。</li>
+<li><strong>两套口诀记牢</strong>：监控指标用 <strong>RED</strong>（Rate 请求量、Errors 错误率、Duration 延迟——面向服务）与 <strong>USE</strong>（Utilization 利用率、Saturation 饱和度、Errors 错误——面向资源）。评审任何系统的监控方案，先问&quot;RED 和 USE 各覆盖了几项&quot;<sup class="fn-ref"><a href="#fn-6" id="ref-6">[3]</a></sup>。</li>
+</ul>
+<p><strong>OpenTelemetry（OTel）</strong> 是这一领域的事实标准：一套 vendor 中立的 SDK/API，负责产生 Metrics、Logs、Traces 三种信号，通过 TraceID 把它们串起来，后端接什么（Jaeger 还是商业 APM）可以自由换。架构要点：<strong>用 OTel SDK 插桩，不直接绑死任何后端产品</strong>——这又是一次&quot;把易变的决策往后推&quot;的架构基本功。本卷实战将用 OTel 的 Python SDK 打通&quot;查询→订单→库存&quot;链路。</p>
+<p>一条 Trace 在 Jaeger 里的样子，本质是<strong>同一 trace_id 下父子 span 的嵌套时间条</strong>：</p>
+<pre class="mermaid">flowchart TB
+    subgraph TR[&quot;一条 Trace（所有 span 共享同一 trace_id）&quot;]
+        S1[&quot;span: gateway ———— 0ms ~ 120ms&quot;]
+        S2[&quot;span: order-service —— 10ms ~ 110ms&quot;]
+        S3[&quot;span: inventory-service — 30ms ~ 105ms ⚠ 慢在这一跳&quot;]
+        S4[&quot;span: SQL UPDATE — 35ms ~ 100ms&quot;]
+        S1 --&gt;|parent| S2 --&gt;|parent| S3 --&gt;|parent| S4
+    end
+    S4 --&gt; L[用 trace_id 去日志系统捞出&lt;br/&gt;这一跳的具体报错：锁等待超时]
+</pre>
+<p>读法：外层 span 的耗时 ≈ 内层之和 + 自身开销；哪一层&quot;自身耗时&quot;异常膨胀，慢点就在哪。上图中 gateway 的 120ms 里 100ms 耗在库存服务内的 SQL 上——Tracing 把&quot;感觉慢&quot;变成了&quot;第几跳、慢多少&quot;的定量结论。</p>
+<hr>
+<h2 id="6-容器化与-kubernetes-最小必要知识">6. 容器化与 Kubernetes：最小必要知识</h2>
+<h3 id="6-1-为什么需要容器">6.1 为什么需要容器</h3>
+<p>容器解决的是<strong>交付一致性</strong>：把代码、依赖、运行时打进一个不可变镜像（Dockerfile），&quot;在我机器上能跑&quot;从此等于&quot;在任何机器上能跑&quot;。同时它也是一切上层治理的前提——没有镜像这个标准交付物，就没有后面的编排、扩缩容、滚动更新。</p>
+<h3 id="6-2-kubernetes-最小概念集">6.2 Kubernetes 最小概念集</h3>
+<p>K8s 概念繁多，但 RetailHub 现阶段只需要六个，记住这张&quot;声明式意图&quot;图：</p>
+<pre class="mermaid">flowchart TB
+    Dev[开发者] --&gt;|kubectl apply 声明期望状态| API[K8s API Server]
+    API --&gt; Deploy[Deployment&lt;br/&gt;我要 3 个 order-service 副本&lt;br/&gt;镜像 v1.4，滚动更新]
+    Deploy --&gt; RS[ReplicaSet&lt;br/&gt;维持副本数：挂了自动补]
+    RS --&gt; P1[Pod 1&lt;br/&gt;最小调度单位&lt;br/&gt;1 个或多个容器]
+    RS --&gt; P2[Pod 2]
+    RS --&gt; P3[Pod 3]
+    SVC[Service&lt;br/&gt;稳定虚拟 IP + 负载均衡] --&gt; P1
+    SVC --&gt; P2
+    SVC --&gt; P3
+    CM[ConfigMap / Secret&lt;br/&gt;配置与密钥] -.注入环境变量/挂载.-&gt; P1
+</pre>
+<ul>
+<li><strong>Pod</strong>：最小调度单位，一个或多个共享网络的容器。你几乎不直接操作它。</li>
+<li><strong>Deployment</strong>：声明&quot;这个镜像跑几个副本、怎么更新&quot;，是日常操作的核心对象。</li>
+<li><strong>Service</strong>：一组 Pod 前面的稳定入口（虚拟 IP + DNS 名 + 负载均衡），就是 1.2 节说的&quot;免费的服务发现&quot;。</li>
+<li><strong>ConfigMap / Secret</strong>：非密配置与密钥的注入机制（轻量版配置中心）。</li>
+<li><strong>Probe（探针）</strong>：livenessProbe（活没活着，死了重启）与 readinessProbe（准备好接流量没有，没好就从 Service 摘掉）——<strong>这两个探针是 K8s 里性价比最高的可靠性设施，不配探针等于裸奔</strong>。</li>
+<li><strong>HPA</strong>：按 CPU/自定义指标自动扩缩副本数，有了它，&quot;容量规划&quot;从人肉变成声明。</li>
+</ul>
+<p>K8s 的哲学一句话：<strong>你声明期望状态，控制循环（controller）不断把现实扳回期望</strong>。这个&quot;声明式 + 调和循环&quot;的思想会在卷06（AI Infra 的资源调度）和阶段九（Agent Runtime 的任务调度）反复出现，值得在这里吃透。</p>
+<hr>
+<h2 id="7-平台工程-pi-架构-当每个团队都自己搭一遍-组织就开始失血">7. 平台工程（PI 架构）：当每个团队都自己搭一遍，组织就开始失血</h2>
+<h3 id="7-1-问题的形态">7.1 问题的形态</h3>
+<p>把前六节加起来看：服务发现、熔断限流、消息队列、配置中心、可观测性、CI/CD、K8s——RetailHub 一个团队搞定这些已经耗尽半生。现在想象公司有 8 个业务团队，每个团队都要把这些事重新做一遍：A 团队用 Sentinel，B 团队用 resilience4j；A 的 Grafana 看板长这样，B 的长那样；每个团队都有一个&quot;最懂 K8s 的人&quot;，他休年假全团队不敢发版。这就是平台工程要解决的真实组织病：<strong>基础设施能力被每个业务团队以略有不同、互不复用的方式重复建设，认知负担压垮了业务交付速度</strong>。</p>
+<h3 id="7-2-核心概念四件套">7.2 核心概念四件套</h3>
+<ul>
+<li><strong>内部开发者平台（IDP, Internal Developer Platform）</strong>：把上述基础设施能力封装成自助式产品——业务开发不需要懂 K8s，在平台上点选&quot;我要一个带 MySQL 和 Redis 的 Python 服务&quot;，平台自动产出镜像构建、部署清单、监控看板、告警规则。</li>
+<li><strong>黄金路径（Golden Path / Paved Road）</strong>：平台为最常见的场景提供一条&quot;被铺好的路&quot;——标准的项目模板、标准的 CI 流水线、标准的可观测接入。走黄金路径一切自动化；要偏离也可以，但偏离的成本自己承担。<strong>黄金路径是&quot;温柔的强制&quot;：不禁止自由，但让正确的做法成为最省力的做法。</strong></li>
+<li><strong>平台即产品（Platform as a Product）</strong>：平台团队把业务开发当&quot;内部客户&quot;——做用户调研、定义 SLA、度量采用率和开发者满意度，而不是把自己当成发号施令的&quot;运维管理部门&quot;。平台没人用，是平台的产品失败，不是业务团队不听话。</li>
+<li><strong>认知负担（Cognitive Load）</strong>：平台工程的度量原点（来自 Team Topologies<sup class="fn-ref"><a href="#fn-4" id="ref-4">[4]</a></sup>）。一个开发者能同时理解的东西是有限的，平台的使命就是把&quot;与业务无关的复杂度&quot;从业务开发的脑子里卸载到平台里。</li>
+</ul>
+<h3 id="7-3-从-工具-到-平台-的对比">7.3 从&quot;工具&quot;到&quot;平台&quot;的对比</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>工具堆（Tool Sprawl）</th>
+<th>内部开发者平台（IDP）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>新建一个服务</td>
+<td>复制老项目改半个月，配 5 个系统</td>
+<td>模板脚手架 + 自助申请，半天上线</td>
+</tr>
+<tr>
+<td>可观测接入</td>
+<td>各团队自己接，口径不一</td>
+<td>黄金路径默认带出 Metrics/Trace/日志</td>
+</tr>
+<tr>
+<td>K8s 知识要求</td>
+<td>每个团队都要有专家</td>
+<td>业务开发不需要懂，平台团队兜底</td>
+</tr>
+<tr>
+<td>故障排查</td>
+<td>先问&quot;这个服务是谁搭的、用的哪套&quot;</td>
+<td>全公司同一套看板与 Trace 入口</td>
+</tr>
+<tr>
+<td>组织风险</td>
+<td>关键人依赖、重复建设</td>
+<td>平台团队成为杠杆而非瓶颈</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="7-4-真实案例-kae-工业级-idp-长什么样">7.4 真实案例：KAE——工业级 IDP 长什么样</h3>
+<p>&quot;平台即产品&quot;在真实大厂是什么样子？看金山办公的 <strong>KAE（Kingsoft App Engine）</strong>：这是金山办公自研的云原生运行环境，统一管理微服务、容器与应用伸缩，是 WPS 混合云架构的底座<sup class="fn-ref"><a href="#fn-5" id="ref-5">[5]</a></sup>。规模感一下：KAE 承载的微服务总数 <strong>13600+</strong>（测试与生产环境），每天约 <strong>310 次更新部署</strong>——这个量级下任何&quot;每个团队自己搭一套&quot;的做法都会在人力上直接崩盘，平台不是选择题而是生存题。</p>
+<p>把 KAE 的公开实践拆成平台工程四件套来看，你会发现每个概念都有对应物<sup class="fn-ref"><a href="#fn-5" id="ref-5">[5]</a></sup>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>平台工程概念</th>
+<th>KAE 的对应做法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>自助式 IDP</td>
+<td>业务团队在平台上自助完成应用创建、部署、扩缩容，不直接接触底层 K8s 细节</td>
+</tr>
+<tr>
+<td>黄金路径</td>
+<td>发布走统一流水线，配合自动化测试与堡垒机管控守住发布门禁——标准动作被平台固化，偏离路径的成本自担</td>
+</tr>
+<tr>
+<td>平台即产品</td>
+<td>平台团队把上万微服务的治理收敛成统一产品能力，而不是逐个团队&quot;人盯人&quot;运维</td>
+</tr>
+<tr>
+<td>认知负担卸载</td>
+<td>可用性、容灾这类最难的能力沉淀为底座默认继承，业务开发不必人人成为容灾专家</td>
+</tr>
+</tbody>
+</table></div>
+<p>最值得细看的是<strong>可靠性如何被&quot;平台化&quot;</strong>：KAE 的目标可用性是 <strong>99.99%（四个 9，全年不可用约 52.6 分钟）</strong>，靠<strong>两地三中心</strong>架构承载——同城的两个中心互为主备，扛机房级故障（断电、网络中断）做到分钟级切换；异地的第三个中心扛地域级灾难（地震、城市级网络瘫痪），保住数据不丢、服务可重建。关键在于：这套容灾不是 13600 个微服务各自实现的，而是<strong>平台统一建设、所有服务默认继承</strong>——这正是&quot;认知负担卸载&quot;在可靠性维度上的样子。单个团队自己实现两地三中心，光演练成本就扛不住；平台把成本摊薄到万级服务上，才使四个 9 成为可负担的目标。（卷08 会用 SRE 的错误预算视角重新算这笔账。）</p>
+<p>你在本卷搭的&quot;最小内部平台&quot;与 KAE 之间隔着的是规模，不是原理：黄金路径、自助化、认知负担卸载，一模一样。KAE 的可靠性侧面，卷08 还会作为 SRE 案例展开。</p>
+<h3 id="7-5-为什么这个思想是后半条学习路径的暗线">7.5 为什么这个思想是后半条学习路径的暗线</h3>
+<p>本卷是平台工程第一次登场，但绝不是最后一次。<strong>卷06（AI Infra）</strong>：GPU 调度、模型服务化、推理网关、评测流水线——如果没有平台思维，每个算法团队都自己管 GPU 集群，结局和前六节描述的一模一样，只是更贵。<strong>阶段九（Agent 企业工程化）</strong>：LLM Runtime、工具治理、记忆治理、评测发布——Agent 平台本质上就是一个面向&quot;智能体开发者&quot;的 IDP，黄金路径就是&quot;标准 Agent 脚手架 + 受控发布流水线&quot;。你在本卷学到的&quot;平台即产品、黄金路径、认知负担&quot;三个概念，会在那时原样复用，只是服务对象从&quot;跑 HTTP 服务的开发&quot;变成&quot;跑 Agent 的开发&quot;。<strong>卷05 的架构评审</strong>：平台要不要自建、边界划在哪，正是 ADR 和 ATAM 评估的典型题材。</p>
+<hr>
+<h2 id="8-本卷实战-下-容器化-送上-k8s-并接入可观测">8. 本卷实战（下）：容器化、送上 K8s 并接入可观测</h2>
+<h3 id="8-1-背景">8.1 背景</h3>
+<p>本步是卷04 实战的最后两步（前三步见卷04-1、卷04-2）：把订单服务容器化并送上 K8s（对应本页 §6），再接入 OpenTelemetry 打通&quot;网关→订单→库存&quot;链路（对应本页 §5）。</p>
+<h3 id="8-2-任务清单-本页两步">8.2 任务清单（本页两步）</h3>
+<p><strong>第 4 步：容器化并送上 K8s</strong></p>
+<ul>
+<li>目标：&quot;在我机器上能跑&quot;变成&quot;在任何机器上能跑&quot;，且发版不掉流量。</li>
+<li>操作：按 §8.6 骨架写 Dockerfile（非 root 运行）、docker-compose 本地联调，再写 Deployment + Service + 双探针清单。</li>
+<li>验收：<code>docker compose up</code> 后网关→订单→库存链路本地可通；<code>kubectl apply</code> 后 3 副本就绪，手动 <code>kubectl delete pod</code> 任一实例，副本自动补齐且流量不中断；改镜像 tag 发版一次，全程 <code>maxUnavailable: 0</code> 且压测脚本零失败。</li>
+</ul>
+<p><strong>第 5 步：接入 OpenTelemetry 打通链路</strong></p>
+<ul>
+<li>目标：一次请求穿过三个服务，能回答&quot;慢在哪一跳&quot;。</li>
+<li>操作：按 §8.6 骨架部署 OTel Collector 与 Jaeger，应用侧用 <code>setup_tracing</code> 三行接入。</li>
+<li>验收：Jaeger 中能看到完整 Trace：gateway → order-service → inventory-service，库存服务内部可见 SQL 子 span。</li>
+</ul>
+<h3 id="8-6-配置骨架-4-dockerfile-与-k8s-清单">8.6 配置骨架 4：Dockerfile 与 K8s 清单</h3>
+<pre><code class="language-dockerfile"># retailhub/order/Dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+# 非 root 运行：容器安全的最小动作
+RUN useradd -m appuser &amp;&amp; chown -R appuser /app
+USER appuser
+EXPOSE 8001
+# 用 uvicorn 起 2 个 worker；K8s 里靠多副本水平扩展，不靠单容器多进程
+CMD [&quot;uvicorn&quot;, &quot;main:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8001&quot;, &quot;--workers&quot;, &quot;2&quot;]
+</code></pre>
+<pre><code class="language-yaml"># retailhub/deploy/order-service.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+spec:
+  replicas: 3                       # 声明期望状态：3 个副本
+  strategy:
+    rollingUpdate:
+      maxSurge: 1                   # 滚动更新：先多起 1 个新版本
+      maxUnavailable: 0             # 全程不减少可用副本
+  selector:
+    matchLabels: { app: order-service }
+  template:
+    metadata:
+      labels: { app: order-service }
+    spec:
+      containers:
+        - name: order-service
+          image: registry.internal/retailhub/order-service:1.4.0
+          ports: [{ containerPort: 8001 }]
+          envFrom:
+            - configMapRef: { name: order-service-config }
+            - secretRef: { name: order-service-secret }
+          resources:
+            requests: { cpu: &quot;100m&quot;, memory: &quot;128Mi&quot; }   # 资源声明是调度依据
+            limits:   { cpu: &quot;500m&quot;, memory: &quot;512Mi&quot; }   # 防止单个服务吃光节点
+          readinessProbe:           # 没就绪不接流量（发版安全的关键）
+            httpGet: { path: /healthz, port: 8001 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:            # 死了自动重启
+            httpGet: { path: /healthz, port: 8001 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service               # 稳定 DNS 名：order-service:8001
+spec:
+  selector: { app: order-service }  # 这就是免费的服务发现+负载均衡
+  ports: [{ port: 8001, targetPort: 8001 }]
+</code></pre>
+<pre><code class="language-yaml"># retailhub/deploy/otel-config.yaml（片段）：OTel Collector 以 DaemonSet 收集
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+data:
+  collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+    processors:
+      batch: {}
+    exporters:
+      otlp/jaeger:
+        endpoint: jaeger-collector:4317
+        tls: { insecure: true }
+      prometheus:
+        endpoint: &quot;0.0.0.0:8889&quot;
+    service:
+      pipelines:
+        traces:  { receivers: [otlp], processors: [batch], exporters: [otlp/jaeger] }
+        metrics: { receivers: [otlp], processors: [batch], exporters: [prometheus] }
+</code></pre>
+<pre><code class="language-python"># retailhub/common/tracing.py：应用侧三行接入 OTel
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+
+def setup_tracing(app, service_name: str):
+    provider = TracerProvider()
+    provider.resource.attributes[&quot;service.name&quot;] = service_name
+    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+    trace.set_tracer_provider(provider)
+    FastAPIInstrumentor.instrument_app(app)      # 自动给每个请求开 span
+    HTTPXClientInstrumentor().instrument()       # 出站调用自动带上 traceparent 头
+    # 效果：网关→订单→库存三个服务的 span 被同一个 trace_id 串成一条链
+</code></pre>
+<h3 id="8-8-验收标准-本页部分">8.8 验收标准（本页部分）</h3>
+<ul>
+<li class="task-item"><input type="checkbox"> <code>docker build</code> 成功且容器以非 root 用户运行；<code>docker compose up</code> 后网关→订单→库存链路本地可通</li>
+<li class="task-item"><input type="checkbox"> <code>kubectl apply -f deploy/</code> 后 3 个副本就绪；手动 <code>kubectl delete pod</code> 任一实例，副本自动补齐且 Service 流量不中断</li>
+<li class="task-item"><input type="checkbox"> 发版一次（改镜像 tag 后 apply），全程 <code>maxUnavailable: 0</code>，压测脚本无失败请求</li>
+<li class="task-item"><input type="checkbox"> Jaeger 中能看到一条完整 Trace：gateway → order-service → inventory-service，且库存服务内部可见 SQL 子 span</li>
+</ul>
+<hr>
+<h2 id="9-常见误区">9. 常见误区</h2>
+<ol>
+<li><strong>&quot;超时设长一点更稳&quot;</strong>——恰恰相反，超时过长等于放弃治理，线程池照样被拖死。超时应该贴近下游 P99 延迟，并且逐层递减。</li>
+<li><strong>对所有接口加重试</strong>——对非幂等的写操作重试是线上事故的经典配方（重复扣款、重复下单）。要么接口幂等化，要么不重试。</li>
+<li><strong>熔断阈值拍脑袋</strong>——&quot;失败 1 次就断&quot;会把抖动误判为故障，频繁误断；&quot;失败 100 次才断&quot;等于没装。阈值要基于下游正常失败率的观测数据来定，并随容量调整。</li>
+<li><strong>把限流只配在网关总量上</strong>——多租户系统里不限租户维度，一个大客户的爬虫就能挤死所有小客户。限流维度要和业务隔离维度对齐。</li>
+<li><strong>以为 Saga/消息表给了&quot;事务&quot;就不用设计状态</strong>——最终一致方案的前提是业务能接受中间态，且每个中间态都有明确定义（订单的&quot;已取消&quot;、库存的&quot;冻结中&quot;）。状态机设计缺失，补偿逻辑就是空中楼阁。</li>
+<li><strong>不配 readinessProbe 就滚动发版</strong>——新 Pod 还没初始化完就接流量，每次发版都伴随一波 502。两个探针是 K8s 性价比最高的可靠性投资。</li>
+<li><strong>直接绑死某个 APM 厂商的 SDK</strong>——厂商更换或成本谈判时全部推倒重来。用 OpenTelemetry 这层中立抽象插桩，后端可替换。</li>
+<li><strong>把平台工程理解成&quot;招几个运维搭 K8s&quot;</strong>——平台工程的核心是产品思维（黄金路径、自助化、度量采用率），不是工具堆砌。没有产品思维的平台团队最终会变成新的瓶颈部门。</li>
+</ol>
+<hr>
+<h2 id="10-自测清单">10. 自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox"> 能向一个新手讲清 RPC 与 REST 的真实差异，以及&quot;为什么内网性能差距通常不是选型的决定因素&quot;</li>
+<li class="task-item"><input type="checkbox"> 能画出熔断器三态状态机，并说明 HalfOpen 存在的意义</li>
+<li class="task-item"><input type="checkbox"> 能分别说出超时、重试、熔断、限流、降级各自防的故障类型，并举一个&quot;用错放大事故&quot;的例子</li>
+<li class="task-item"><input type="checkbox"> 能解释为什么重试必须配合幂等与退避，为什么超时预算要逐层递减</li>
+<li class="task-item"><input type="checkbox"> 能用&quot;下单扣库存发券&quot;讲清 2PC/TCC/Saga/本地消息表四者的取舍，并说明 RetailHub 为什么选本地消息表</li>
+<li class="task-item"><input type="checkbox"> 能说明可观测性三支柱各自的回答的问题，以及&quot;Metrics 告警 → Trace 定位 → 日志归因&quot;的排查动线</li>
+<li class="task-item"><input type="checkbox"> 能说出 K8s 六个最小概念（Pod/Deployment/Service/ConfigMap/Probe/HPA）各自的职责，并解释&quot;声明式 + 调和循环&quot;</li>
+<li class="task-item"><input type="checkbox"> 能解释 readinessProbe 与 livenessProbe 的区别，以及不配探针发版会发生什么</li>
+<li class="task-item"><input type="checkbox"> 能用自己的话讲清&quot;为什么每个团队都自己搭一套会失败&quot;，并定义 IDP、黄金路径、平台即产品、认知负担</li>
+<li class="task-item"><input type="checkbox"> 能说出平台工程思想在卷06（AI Infra）和阶段九（Agent 平台）将如何复用</li>
+</ul>
+<hr>
+<h2 id="下卷预告">下卷预告</h2>
+<p>到这里，RetailHub 已经是一个&quot;扛得住&quot;的系统：流量有治理、链路可观测、交付有标准、部署有编排。但你有没有发现一个隐藏问题——<strong>本卷每一个决策（为什么选本地消息表而不是 TCC？为什么要自建迷你熔断器而不是直接上 Sentinel？平台边界划在哪？）都是你脑子里做出的，却没有任何一份文档记录下来</strong>。三个月后新同事问&quot;为什么不用 gRPC&quot;，你只能回答&quot;当时好像讨论过&quot;。架构的可持续性，一半在技术决策本身，另一半在决策的显式化与可评估性。卷05 将引入系统架构设计师（软考）的完整知识体系与架构师的真实工作方法：质量属性场景、4+1 视图、ADR、ATAM 架构评估——并用它们为 RetailHub 产出一份可参评的完整架构文档包。</p>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：<a href="vol-05-1.html">卷05-1：架构师方法论——把脑子里的判断，变成可评审、可传承的架构资产</a></p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-3">OpenTelemetry 官方文档，vendor 中立的观测信号（Metrics/Logs/Traces）采集标准。<a href="https://opentelemetry.io/docs/">https://opentelemetry.io/docs/</a> <a class="fn-back" href="#ref-3" aria-label="回到正文">↩</a></li>
+<li id="fn-1">周志明《凤凰架构：构建可靠的大型分布式系统》，开源在线版，&quot;远程服务调用&quot;&quot;流量治理&quot;&quot;可观测性&quot;等章节。<a href="https://icyfenix.cn">https://icyfenix.cn</a> <a class="fn-back" href="#ref-1" aria-label="回到正文">↩</a></li>
+<li id="fn-6">Google《Site Reliability Engineering》（SRE Book），监控四大黄金信号与 RED/USE 方法论的源头之一。<a href="https://sre.google/sre-book/table-of-contents">https://sre.google/sre-book/table-of-contents</a> <a class="fn-back" href="#ref-6" aria-label="回到正文">↩</a></li>
+<li id="fn-4">Matthew Skelton &amp; Manuel Pais《Team Topologies》（中译《高效能团队模式》）——&quot;认知负担&quot;作为平台工程度量原点的出处。 <a class="fn-back" href="#ref-4" aria-label="回到正文">↩</a></li>
+<li id="fn-5">InfoQ《金山办公 KAE 云原生实践》——13600+ 微服务、日均约 310 次部署、两地三中心、99.99% 可用性等数据出处。<a href="https://www.infoq.cn/article/7hrf2lzxs641uwnwk09f">https://www.infoq.cn/article/7hrf2lzxs641uwnwk09f</a> 。本站存档见<a href="ref-03.html">资料03</a>。 <a class="fn-back" href="#ref-5" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-04-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷04-2 · 分布式事务与共识</span></a>
+      <a class="next" href="vol-05-1.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷05-1 · 架构师方法论</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#4-配置中心与发布治理">4. 配置中心与发布治理</a>
+    <a class="toc-h2" href="#5-可观测性三支柱-metrics-logging-tracing-融合来源-opentelemetry-社区实践-凤凰架构-可观测性-论述">5. 可观测性三支柱：Metrics、Logging、Tracing（融合来源：OpenTelemetry 社区实践 + 凤凰架构"可观测性"论述）</a>
+    <a class="toc-h2" href="#6-容器化与-kubernetes-最小必要知识">6. 容器化与 Kubernetes：最小必要知识</a>
+    <a class="toc-h3" href="#6-1-为什么需要容器">6.1 为什么需要容器</a>
+    <a class="toc-h3" href="#6-2-kubernetes-最小概念集">6.2 Kubernetes 最小概念集</a>
+    <a class="toc-h2" href="#7-平台工程-pi-架构-当每个团队都自己搭一遍-组织就开始失血">7. 平台工程（PI 架构）：当每个团队都自己搭一遍，组织就开始失血</a>
+    <a class="toc-h3" href="#7-1-问题的形态">7.1 问题的形态</a>
+    <a class="toc-h3" href="#7-2-核心概念四件套">7.2 核心概念四件套</a>
+    <a class="toc-h3" href="#7-3-从-工具-到-平台-的对比">7.3 从"工具"到"平台"的对比</a>
+    <a class="toc-h3" href="#7-4-真实案例-kae-工业级-idp-长什么样">7.4 真实案例：KAE——工业级 IDP 长什么样</a>
+    <a class="toc-h3" href="#7-5-为什么这个思想是后半条学习路径的暗线">7.5 为什么这个思想是后半条学习路径的暗线</a>
+    <a class="toc-h2" href="#8-本卷实战-下-容器化-送上-k8s-并接入可观测">8. 本卷实战（下）：容器化、送上 K8s 并接入可观测</a>
+    <a class="toc-h3" href="#8-1-背景">8.1 背景</a>
+    <a class="toc-h3" href="#8-2-任务清单-本页两步">8.2 任务清单（本页两步）</a>
+    <a class="toc-h3" href="#8-6-配置骨架-4-dockerfile-与-k8s-清单">8.6 配置骨架 4：Dockerfile 与 K8s 清单</a>
+    <a class="toc-h3" href="#8-8-验收标准-本页部分">8.8 验收标准（本页部分）</a>
+    <a class="toc-h2" href="#9-常见误区">9. 常见误区</a>
+    <a class="toc-h2" href="#10-自测清单">10. 自测清单</a>
+    <a class="toc-h2" href="#下卷预告">下卷预告</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-04-3:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

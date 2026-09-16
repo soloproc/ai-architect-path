@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷05-2：软考备考与架构文档包实战——把方法论变成分数与交付物 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="卷05-2：软考备考与架构文档包实战——把方法论变成分数与交付物 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html" class="active">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷05-2-软考备考与架构文档包实战-把方法论变成分数与交付物">卷05-2：软考备考与架构文档包实战——把方法论变成分数与交付物</h1>
+<blockquote>
+<p>导语：上一页（卷05-1）已经把架构师方法论的主线讲完——角色定位、架构风格、质量属性、4+1 视图、ATAM、ADR（本页正文中提到的&quot;本卷第 1-7 节&quot;均指卷05-1 的对应章节）。本页做两件&quot;兑现&quot;的事：一是软考&quot;系统架构设计师&quot;三科备考地图与论文万能骨架，把方法论变成分数；二是 RetailHub 演进第 5 步实战，把方法论变成一份可参评的完整架构文档包——它既是你案例分析/论文的素材库，也是真实团队 onboarding 的入口。</p>
+<p><strong>不考软考的读者怎么读这一页</strong>：第 8 节（三科题型、评分逻辑、三个月计划）可以速读或直接跳过，但建议留意 8.3 的论文万能骨架——它本质是&quot;把一个架构主题讲成结构化文章&quot;的通用模板，写技术分享、晋升答辩、架构汇报时同样适用；第 9 节（方法论在阶段九如何复用）、第 10 节实战（架构文档包四份交付物）、第 11 节常见误区与第 12 节自测清单<strong>与考试无关、人人必读必做</strong>——实战产出的文档包是不考软考也一样要交付的团队资产，自测清单中涉及备考的两条（三科题型、论文骨架）可跳过。</p>
+</blockquote>
+<hr>
+<h2 id="8-软考备考地图-三科题型-评分逻辑与-3-个月计划">8. 软考备考地图：三科题型、评分逻辑与 3 个月计划</h2>
+<h3 id="8-1-考试结构-系统架构设计师-高级资格">8.1 考试结构（系统架构设计师，高级资格）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>科目</th>
+<th>形式</th>
+<th>时长</th>
+<th>合格线</th>
+<th>本质考什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>综合知识</td>
+<td>75 道单选</td>
+<td>150 分钟</td>
+<td>45/75</td>
+<td>知识广度：计算机基础+软件工程+架构理论+新技术</td>
+</tr>
+<tr>
+<td>案例分析</td>
+<td>5 选 3 道大题，每题 25 分</td>
+<td>90 分钟</td>
+<td>45/75</td>
+<td>应用能力：给场景做风格选型、质量属性分析、权衡判断</td>
+</tr>
+<tr>
+<td>论文</td>
+<td>4 选 1 写一篇约 2500 字论文</td>
+<td>120 分钟</td>
+<td>45/75</td>
+<td>表达能力：结合&quot;自己的项目&quot;论述一个架构主题</td>
+</tr>
+</tbody>
+</table></div>
+<p>三科<strong>必须同一次全部 ≥45 分</strong>，单科不保留成绩——这是软考最残酷的规则，备考策略必须三科并进，不能偏科。考试政策与大纲以中国计算机技术职业资格网公布为准，报名前务必核对当年安排<sup class="fn-ref"><a href="#fn-ruankao" id="ref-ruankao">[1]</a></sup>。</p>
+<h3 id="8-2-各科评分逻辑与对应策略">8.2 各科评分逻辑与对应策略</h3>
+<p><strong>综合知识</strong>：考的是&quot;见过没有&quot;。本卷第 2、3、4 节（架构风格、质量属性、UML）加上卷03 的数据库、卷04 的分布式，覆盖了架构板块大头；剩下的计算机组成、操作系统、网络、安全、法律法规需要单独刷。策略：<strong>以历年真题为纲</strong>，近 5 年真题做两遍，错题回到教材补——不追求全懂，追求考点覆盖。</p>
+<p><strong>案例分析</strong>：考的是&quot;套路化的应用&quot;。高频题型就几类：识别架构风格并比较优劣、补写质量属性场景、指出方案的风险与权衡点、画/补 UML 图。你注意到没有——<strong>这些题型本卷已经全部讲过</strong>。案例分析的本质是&quot;用规范术语把工程判断写出来&quot;，有真实项目经验的人最大的陷阱是&quot;会做事不会答题&quot;：答案要用教材术语（&quot;敏感点&quot;&quot;权衡点&quot;&quot;战术&quot;），不要用公司黑话。</p>
+<p>再给一个案例分析的<strong>答题模板</strong>（阅卷按点给分，&quot;踩点&quot;比&quot;写满&quot;重要）：</p>
+<ol>
+<li><strong>先定性</strong>：&quot;该系统应采用 XX 风格/该决策属于权衡点&quot;——把判断亮在最前面；</li>
+<li><strong>再给依据</strong>：引用题干中的场景要素（&quot;题干提到读写比例 10:1，故读模型应独立优化&quot;）；</li>
+<li><strong>最后给代价</strong>：任何方案都补一句&quot;代价是……&quot;——阅卷人看到代价分析就知道你是真懂权衡，而不是背答案。</li>
+</ol>
+<p><strong>论文</strong>：考的是&quot;你能不能把一个架构主题讲成结构化的文章&quot;。评分维度大致是：切题、理论正确、有真实项目细节、结构完整。论文是<strong>可以提前准备 80% 的科目</strong>——见下面的万能骨架。</p>
+<h3 id="8-3-论文万能骨架-以-论软件架构的质量属性设计-为例">8.3 论文万能骨架（以&quot;论软件架构的质量属性设计&quot;为例）</h3>
+<pre><code class="language-markdown">【摘要】（300 字内）
+本文以我参与的零售经营数据平台（RetailHub）为背景，论述质量属性驱动的
+架构设计。项目为面向品牌商家的多租户 SaaS，支撑订单分析与经营报表。
+我担任架构师，负责非功能需求定义与架构决策。实践中我以质量属性场景
+六要素显式化性能与可用性目标，运用缓存、读写分离、熔断降级等战术兑现，
+并通过 ATAM 方法组织架构评估。最终系统在大促 10 倍流量下保持接口
+P99 ≤ 300ms、可用性 99.95%。
+
+【正文结构】
+1. 项目背景与我的职责（400 字）：业务规模、技术栈、我在其中的角色。
+   —— 注意：项目可以脱敏改写，但细节必须真实可信（数字、坑、权衡）。
+2. 理论展开（600 字）：质量属性六要素、战术清单、敏感点/权衡点概念。
+   —— 展示&quot;我懂理论&quot;，术语要准。
+3. 实践分述 2-3 个案例（1000 字）：每个案例按&quot;问题→场景定义→战术选择
+   →权衡与代价→量化结果&quot;展开。
+   —— 阅卷人在这里找&quot;真实感&quot;：真实的失败、真实的数字、真实的权衡。
+4. 不足与展望（200 字）：留一个真实的不足（如&quot;可修改性度量缺失&quot;），
+   显得诚实且有判断力。
+</code></pre>
+<p><strong>三个保分细节</strong>：摘要必须出现&quot;我担任什么角色、用了什么方法、取得什么量化结果&quot;三要素；正文每个案例都要有至少一个数字（延迟、流量、可用性、人日）——没有数字的&quot;实践&quot;会被判为编造；结尾的&quot;不足&quot;必须具体（&quot;可修改性缺乏度量手段&quot;），写&quot;还有很多不足请老师指正&quot;等于自曝没有判断力。</p>
+<h3 id="8-4-三个月备考计划">8.4 三个月备考计划</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时间</th>
+<th>动作</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第 1-4 周：建框架</td>
+<td>每天 1-1.5h</td>
+<td>通读教材架构板块（本卷内容可当大纲）；综合知识按章节刷题，错题建表</td>
+</tr>
+<tr>
+<td>第 5-8 周：练案例</td>
+<td>每天 1.5h</td>
+<td>近 5 年案例分析真题，每题先自己写再对标答案改——重点改&quot;术语表达&quot;；同时把本卷实战的架构文档包当素材库</td>
+</tr>
+<tr>
+<td>第 9-11 周：备论文</td>
+<td>每周写 1 篇</td>
+<td>按万能骨架准备 3-4 个主题（质量属性、架构风格、架构评估/ATAM、微服务/分布式），每个主题套自己的项目写一遍，掐表 120 分钟</td>
+</tr>
+<tr>
+<td>第 12 周：全真模拟</td>
+<td>隔天一套</td>
+<td>三科连考完整模拟，训练体力分配；回归错题表和论文骨架</td>
+</tr>
+</tbody>
+</table></div>
+<pre class="mermaid">flowchart LR
+    A[&quot;第 1-4 周&lt;br/&gt;建框架&lt;br/&gt;教材 + 章节刷题&quot;] --&gt; B[&quot;第 5-8 周&lt;br/&gt;练案例&lt;br/&gt;真题 + 术语表达&quot;]
+    B --&gt; C[&quot;第 9-11 周&lt;br/&gt;备论文&lt;br/&gt;4 主题 × 掐表写&quot;]
+    C --&gt; D[&quot;第 12 周&lt;br/&gt;全真模拟&lt;br/&gt;三科连考&quot;]
+    D --&gt; E[&quot;考试日&lt;br/&gt;三科同次全过&quot;]
+    A -.贯穿.-&gt; F[&quot;错题表持续维护&quot;]
+    B -.贯穿.-&gt; F
+    C -.贯穿.-&gt; F
+</pre>
+<p><strong>本路径读者的独特优势</strong>：你已经有一个真实演进的项目（RetailHub），论文的&quot;真实细节&quot;对你是现成资产——没有项目经验的考生最痛苦的就是编项目，而你要做的只是别在论文里写太多。</p>
+<hr>
+<h2 id="9-这套方法论在阶段九如何全部复用">9. 这套方法论在阶段九如何全部复用</h2>
+<p>先剧透后验证——等你走到阶段九（Agent 企业工程化），会再次遇到本卷每一件工具：</p>
+<ul>
+<li><strong>质量属性场景</strong>：Agent 的&quot;质量属性&quot;更苛刻——除了性能可用性，还有<strong>效果质量</strong>（诊断准确率）、<strong>安全</strong>（工具副作用）、<strong>成本</strong>（Token 预算）。评测基线（篇09）本质上就是 Agent 版的质量属性场景 + 响应度量。</li>
+<li><strong>ADR</strong>：Agent 系统的决策更短命（模型换一代，Prompt 契约可能全变），<strong>决策记录的价值反而更高</strong>——&quot;为什么当时选这个模型路由策略&quot;会成为每次模型升级时的必读档案。</li>
+<li><strong>架构评审</strong>：篇09 的 Regression Gate 与受控发布，本质是把架构评审从&quot;人评文档&quot;进化为&quot;机器评测 + 人评决策&quot;。</li>
+<li><strong>4+1 视图</strong>：Agent 系统的进程视图（Runtime 并发执行）和物理视图（GPU/推理资源部署）会比传统系统更难画，也更需要画。</li>
+</ul>
+<p>一句话：<strong>本卷学的是&quot;如何对复杂系统做出、记录、评审决策&quot;，Agent 只是让这个能力更稀缺，不是让它过时</strong>。</p>
+<hr>
+<h2 id="10-本卷实战-retailhub-演进第-5-步-产出完整架构文档包">10. 本卷实战：RetailHub 演进第 5 步——产出完整架构文档包</h2>
+<h3 id="10-1-背景">10.1 背景</h3>
+<p>RetailHub 当前形态（卷04 末态）：网关 + 订单/库存/报表三个服务，K8s 部署（3 副本滚动更新），outbox 异步链路，OTel 全链路 Trace，租户级限流与熔断。文档现状：只有卷03 的数据架构设计文档，散落各处。本步要把它升级为一份<strong>可参评的架构文档包</strong>——既是你软考案例分析/论文的素材，也是真实团队 onboarding 的入口。</p>
+<h3 id="10-2-递进任务步骤">10.2 递进任务步骤</h3>
+<p>四份交付物，建议按顺序推进（视图是骨架，场景是承诺，ADR 是历史，评审是验收）：</p>
+<p><strong>步骤 1：4+1 视图图集（mermaid 绘制，5 张图）。</strong></p>
+<ul>
+<li>目标：用五个视图把 RetailHub 的当前形态完整表达，且视图间互相一致。</li>
+<li>操作：参照 10.3 节给出的四张图骨架（逻辑/进程/物理/开发），补齐场景视图的走查说明；每画完一个视图，用&quot;下单&quot;用例走查一遍一致性（4.1 节方法）。</li>
+<li>验收标准：5 张图 mermaid 可渲染；场景视图能串联其余四视图；随机抽一个组件，它在逻辑视图、物理视图、开发视图里都能找到对应物。</li>
+</ul>
+<p><strong>步骤 2：6 个质量属性场景（六要素格式）。</strong></p>
+<ul>
+<li>目标：把 RetailHub 的非功能承诺从形容词变成可验证场景。</li>
+<li>操作：先在 quality-scenario demo 里练 3 条找手感，再按 10.4 节的表格写满 6 条（性能 2、可用性 2、安全 1、可修改性 1）；写完逐条自检：环境写了吗？制品具体吗？度量有数字和口径吗？</li>
+<li>验收标准：每条六要素完整，响应度量全部可机器验证（无&quot;较高&quot;&quot;尽量&quot;类措辞）；至少 1 条场景有对应的验证手段（压测或混沌实验）。</li>
+</ul>
+<p><strong>步骤 3：3 份 ADR（选真实发生过的决策）。</strong></p>
+<ul>
+<li>目标：把卷01-04 里&quot;脑子里做的决策&quot;落成档案。</li>
+<li>操作：按 7.2 节模板补全 10.5 节的三份骨架（ADR-004 已有完整示例可直接纳入）；写被否决方案时逼自己回忆&quot;当时还考虑过什么、为什么放弃&quot;。</li>
+<li>验收标准：3 份 ADR 均含背景/决策/被否决方案及理由/正面与负面后果，状态字段完整；每份一页纸以内。</li>
+</ul>
+<p><strong>步骤 4：一次模拟架构评审的评审意见与答复记录。</strong></p>
+<ul>
+<li>目标：用评审检验前三步的成果，体验&quot;被质询&quot;的感觉。</li>
+<li>操作：拉一位同事（或让 AI 扮演三个不同立场的评审人，见 10.6 的 AI Coding 模式）对文档包质询；按 6.3 节纪律记录——每条质询给出风险/非风险/敏感点/权衡点的结论（参照 10.6 的纪要示例）。</li>
+<li>验收标准：每条质询有明确结论，每个风险有行动项、责任人、期限；纪要归档进 <code>docs/reviews/</code>。</li>
+</ul>
+<h3 id="10-3-交付物-1-参考骨架-4-1-视图图集">10.3 交付物 1 参考骨架：4+1 视图图集</h3>
+<p><strong>逻辑视图</strong>——模块划分与职责：</p>
+<pre class="mermaid">flowchart TB
+    subgraph 接入层
+        GW[API 网关&lt;br/&gt;鉴权/租户路由/全局限流]
+    end
+    subgraph 业务服务层
+        OS[订单服务&lt;br/&gt;下单/订单查询/订单状态机]
+        IS[库存服务&lt;br/&gt;扣减/回补/防超卖]
+        RS[报表服务&lt;br/&gt;报表任务受理/查询]
+        RW[报表 Worker&lt;br/&gt;异步生成/结果落库]
+    end
+    subgraph 数据层
+        PG[(PostgreSQL 主从&lt;br/&gt;订单/库存写库)]
+        RD[(分析读库&lt;br/&gt;报表宽表)]
+        MQ[[消息队列&lt;br/&gt;order.created / report.jobs]]
+        RC[(Redis&lt;br/&gt;缓存/限流计数)]
+    end
+    GW --&gt; OS &amp; IS &amp; RS
+    OS --&gt; PG
+    IS --&gt; PG
+    OS --&gt;|outbox 投递| MQ
+    MQ --&gt; IS
+    RS --&gt; MQ
+    MQ --&gt; RW
+    RW --&gt; RD
+    OS &amp; IS --&gt; RC
+</pre>
+<p><strong>进程视图</strong>——下单链路的并发与异步：</p>
+<pre class="mermaid">sequenceDiagram
+    autonumber
+    participant C as 客户端
+    participant G as 网关
+    participant O as 订单服务(3副本)
+    participant Q as MQ
+    participant I as 库存服务(2副本)
+    C-&gt;&gt;G: POST /orders
+    G-&gt;&gt;G: 鉴权 + 租户限流(令牌桶)
+    G-&gt;&gt;O: 转发(traceparent 头)
+    O-&gt;&gt;O: 本地事务: 写订单 + 写 outbox
+    O--&gt;&gt;C: 201 {order_id}（同步部分结束）
+    Note over O,Q: 异步部分开始：outbox relay
+    O-&gt;&gt;Q: order.created
+    Q-&gt;&gt;I: 投递
+    I-&gt;&gt;I: 幂等校验 + 条件更新扣库存(防超卖)
+    I-&gt;&gt;Q: ack（失败则重投）
+</pre>
+<p><strong>物理视图</strong>——部署拓扑：</p>
+<pre class="mermaid">flowchart TB
+    subgraph K8s集群[&quot;K8s 集群（生产）&quot;]
+        subgraph NS1[&quot;namespace: retailhub&quot;]
+            DP1[Deployment: gateway ×2]
+            DP2[Deployment: order-service ×3]
+            DP3[Deployment: inventory-service ×2]
+            DP4[Deployment: report-worker ×2]
+            SVC[Service / Ingress]
+        end
+        subgraph NS2[&quot;namespace: infra&quot;]
+            OTEL[OTel Collector DaemonSet]
+            JG[Jaeger]
+            PROM[Prometheus + Grafana]
+        end
+    end
+    EXT[云资源] --&gt; RDS[(云 RDS PostgreSQL&lt;br/&gt;主从+自动备份)]
+    EXT --&gt; EMQ[(云消息队列)]
+    EXT --&gt; ER[(云 Redis)]
+    DP1 &amp; DP2 &amp; DP3 &amp; DP4 --&gt; RDS
+    DP2 &amp; DP4 --&gt; EMQ
+    SVC --&gt; DP1
+    DP1 --&gt; DP2 &amp; DP3
+    DP2 &amp; DP3 &amp; DP4 -.OTLP.-&gt; OTEL
+    OTEL --&gt; JG &amp; PROM
+</pre>
+<p><strong>开发视图</strong>——代码组织：</p>
+<pre class="mermaid">flowchart LR
+    subgraph repo[&quot;retailhub 单仓（monorepo）&quot;]
+        common[&quot;common/&lt;br/&gt;circuit_breaker / rate_limit /&lt;br/&gt;tracing / outbox&quot;]
+        order[&quot;services/order/&lt;br/&gt;main.py service.py repo.py&quot;]
+        inv[&quot;services/inventory/&quot;]
+        rpt[&quot;services/report/ + worker/&quot;]
+        gw[&quot;gateway/&quot;]
+        deploy[&quot;deploy/&lt;br/&gt;*.yaml K8s 清单&quot;]
+        docs[&quot;docs/&lt;br/&gt;ADR / 质量属性场景 / 评审纪要&quot;]
+    end
+    order &amp; inv &amp; rpt &amp; gw --&gt; common
+    deploy -.引用镜像.-&gt; order &amp; inv &amp; rpt &amp; gw
+</pre>
+<p><strong>场景视图（+1）</strong>——用一条关键用例串联验证：上文进程视图的&quot;下单&quot;序列图即场景视图，它同时穿越逻辑视图的模块（订单/库存/MQ）、物理视图的节点（各 Deployment）、开发视图的代码边界——四视图一致。</p>
+<h3 id="10-4-交付物-2-参考骨架-质量属性场景-6-个-六要素格式">10.4 交付物 2 参考骨架：质量属性场景（6 个，六要素格式）</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>刺激源</th>
+<th>刺激</th>
+<th>环境</th>
+<th>制品</th>
+<th>响应</th>
+<th>响应度量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PERF-01</td>
+<td>租户用户</td>
+<td>并发查询请求</td>
+<td>晚高峰 3 倍日常流量</td>
+<td>订单查询接口</td>
+<td>正常响应</td>
+<td>P99 ≤ 300ms，错误率 &lt;0.1%</td>
+</tr>
+<tr>
+<td>PERF-02</td>
+<td>租户运营</td>
+<td>提交经营报表</td>
+<td>周一早报表高峰</td>
+<td>报表受理接口</td>
+<td>受理并返回任务 ID</td>
+<td>受理接口 P99 ≤ 500ms；报表 15 分钟内完成率 ≥99%</td>
+</tr>
+<tr>
+<td>AVAIL-01</td>
+<td>基础设施</td>
+<td>库存服务单实例崩溃</td>
+<td>大促 10 倍流量</td>
+<td>库存扣减链路</td>
+<td>探针摘除+副本补齐，流量自动转移</td>
+<td>用户侧错误率 30s 内恢复至 &lt;0.1%，无人工介入</td>
+</tr>
+<tr>
+<td>AVAIL-02</td>
+<td>库存服务</td>
+<td>响应延迟超 2s 持续 1 分钟</td>
+<td>正常运行</td>
+<td>下单链路</td>
+<td>熔断打开走 fallback，扣减请求进入补偿队列</td>
+<td>下单主接口成功率 ≥99.5%；补偿队列 5 分钟内消化完毕</td>
+</tr>
+<tr>
+<td>SEC-01</td>
+<td>恶意调用方</td>
+<td>单租户 10 倍配额突发请求</td>
+<td>正常运行</td>
+<td>全平台接口</td>
+<td>该租户被限流拒绝，其他租户不受影响</td>
+<td>越限请求 100% 返回 429；其他租户 P99 劣化 &lt;10%</td>
+</tr>
+<tr>
+<td>MOD-01</td>
+<td>业务方</td>
+<td>新增一种报表指标口径</td>
+<td>正常运行</td>
+<td>报表服务</td>
+<td>仅改动报表服务内指标配置，不动其他服务</td>
+<td>从需求到上线 ≤3 人日；不触发其他服务重新部署</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="10-5-交付物-3-参考骨架-三份-adr-按第-7-节模板补全">10.5 交付物 3 参考骨架：三份 ADR（按第 7 节模板补全）</h3>
+<ul>
+<li><strong>ADR-004：报表生成 MQ 异步化</strong>（完整示例见第 7.2 节，直接纳入文档包）</li>
+<li><strong>ADR-007：服务间调用保持 REST 而非引入 gRPC</strong>。背景：团队规模 6 人、内网调用量 &lt;200 QPS；决策：维持 REST + OpenAPI 契约；否决 gRPC 的理由：IDL 工具链与网关改造成本当前无收益对冲；后果：保留未来按服务粒度局部引入 gRPC 的可能，契约先行。</li>
+<li><strong>ADR-009：分布式事务采用本地消息表而非 TCC</strong>。背景：下单链路跨订单/库存/营销三服务，无强一致资金场景；决策：outbox + 消费端幂等；否决 TCC 的理由：每个接口三个版本的开发成本与 6 人团队规模不匹配，且&quot;订单已创建库存未扣&quot;的中间态业务可接受（有补偿队列兜底）；负面后果：需要维护 relay 任务与 dedup 表，库存短时不一致窗口（秒级）需在运营侧披露。</li>
+</ul>
+<h3 id="10-6-交付物-4-参考骨架-模拟架构评审纪要-精简示例">10.6 交付物 4 参考骨架：模拟架构评审纪要（精简示例）</h3>
+<pre><code class="language-markdown"># 架构评审纪要 #3 —— RetailHub 卷04 架构增量
+日期：2025-08-14　评审人：李工（后端）、王工（SRE）、陈工（业务方）
+被评材料：4+1 视图 v1.2、质量属性场景 6 条、ADR-004/007/009
+
+## 质询与答复
+Q1（王工）：AVAIL-02 说补偿队列 5 分钟消化完毕，依据是什么？
+A1（张工）：按大促峰值 200 单/分钟、熔断持续 1 分钟估算积压约 200 条，
+库存服务恢复后消费速率 100 条/秒，理论消化 &lt;1 分钟，留 5 倍余量。
+→ 结论：非风险，但需补充&quot;补偿队列积压 &gt;500 条&quot;的告警（行动项 A-1，王工，8/20）。
+
+Q2（陈工）：熔断期间用户下单成功但库存没扣，超卖风险怎么算？
+A2：下单成功≠履约承诺，订单状态为 CREATED，库存扣减失败会经 Saga 补偿
+取消订单并通知用户；且卷03 的条件更新在 DB 层兜底，不会负库存。
+→ 结论：非风险。业务侧需在订单页明示&quot;库存确认中&quot;状态（行动项 A-2，陈工，8/25）。
+
+Q3（李工）：为什么限流计数放 Redis 单点？Redis 挂了限流全失效？
+A3：这是本次评审暴露的真实风险。当前实现为进程内令牌桶（不依赖 Redis），
+但多副本下各副本独立计数，实际限流阈值 = 阈值 × 副本数。
+→ 结论：风险 R-1。接受短期偏差（文档注明），二期改 Redis 集中计数 + Redis
+故障时 fail-open 降级为进程内限流（ADR-011 记录此决策，张工，8/18）。
+
+## 结论汇总
+- 风险 1 项（R-1，已有 ADR 与降级预案，接受）
+- 非风险 2 项（Q1、Q2，已记录依据）
+- 敏感点 1 个：限流阈值与副本数耦合，扩缩容时需重算——写入运维手册
+- 权衡点 1 个：outbox 异步用&quot;库存秒级不一致&quot;换&quot;下单链路可用性&quot;，
+  业务方已书面确认接受
+</code></pre>
+<h3 id="10-7-ai-coding-实操模式">10.7 AI Coding 实操模式</h3>
+<p>本步是文档密集型任务，AI 是天然的第一稿作者——但注意：<strong>AI 不知道你当年为什么做那些决策，ADR 的&quot;背景与被否决方案&quot;必须由你口述给它</strong>，否则它会编造听起来合理的历史。</p>
+<p><strong>① 可复制提示词模板：</strong></p>
+<pre><code class="language-text">你是资深系统架构师。我的项目 RetailHub 是多租户零售经营 SaaS，
+当前形态：API 网关 + 订单/库存/报表三服务（FastAPI），K8s 3 副本，
+PostgreSQL 主从 + Redis + MQ（outbox 模式），OTel 全链路追踪。
+请完成：
+1. 按六要素（刺激源/刺激/环境/制品/响应/响应度量）起草 6 条质量属性场景，
+   覆盖性能×2、可用性×2、安全×1、可修改性×1，响应度量必须含数字与统计口径；
+2. 把以下决策改写成 Nygard 模板的 ADR（背景/决策/被否决方案及理由/正负后果），
+   我口述的决策历史如下：【在此粘贴你的真实回忆】；
+3. 扮演三位评审人（后端、SRE、业务方），对我的文档包各提 2 条尖锐质询。
+约束：术语遵循软考教材（战术、敏感点、权衡点）；不确定的事实列出来问我，禁止编造。
+</code></pre>
+<p><strong>② AI 初版人工评审清单：</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox"> 场景的响应度量是否都含数字 + 口径（分位点/时间窗/成功率），还是混进了&quot;较高&quot;&quot;快速&quot;？</li>
+<li class="task-item"><input type="checkbox"> ADR 的&quot;背景&quot;是否与你口述的历史一致——AI 有没有悄悄美化或编造约束条件？</li>
+<li class="task-item"><input type="checkbox"> 被否决方案的否决理由是否真的站得住（换个约束还成立吗），还是事后找补？</li>
+<li class="task-item"><input type="checkbox"> AI 扮演的评审人提出的质询，有没有触及真问题（耦合点、单点、容量依据），还是只问了格式问题？</li>
+<li class="task-item"><input type="checkbox"> 视图与场景是否互相引用得上（每条 AVAIL 场景能在物理视图里找到对应部署单元）？</li>
+</ul>
+<p><strong>③ 验收标准：</strong> 通过评审清单后，对照 10.8 节总验收逐条打勾；文档包里每一处&quot;为什么&quot;，你都能在两分钟内口头讲清出处——讲不清的段落要么是 AI 编的，要么是你自己也没想清楚，都不允许入库。</p>
+<h3 id="10-8-总验收标准">10.8 总验收标准</h3>
+<ul>
+<li class="task-item"><input type="checkbox"> 文档包包含 4+1 视图 5 张图，mermaid 可渲染，且场景视图能串联其余四视图</li>
+<li class="task-item"><input type="checkbox"> 6 个质量属性场景每条都完整写出六要素，响应度量全部可机器验证（无&quot;较高&quot;&quot;尽量&quot;类措辞）</li>
+<li class="task-item"><input type="checkbox"> 3 份 ADR 均含背景/决策/被否决方案及理由/正面与负面后果，状态字段完整</li>
+<li class="task-item"><input type="checkbox"> 评审纪要中每条质询有明确结论（风险/非风险/敏感点/权衡点之一），每个风险有行动项、责任人、期限</li>
+<li class="task-item"><input type="checkbox"> 文档包全部入库（docs/ 目录，结构对照 7.4 节），README 中有导览索引，新同事按索引 30 分钟能讲清系统架构</li>
+<li class="task-item"><input type="checkbox"> 用本卷文档包素材，按论文万能骨架写出 1 篇 2500 字软考论文初稿</li>
+</ul>
+<hr>
+<h2 id="11-常见误区">11. 常见误区</h2>
+<ol>
+<li><strong>把架构师当晋升终点而非角色转变</strong>——&quot;升了架构师就不用写代码了&quot;和&quot;架构师就是代码写得最好的人&quot;是同一个误解的两面。架构师对决策负责，编码是保持判断力的手段，不是职位描述。</li>
+<li><strong>质量属性写形容词</strong>——&quot;高可用、高性能、易扩展&quot;写进文档等于没写。没有响应度量的质量属性无法设计、无法测试、无法评审。</li>
+<li><strong>画一张&quot;大架构图&quot;代替视图</strong>——一张图同时表达模块、部署、流程的结果是谁都看不懂。视图分离不是形式主义，是给不同干系人各自的地图。</li>
+<li><strong>ADR 只写结论不写被否决项</strong>——&quot;决定采用 Kafka&quot;没有价值，&quot;为什么否决 RabbitMQ 和 Pulsar&quot;才有价值。考古的人要的是排除法的过程。</li>
+<li><strong>评审会变宣讲会</strong>——会上花 40 分钟讲 PPT，留 5 分钟&quot;大家有没有问题&quot;，等于没有评审。材料会前发，会上只质询。</li>
+<li><strong>质量属性场景写完后不验证</strong>——AVAIL-01 承诺&quot;30 秒恢复&quot;，就要真的杀一次库存服务实例掐表验证（混沌工程的朴素版）。不验证的场景是许愿。</li>
+<li><strong>背模式名称代替理解变化点</strong>——面试能说&quot;这里用了观察者模式&quot;但说不清&quot;它把'谁关心这个事件'这个变化点隔离到了订阅注册表&quot;，等于不会。</li>
+<li><strong>论文现场即兴发挥</strong>——软考论文 120 分钟写 2500 字，现场构思必死。3-4 个主题 × 自己的项目，考前全部写过一遍。</li>
+<li><strong>三科偏科备考</strong>——软考三科必须同次全过。只刷选择题不练论文，是最常见的挂法（反之亦然）。</li>
+<li><strong>以为方法论会被 AI 淘汰</strong>——恰恰相反：AI 让&quot;写代码&quot;变便宜，&quot;决定写什么、放弃什么、为什么&quot;更贵。本卷这套东西是 AI 时代溢价最高的工程能力之一。</li>
+</ol>
+<hr>
+<h2 id="12-自测清单">12. 自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox"> 能说出架构师与高级开发的核心区别，以及架构师的四类交付物</li>
+<li class="task-item"><input type="checkbox"> 能逐个讲清管道-过滤器/分层/微内核/事件驱动/CQRS 的结构、适用场景与代价，并各举 RetailHub 中的一个落点</li>
+<li class="task-item"><input type="checkbox"> 能默写质量属性场景六要素，并把&quot;系统要快&quot;改写成一条合格场景</li>
+<li class="task-item"><input type="checkbox"> 能说出可用性战术树的三支（检测/恢复/预防），并举每支的两个实例</li>
+<li class="task-item"><input type="checkbox"> 能画出 4+1 视图关系图，说明每个视图的受众和回答的问题，并解释视图一致性如何走查</li>
+<li class="task-item"><input type="checkbox"> 能区分时序图与活动图、组合与聚合，并说出软考在这两类图上的常考角度</li>
+<li class="task-item"><input type="checkbox"> 能对 10 个架构层高频模式各说一句&quot;它隔离了什么变化点&quot;</li>
+<li class="task-item"><input type="checkbox"> 能讲清 ATAM 的四类结论（敏感点/权衡点/风险/非风险），并举本卷实战评审纪要中的实例</li>
+<li class="task-item"><input type="checkbox"> 能画出 ADR 的状态机（Proposed→Accepted→Superseded/Rejected），并解释&quot;被否决提案为什么也要存档&quot;</li>
+<li class="task-item"><input type="checkbox"> 能写出一份合格 ADR 的完整结构，并解释&quot;为什么被否决方案比结论更重要&quot;</li>
+<li class="task-item"><input type="checkbox"> 能画出架构文档包的 docs/ 目录结构，说出三条写法纪律（README 唯一入口/同仓同评审/标注验证日期）</li>
+<li class="task-item"><input type="checkbox"> 能复述软考三科的题型、合格线与&quot;同次全过&quot;规则，说出论文万能骨架的四段结构与三个保分细节</li>
+<li class="task-item"><input type="checkbox"> 能举例说明质量属性场景、ADR、架构评审将在阶段九（Agent 工程化）如何复用</li>
+</ul>
+<hr>
+<h2 id="下卷预告">下卷预告</h2>
+<p>到这里，你已经走完了&quot;传统服务端 + 分布式 + 架构方法论&quot;的完整闭环：RetailHub 从单体长成了一个有治理、有文档、有评审纪律的分布式平台，你也从&quot;写接口的人&quot;长成了&quot;对决策负责的人&quot;。下一个阶段要换赛道了：卷06 开始进入 AI 开发基础与 AI Infra——你会第一次面对 GPU 调度、模型服务化、推理成本这些全新的质量属性，然后带着本卷的平台工程与架构方法论，去回答一个更有意思的问题：<strong>当系统的核心组件从&quot;确定性代码&quot;变成&quot;概率性模型&quot;，前四卷学的每一课哪些依然成立、哪些必须重写？</strong> RetailHub 也将迎来它的第二次生命：从&quot;经营数据平台&quot;进化为&quot;经营分析 DataAgent&quot;。</p>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<p>➡️ 下一页：卷06-1-GPU与推理服务化.md</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-ruankao">中国计算机技术职业资格网（软考官网），<a href="https://www.ruankao.org.cn">https://www.ruankao.org.cn</a> 。系统架构设计师的考试大纲、科目设置与合格标准以官网当年公布为准；本卷第 1、8 节的岗位定义与考试结构归纳自该考试体系。 <a class="fn-back" href="#ref-ruankao" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-05-1.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷05-1 · 架构师方法论</span></a>
+      <a class="next" href="chapter-00-1.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇00-1 · 基本功</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#8-软考备考地图-三科题型-评分逻辑与-3-个月计划">8. 软考备考地图：三科题型、评分逻辑与 3 个月计划</a>
+    <a class="toc-h3" href="#8-1-考试结构-系统架构设计师-高级资格">8.1 考试结构（系统架构设计师，高级资格）</a>
+    <a class="toc-h3" href="#8-2-各科评分逻辑与对应策略">8.2 各科评分逻辑与对应策略</a>
+    <a class="toc-h3" href="#8-3-论文万能骨架-以-论软件架构的质量属性设计-为例">8.3 论文万能骨架（以"论软件架构的质量属性设计"为例）</a>
+    <a class="toc-h3" href="#8-4-三个月备考计划">8.4 三个月备考计划</a>
+    <a class="toc-h2" href="#9-这套方法论在阶段九如何全部复用">9. 这套方法论在阶段九如何全部复用</a>
+    <a class="toc-h2" href="#10-本卷实战-retailhub-演进第-5-步-产出完整架构文档包">10. 本卷实战：RetailHub 演进第 5 步——产出完整架构文档包</a>
+    <a class="toc-h3" href="#10-1-背景">10.1 背景</a>
+    <a class="toc-h3" href="#10-2-递进任务步骤">10.2 递进任务步骤</a>
+    <a class="toc-h3" href="#10-3-交付物-1-参考骨架-4-1-视图图集">10.3 交付物 1 参考骨架：4+1 视图图集</a>
+    <a class="toc-h3" href="#10-4-交付物-2-参考骨架-质量属性场景-6-个-六要素格式">10.4 交付物 2 参考骨架：质量属性场景（6 个，六要素格式）</a>
+    <a class="toc-h3" href="#10-5-交付物-3-参考骨架-三份-adr-按第-7-节模板补全">10.5 交付物 3 参考骨架：三份 ADR（按第 7 节模板补全）</a>
+    <a class="toc-h3" href="#10-6-交付物-4-参考骨架-模拟架构评审纪要-精简示例">10.6 交付物 4 参考骨架：模拟架构评审纪要（精简示例）</a>
+    <a class="toc-h3" href="#10-7-ai-coding-实操模式">10.7 AI Coding 实操模式</a>
+    <a class="toc-h3" href="#10-8-总验收标准">10.8 总验收标准</a>
+    <a class="toc-h2" href="#11-常见误区">11. 常见误区</a>
+    <a class="toc-h2" href="#12-自测清单">12. 自测清单</a>
+    <a class="toc-h2" href="#下卷预告">下卷预告</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:vol-05-2:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>
