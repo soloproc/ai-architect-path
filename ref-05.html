@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>资料05：华为云AI-Native智算存储，加速AI推理应用 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">参考资料原文存档</div>
+    <a href="ref-01.html">资料01 · 服务端架构演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html" class="active">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="资料05-华为云ai-native智算存储-加速ai推理应用">资料05：华为云AI-Native智算存储，加速AI推理应用</h1>
+<blockquote>
+<p><strong>存档说明</strong>：本页为教程引用资料的学习存档，版权归原作者与发布平台所有。
+作者/机构：网易伏羲（转载华为全联接大会 2024 论坛报道） ｜ 来源：网易伏羲 ｜ 原文链接：<a href="https://fuxi.163.com/database/1203">https://fuxi.163.com/database/1203</a>
+本站引用位置：篇08-Agent记忆治理.md §2.6「企业级存储分层」（金山办公 AI Docs 与华为云 OBS 知识湖存储共创案例）</p>
+</blockquote>
+<hr>
+<p>9月20日，在华为全联接大会2024期间，华为云成功举办AI Native Cloud主题论坛。华为云在论坛上解读业界首家以内存池为中心的大模型推理存储架构，以及AI-Native智算存储如何使能模型加载快、对话问答快和查询检索快，邀请行业领袖分享AI推理技术及华为云基础设施在游戏、影视制作、办公软件等领域的应用成果。</p>
+<h2 id="ems助力大语言模型降时延-提吞吐">EMS助力大语言模型降时延、提吞吐</h2>
+<p>显存有限是业界公认的影响大模型训练和推理效率的一个难点，也就是业界所说的内存墙难题。&quot;华为云首创EMS弹性内存存储服务，在NPU显存和持久化存储两层间增加弹性内存存储层。基于Memory Pooling专利技术，通过显存扩展、算力卸载、以存代算三大创新打破内存墙。&quot;华为云首席产品官方国伟在《AI Native Cloud: 全新为AI负载和应用设计的云基础设施》主题演讲中指出。</p>
+<p><img src="https://kimi-web-img.kimi.ai/prod-data/online-image/search-upload/3a9b1acafe27c78e6b6b3fc89228531c.png" alt=""></p>
+<p>华为云首席产品官 方国伟</p>
+<p>EMS弹性内存存储服务为AI推理应用带来3大价值：</p>
+<ul>
+<li>以存代算，缓存和复用历史KV计算结果，首Token时延降低 80%；</li>
+<li>算力卸载，KV计算卸载至CPU+EMS，吞吐量提升100%；</li>
+<li>显存扩展，无需堆砌NPU，NPU算力节省50%。</li>
+</ul>
+<p>AI推理应用已在各行各业开花结果。作为中国首个游戏人工智能实验室，网易伏羲每年都会在游戏AI领域推出新的玩法。今年，网易伏羲推出了全球首创的游戏Copilot AI队友，为玩家带来丝滑的多模态游戏交互体验。其中，为了实现近乎真人的问答效果，时延成了一大挑战。&quot;我们与华为云联合创新，在伏羲的多轮对话和公共前缀场景使用EMS内存存储进行体验优化尝试，测试结论显示了4大优化：更大的容量，有了EMS，算力卡可以搭配TB级的虚拟显存；更高的吞吐，测试结果显示，QPS请求数提升了40%；更低的时延，EMS使能首字节时延降低84%；更高的效率，P95时延降低了32%，真正地做到了以存强算。&quot;网易伏羲语音技术负责人莫名在《AI x 游戏，可实时语音交互的游戏队友》主题演讲中表示。</p>
+<p><img src="https://kimi-web-img.kimi.ai/prod-data/online-image/search-upload/e9b28e5c84f64adfe62d89c25f75ed97.png" alt=""></p>
+<p>网易伏羲语音技术负责人 莫名</p>
+<p>近日国产3A游戏爆火，让大家看到了国内CG(计算机图形学)动画技术的日新月异。作为国内头部的电影视效公司，墨境天合创新地将大语言模型及图像模型应用到视效制作中。&quot;在剧本拆解、镜头规划场景中，墨境天合使用AI辅助加速传统人工工作内容，显著提升了视效制作效率。在剧本拆解应用中，将剧本内容作为同样的文本多次输入，受显存限制，每一轮与LLM的交互均需重新计算，越问越慢，且剧本内容越长，对时延的影响越大。我们与华为云存储进行了联合创新测试，结果显示：使用EMS后首字节时延降低了75%，吞吐量增加了22%，大大提高了剧本拆解和镜头规划工具应用的效率。&quot;墨境天合AI算法工程师负责人李晨阳在主题演讲《AI x视效制作，探索人工智能在影视制作中的应用与突破》中表示。</p>
+<p><img src="https://kimi-web-img.kimi.ai/prod-data/online-image/search-upload/697ca103d86bd116aa59bc8e2f44e7b7.png" alt=""></p>
+<p>墨境天合AI算法工程师负责人 李晨阳</p>
+<h2 id="obs知识湖存储使能海量数据高效检索">OBS知识湖存储使能海量数据高效检索</h2>
+<p>大语言模型与企业业务场景结合的过程中，RAG(检索增强生成技术)是目前最成熟也是应用最普遍的关键技术。在将RAG应用到生产环境中时，如何高效的处理企业海量规模的非结构化数据，仍然面临诸多工程上的挑战。方国伟表示：&quot;华为云基于OBS服务构建了实现语义向量化的知识湖存储，简化客户针对海量数据实现RAG方案的难度。基于读、写、算分离把千亿级规模场景下数据的读性能从百毫秒级降到10毫秒以内。同时，我们把对性能要求高、访问频繁的索引层放在内存，并结合超高性价比的对象存储来实现持久化。通过高低结合，不仅性能更高，整个成本做得更优，实现50%的成本降低。&quot;</p>
+<p><img src="https://kimi-web-img.kimi.ai/prod-data/online-image/search-upload/d76a0a10535d01b398c723098ab9f93a.png" alt=""></p>
+<p>华为云首席产品官 方国伟</p>
+<p>WPS AI是金山办公旗下基于大语言模型的人工智能办公助手，锚定AIGC(内容创作)、Copilot(智慧助理)、Insight(知识洞察)三个战略方向发展。如果把大模型比做发动机，那么企业知识就是燃料。为了更好地搭建企业知识与大模型之间的桥梁，金山办公提出了AI Docs智能文档库解决方案，使能全程闭环的可控智能。&quot;今天的企业AI知识库，仍然面临众多的技术挑战。其中如何支持千亿规模的文档量级、在大并发请求的同时保持高效检索、消减数据幻觉是数据存储面临的挑战。为了解决传统向量数据库明显的读写性能和成本问题。AI Docs目前在和华为云OBS知识湖存储进行共创，探索能够支持更大规模的文档量级、检索更精准、速度更快的使用体验，给企业AI提供更好的赋能。&quot;金山办公助理总裁朱熠锷在《AI x办公，WPS AI 高效智慧办公助力企业提效》主题演讲中指出。</p>
+<p><img src="https://kimi-web-img.kimi.ai/prod-data/online-image/search-upload/177ecd32679da7d7308741b880e1c82a.png" alt=""></p>
+<p>金山办公助理总裁 朱熠锷</p>
+<p>全面智能化时代已然来临，每个行业、每个企业都有自己的探索。华为云存储正积极响应推理模型崛起的变革，通过不断创新为千行万业提供安全可靠、稳定高效的云存储产品与解决方案，携手客户、伙伴，共赢数智未来。</p>
+
+    <nav class="prevnext">
+      <a class="prev" href="ref-04.html"><span class="pn-label">← 上一篇</span><span class="pn-title">资料04 · WPS Comate 落地</span></a>
+      <a class="next" href="ref-06.html"><span class="pn-label">下一篇 →</span><span class="pn-title">资料06 · ADR 原始博客</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#ems助力大语言模型降时延-提吞吐">EMS助力大语言模型降时延、提吞吐</a>
+    <a class="toc-h2" href="#obs知识湖存储使能海量数据高效检索">OBS知识湖存储使能海量数据高效检索</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

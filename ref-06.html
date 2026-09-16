@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>资料06：Documenting Architecture Decisions · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">参考资料原文存档</div>
+    <a href="ref-01.html">资料01 · 服务端架构演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html" class="active">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="资料06-documenting-architecture-decisions">资料06：Documenting Architecture Decisions</h1>
+<blockquote>
+<p><strong>存档说明</strong>：本页为教程引用资料的学习存档，版权归原作者与发布平台所有。
+作者/机构：Michael Nygard（Cognitect 博客） ｜ 来源：Cognitect Blog ｜ 原文链接：<a href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions">https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions</a>
+本站引用位置：卷05-架构师方法论与软考.md §7.1「为什么是 ADR」（ADR 原始提出者与标准模板 Context/Decision/Status/Consequences）</p>
+</blockquote>
+<hr>
+<h2 id="context">Context</h2>
+<p>Architecture for agile projects has to be described and defined differently. Not all decisions will be made at once, nor will all of them be done when the project begins.</p>
+<p>Agile methods are not opposed to documentation, only to valueless documentation. Documents that assist the team itself can have value, but only if they are kept up to date. Large documents are never kept up to date. Small, modular documents have at least a chance at being updated.</p>
+<p>Nobody ever reads large documents, either. Most developers have been on at least one project where the specification document was larger (in bytes) than the total source code size. Those documents are too large to open, read, or update. Bite sized pieces are easier for for all stakeholders to consume.</p>
+<p>One of the hardest things to track during the life of a project is the motivation behind certain decisions. A new person coming on to a project may be perplexed, baffled, delighted, or infuriated by some past decision. Without understanding the rationale or consequences, this person has only two choices:</p>
+<ol>
+<li>
+<p><strong>Blindly accept the decision.</strong></p>
+<p>This response may be OK, if the decision is still valid. It may not be good, however, if the context has changed and the decision should really be revisited. If the project accumulates too many decisions accepted without understanding, then the development team becomes afraid to change anything and the project collapses under its own weight.</p>
+</li>
+<li>
+<p><strong>Blindly change it.</strong></p>
+<p>Again, this may be OK if the decision needs to be reversed. On the other hand, changing the decision without understanding its motivation or consequences could mean damaging the project's overall value without realizing it. (E.g., the decision supported a non-functional requirement that hasn't been tested yet.)</p>
+</li>
+</ol>
+<p>It's better to avoid either blind acceptance or blind reversal.</p>
+<h2 id="decision">Decision</h2>
+<p>We will keep a collection of records for &quot;architecturally significant&quot; decisions: those that affect the structure, non-functional characteristics, dependencies, interfaces, or construction techniques.</p>
+<p>An architecture decision record is a short text file in a format similar to an Alexandrian pattern. (Though the decisions themselves are not necessarily patterns, they share the characteristic balancing of forces.) Each record describes a set of forces and a single decision in response to those forces. Note that the decision is the central piece here, so specific forces may appear in multiple ADRs.</p>
+<p>We will keep ADRs in the project repository under doc/arch/adr-NNN.md</p>
+<p>We should use a lightweight text formatting language like Markdown or Textile.</p>
+<p>ADRs will be numbered sequentially and monotonically. Numbers will not be reused.</p>
+<p>If a decision is reversed, we will keep the old one around, but mark it as superseded. (It's still relevant to know that it <em>was</em> the decision, but is <em>no longer</em> the decision.)</p>
+<p>We will use a format with just a few parts, so each document is easy to digest. The format has just a few parts.</p>
+<p><strong>Title</strong> These documents have names that are short noun phrases. For example, &quot;ADR 1: Deployment on Ruby on Rails 3.0.10&quot; or &quot;ADR 9: LDAP for Multitenant Integration&quot;</p>
+<p><strong>Context</strong> This section describes the forces at play, including technological, political, social, and project local. These forces are probably in tension, and should be called out as such. The language in this section is value-neutral. It is simply describing facts.</p>
+<p><strong>Decision</strong> This section describes our response to these forces. It is stated in full sentences, with active voice. &quot;We will …&quot;</p>
+<p><strong>Status</strong> A decision may be &quot;proposed&quot; if the project stakeholders haven't agreed with it yet, or &quot;accepted&quot; once it is agreed. If a later ADR changes or reverses a decision, it may be marked as &quot;deprecated&quot; or &quot;superseded&quot; with a reference to its replacement.</p>
+<p><strong>Consequences</strong> This section describes the resulting context, after applying the decision. All consequences should be listed here, not just the &quot;positive&quot; ones. A particular decision may have positive, negative, and neutral consequences, but all of them affect the team and project in the future.</p>
+<p>The whole document should be one or two pages long. We will write each ADR as if it is a conversation with a future developer. This requires good writing style, with full sentences organized into paragraphs. Bullets are acceptable only for visual style, not as an excuse for writing sentence fragments. (Bullets kill people, even PowerPoint bullets.)</p>
+<h2 id="status">Status</h2>
+<p>Accepted.</p>
+<h2 id="consequences">Consequences</h2>
+<p>One ADR describes one significant decision for a specific project. It should be something that has an effect on how the rest of the project will run.</p>
+<p>The consequences of one ADR are very likely to become the context for subsequent ADRs. This is also similar to Alexander's idea of a pattern language: the large-scale responses create spaces for the smaller scale to fit into.</p>
+<p>Developers and project stakeholders can see the ADRs, even as the team composition changes over time.</p>
+<p>The motivation behind previous decisions is visible for everyone, present and future. Nobody is left scratching their heads to understand, &quot;What were they thinking?&quot; and the time to change old decisions will be clear from changes in the project's context.</p>
+<hr>
+<h2 id="experience-report">Experience Report</h2>
+<p>You may have noticed that this post is formatted like an ADR itself. We've been using this format on a few of our projects since early August. That's not a very long time in the global sense, but early feedback from both clients and developers has been quite positive. In that time, we've had six to ten developers rotate through projects using ADRs. All of them have stated that they appreciate the degree of context they received by reading them.</p>
+<p>ADRs have been especially useful for capturing longer-term intentions. We have several clients who are stabilizing their current systems, but looking toward a larger rearchitecture in the not-too-distant future. By writing these intentions down, we don't inadvertently make those future changes harder.</p>
+<p>One potential objection is that keeping these in version control with the code makes them less accessible for project managers, client stakeholders, and others who don't live in version control like the development team does. In practice, our projects almost all live in GitHub private repositories, so we can exchange links to the latest version in master. Since GitHub does markdown processing automatically, it looks just as friendly as any wiki page would.</p>
+<p>So far, ADRs are proving to be a useful tool, so we'll keep using them.</p>
+<h2 id="more-reading">More Reading</h2>
+<p>Thanks to Philipe Kruchten for discussing the importance of architecture decisions. I'm told there is more about them in <em>Documenting Software Architectures</em> which is near the top of my reading queue.</p>
+<hr>
+<p>To the extent possible under law, Cognitect, a Nu Holdings, Ltd. company, has waived all copyright and related or neighboring rights to &quot;Documenting Architecture Decisions&quot;. This work is published from: United States.</p>
+
+    <nav class="prevnext">
+      <a class="prev" href="ref-05.html"><span class="pn-label">← 上一篇</span><span class="pn-title">资料05 · AI Docs 知识湖</span></a>
+      <a class="next" href="ref-07.html"><span class="pn-label">下一篇 →</span><span class="pn-title">资料07 · Building Effective Agents</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#context">Context</a>
+    <a class="toc-h2" href="#decision">Decision</a>
+    <a class="toc-h2" href="#status">Status</a>
+    <a class="toc-h2" href="#consequences">Consequences</a>
+    <a class="toc-h2" href="#experience-report">Experience Report</a>
+    <a class="toc-h2" href="#more-reading">More Reading</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
