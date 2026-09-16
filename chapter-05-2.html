@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>篇05-2：Agent Harness 与 Runtime（下）——Durable Workflow、分布式 Runtime 与故障工程 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="篇05-2：Agent Harness 与 Runtime（下）——Durable Workflow、分布式 Runtime 与故障工程 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html" class="active">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="篇05-2-agent-harness-与-runtime-下-durable-workflow-分布式-runtime-与故障工程">篇05-2：Agent Harness 与 Runtime（下）——Durable Workflow、分布式 Runtime 与故障工程</h1>
+<blockquote>
+<p>导语：本页承接篇05-1，进入 Agent Runtime（运行时）——承载 Harness 执行的分布式系统，回答&quot;任务崩了能不能续、多人同时用会不会互相踩踏&quot;。内容包括：用 Durable Workflow 把自主分析收口（Workflow Shell、Checkpoint / Resume、Human Approval 人工关卡、副作用幂等）、从单进程到分布式 Runtime（Scheduler / Queue / Worker 分层、Lease 与 fencing token 防脑裂、沙箱执行、多租户资源治理与并发隔离）、以及故障工程（Failure Taxonomy、Retry / Resume / Replay / Fork 四个&quot;重来&quot;、Runtime Invariant 与故障注入清单）。篇05 的本篇实战——把&quot;退款率异常诊断&quot;从 while 循环升级为可恢复的 Run——连同动手练习与自测清单完整收在本页；读完你应当能向审计和运维证明&quot;这个 Agent 是可控的&quot;。</p>
+</blockquote>
+<hr>
+<h2 id="4-用-durable-workflow-收口自主分析">4. 用 Durable Workflow 收口自主分析</h2>
+<h3 id="4-1-workflow-shell-开放分析必须被包进壳里">4.1 Workflow Shell：开放分析必须被包进壳里</h3>
+<p>Autonomous Loop 擅长开放探索，但它不适合直接面对真实业务副作用：模型可能在 Loop 里&quot;顺手&quot;调两次预算调整接口。解法是 <strong>Workflow Shell</strong>：外层是确定性的 Durable Workflow，负责取数准备、调用内层 Analysis Loop、报告生成、Human Approval、副作用执行；内层 Loop 只被允许输出&quot;建议&quot;，不允许触碰副作用工具。</p>
+<pre><code class="language-text">[Prepare Data] → [Autonomous Analysis Loop] → [Verify Report]
+      → [Human Approval Gate] → [Execute Side Effects] → [Track Effect]
+</code></pre>
+<p>内层 Loop 崩了，Workflow 从 Checkpoint 恢复它；审批被拒，Workflow 走取消分支；副作用执行失败，Workflow 按幂等键重试。自主权被关进笼子里，笼子本身是完全确定性的。</p>
+<h3 id="4-2-checkpoint-与-resume">4.2 Checkpoint 与 Resume</h3>
+<p>长任务（月度经营分析可能跑 40 分钟）必须假设自己会被打断：机器重启、发版、抢占。规则：</p>
+<ol>
+<li><strong>Checkpoint 打在 Step 边界</strong>，而不是任意时刻——Step 内部是原子的（要么完成落事件，要么整体重试）；</li>
+<li><strong>Resume = 加载最近 Checkpoint → 重建内存状态 → 从事件游标之后继续消费</strong>，绝不简单&quot;重跑整个 Run&quot;；</li>
+<li>恢复后第一步是<strong>重新校验前置条件</strong>（租户权限是否仍有效、数据源凭据是否过期），而不是盲目继续。</li>
+</ol>
+<h3 id="4-3-human-approval-让人成为系统的一等节点">4.3 Human Approval：让人成为系统的一等节点</h3>
+<p>预算调整审批流的正确姿势：</p>
+<ul>
+<li>Workflow 到达 Human Gate 后，<strong>持久化挂起</strong>（不是线程 sleep！），生成审批任务（含建议内容、证据链链接、风险等级），Run 状态转 <code>WAITING_APPROVAL</code>；</li>
+<li>审批人通过 IM/控制台操作，回调携带审批结论 + 审批人身份 + 时间戳，作为事件写回；</li>
+<li>设置<strong>审批超时策略</strong>：超时自动拒绝或升级，避免 Run 永远挂起；</li>
+<li>审批内容要<strong>冻结快照</strong>：审批人看到的数据版本必须与后续执行所用版本一致，防止&quot;批的是 A，执行的是 B&quot;。</li>
+</ul>
+<p>把这几个要点串成一条完整的审批时序——重点看三件事：挂起是持久化的（Worker 释放、状态落库）、审批结论是作为<strong>事件</strong>写回事件流的、超时必须有兜底策略：</p>
+<pre class="mermaid">sequenceDiagram
+    participant WF as Durable Workflow
+    participant RT as Agent Runtime
+    participant Q as 审批任务队列
+    participant H as 审批人(IM/控制台)
+    participant ES as Event Store
+    WF-&gt;&gt;RT: 到达 Human Gate(预算调整建议+证据链快照)
+    RT-&gt;&gt;ES: 落事件 run.waiting_approval
+    RT-&gt;&gt;Q: 生成审批任务(冻结快照·风险等级)
+    Note over RT: Run 持久化挂起, Worker 释放资源
+    H-&gt;&gt;Q: 查看建议与证据链
+    alt 审批通过
+        H-&gt;&gt;RT: 回调 approved + 审批人身份 + 时间戳
+        RT-&gt;&gt;ES: 落事件 approval.granted
+        RT-&gt;&gt;WF: Resume(从 Checkpoint 恢复)
+        WF-&gt;&gt;WF: Execute Side Effects(幂等键)
+    else 审批拒绝
+        H-&gt;&gt;RT: 回调 rejected + 理由
+        RT-&gt;&gt;ES: 落事件 approval.rejected
+        RT-&gt;&gt;WF: Run 转 CANCELLED
+    else 超时无响应
+        Q-&gt;&gt;RT: 审批超时
+        RT-&gt;&gt;ES: 落事件 approval.timeout
+        RT-&gt;&gt;WF: 自动拒绝或升级处理
+    end
+</pre>
+<h3 id="4-4-副作用幂等">4.4 副作用幂等</h3>
+<p>&quot;调整广告预算&quot;这类写操作必须满足：同一个 Run 的同一个 Step，无论 Attempt 几次、无论是否崩溃重放，<strong>业务效果只发生一次</strong>。手段：</p>
+<ul>
+<li><strong>幂等键（Idempotency Key）</strong>：<code>{run_id}:{step_id}</code> 作为调用下游系统的幂等键，下游据此去重；</li>
+<li><strong>先记录意图，后执行</strong>：副作用 Step 先在事件流落 <code>side_effect_intended</code>，执行成功落 <code>side_effect_committed</code>。恢复时若看到意图但无确认，先向下游<strong>查询该幂等键是否已生效</strong>（查账），再决定补做还是跳过；</li>
+<li><strong>绝不依赖&quot;调用方记得自己调没调过&quot;</strong>——崩溃恰恰会抹掉这个记忆。</li>
+</ul>
+<hr>
+<h2 id="5-从单进程到分布式-runtime">5. 从单进程到分布式 Runtime</h2>
+<h3 id="5-1-分层架构">5.1 分层架构</h3>
+<pre class="mermaid">flowchart TB
+    subgraph API 层
+        A[Agent API&lt;br/&gt;提交 Run / 查询状态 / 审批回调]
+    end
+    subgraph 调度层
+        S[Scheduler&lt;br/&gt;优先级 / 租户配额 / 超时扫描]
+        Q[(Queue&lt;br/&gt;Run 任务 + Lease 状态)]
+    end
+    subgraph 执行层
+        W1[Worker-1&lt;br/&gt;Harness + Workflow Shell]
+        W2[Worker-2&lt;br/&gt;Harness + Workflow Shell]
+        SB[Sandbox 集群&lt;br/&gt;SQL Gateway / Python 执行]
+    end
+    subgraph 状态层
+        ES[(Event Store&lt;br/&gt;append-only 事件流)]
+        CP[(Checkpoint Store)]
+        AR[(Artifact Store&lt;br/&gt;大对象/图表/结果集)]
+    end
+    A --&gt; Q
+    S --&gt; Q
+    Q --&gt; W1 &amp; W2
+    W1 &amp; W2 --&gt; SB
+    W1 &amp; W2 --&gt; ES &amp; CP &amp; AR
+    S -- 心跳超时扫描 --&gt; Q
+</pre>
+<p>为什么必须拆开？因为 Agent Run 是<strong>长任务 + 突发负载</strong>：同步 HTTP 连接撑不住 40 分钟的 Run，单进程撑不住 200 个租户同时跑月报。API 层无状态，执行层可水平扩缩，状态全部外置到事件/检查点存储——任何 Worker 挂了，任务不丢。</p>
+<h3 id="5-2-scheduler-queue-worker">5.2 Scheduler / Queue / Worker</h3>
+<ul>
+<li><strong>Queue</strong>：Run 以消息形式入队，携带优先级与租户标签。队列是削峰与解耦的核心。</li>
+<li><strong>Scheduler</strong>：决定&quot;下一个跑谁&quot;——按优先级、租户配额、公平性策略出队；同时定期扫描<strong>租约过期</strong>的 Run（Worker 死了但任务没完成），重新入队接管。</li>
+<li><strong>Worker</strong>：无状态执行器。领取任务即获得 Lease，执行中只读写外部状态存储，本地不留任何&quot;丢了就没了&quot;的东西。</li>
+</ul>
+<h3 id="5-3-lease-与-heartbeat-分布式下-只执行一次-的现实解">5.3 Lease 与 Heartbeat：分布式下&quot;只执行一次&quot;的现实解</h3>
+<p>分布式系统没有真正的 exactly-once 执行，只有&quot;lease + 幂等&quot;的组合逼近 <sup class="fn-ref"><a href="#fn-ddia8" id="ref-ddia8">[1]</a></sup>：</p>
+<ol>
+<li>Worker 领取 Run 时获得 Lease（如 60 秒），<code>lease_owner = worker_id</code>；</li>
+<li>执行中周期性 Heartbeat 续租；Worker 宕机 → 心跳停止 → 租约过期；</li>
+<li>Scheduler 扫描到过期租约 → 将 Run 标记 <code>SUSPENDED</code> 并重新入队；</li>
+<li>新 Worker 接管时从最近 Checkpoint 恢复；</li>
+<li>旧 Worker 若&quot;复活&quot;（网络分区恢复），写状态时携带的 Lease 已失效，写入被拒绝（<strong>fencing token</strong>，租约版本号单调递增），防止脑裂双写 <sup class="fn-ref"><a href="#fn-ddia9" id="ref-ddia9">[2]</a></sup>。</li>
+</ol>
+<p>时序上完整走一遍&quot;Worker 宕机 → 接管 → 旧主复活被拒&quot;：</p>
+<pre class="mermaid">sequenceDiagram
+    participant S as Scheduler
+    participant Q as Queue/Lease 表
+    participant W1 as Worker-1
+    participant W2 as Worker-2
+    W1-&gt;&gt;Q: 领取 Run(Lease=60s, fence=7)
+    loop 正常执行
+        W1-&gt;&gt;Q: Heartbeat 续租
+    end
+    Note over W1: Worker-1 宕机, 心跳停止
+    S-&gt;&gt;Q: 扫描发现 Lease 过期
+    S-&gt;&gt;Q: Run 标记 SUSPENDED, 重新入队(fence=8)
+    W2-&gt;&gt;Q: 领取 Run(fence=8)
+    W2-&gt;&gt;W2: 从最近 Checkpoint Resume
+    Note over W1: Worker-1 &quot;复活&quot;(网络分区恢复)
+    W1-&gt;&gt;Q: 携带旧 fence=7 写状态
+    Q--&gt;&gt;W1: 拒绝: fencing token 已过期
+</pre>
+<p>注意 Lease 防的是&quot;两个 Worker 同时推进同一 Run&quot;，副作用层面的 exactly-once 仍靠上一节的幂等键——两道防线缺一不可。</p>
+<h3 id="5-4-多租户资源治理">5.4 多租户资源治理</h3>
+<p>企业 SaaS 环境下，A 租户的批量月报不能饿死 B 租户的实时查询：</p>
+<ul>
+<li><strong>配额（Quota）</strong>：每租户并发 Run 上限、每分钟模型调用上限、每日成本上限；</li>
+<li><strong>隔离（Isolation）</strong>：高优租户/实时任务走独立队列或独立 Worker 池；</li>
+<li><strong>公平调度（Fair Scheduling）</strong>：同优先级下按租户轮转，防单租户占满；</li>
+<li><strong>背压（Backpressure）</strong>：队列超水位时，API 层对新 Run 返回&quot;排队中&quot;而不是假装接收；</li>
+<li><strong>每租户 Autonomy Budget</strong>：把第 1 节的预算体系按租户实例化，超预算的 Run 走降级而非占用公共池空转。</li>
+</ul>
+<h3 id="5-5-沙箱执行-把-模型写的代码-关进笼子">5.5 沙箱执行：把&quot;模型写的代码&quot;关进笼子</h3>
+<p>架构图里的&quot;Sandbox 集群&quot;值得一节专门说。前提只有一个：<strong>模型生成的 SQL 与代码是不可信输入</strong>——倒不一定是恶意，而是它可能算错、可能扫全表、可能死循环，偶尔还可能被注入内容诱导着干坏事（第六篇）。</p>
+<p>隔离级别是一张阶梯，越高越安全、也越重：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>级别</th>
+<th>手段</th>
+<th>隔离强度</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语言级</td>
+<td>禁用危险函数、AST 白名单</td>
+<td>弱（同进程，逃逸面大）</td>
+<td>纯计算、无 I/O 的小片段</td>
+</tr>
+<tr>
+<td>进程级</td>
+<td>独立进程 + rlimit 资源限制 + 超时强杀</td>
+<td>中</td>
+<td>单租户内部的受信任务</td>
+</tr>
+<tr>
+<td>容器级</td>
+<td>独立容器 + 只读文件系统 + 网络策略</td>
+<td>强</td>
+<td>多租户环境的默认档</td>
+</tr>
+<tr>
+<td>微 VM 级</td>
+<td>Firecracker 类轻量虚拟机</td>
+<td>最强</td>
+<td>执行租户上传或外部来源的代码</td>
+</tr>
+</tbody>
+</table></div>
+<p>不管选哪一级，沙箱三件套缺一不可：</p>
+<ol>
+<li><strong>资源限制</strong>：CPU、内存、运行时长、结果集行数全部设上限——一条忘加 WHERE 的 SQL 不该拖垮整个数仓；</li>
+<li><strong>出口管控</strong>：默认无网络出站、无文件写权限；需要的数据源走代理白名单（SQL 只能经 Query Gateway，且 Gateway 强制只读与行列权限）；</li>
+<li><strong>边界即审计</strong>：每次沙箱调用的输入、资源消耗、输出引用都落事件流——沙箱日志是 Run Timeline 的一部分。</li>
+</ol>
+<pre class="mermaid">flowchart TB
+    subgraph TRUSTED[&quot;受信区（Worker / Harness）&quot;]
+        S[&quot;Step: 执行模型生成的 SQL / Python&quot;]
+    end
+    subgraph SBX[&quot;沙箱边界（默认拒绝）&quot;]
+        E[&quot;入口校验&lt;br/&gt;参数Schema·只读强制·行列权限&quot;]
+        X[&quot;执行环境&lt;br/&gt;CPU/内存/时长/行数限额&lt;br/&gt;只读文件系统·无出站网络&quot;]
+        O[&quot;出口检查&lt;br/&gt;结果集截断·敏感列脱敏·引用化&quot;]
+        E --&gt; X --&gt; O
+    end
+    S --&gt;|&quot;代码+参数(不可信输入)&quot;| E
+    O --&gt;|&quot;结果引用卡(artifact_id)&quot;| S
+    X -.-&gt;|&quot;唯一受控通道&quot;| GW[&quot;Query Gateway / 数据源白名单&quot;]
+    O -.-&gt; LG[&quot;事件流: 输入·资源消耗·输出引用&quot;]
+</pre>
+<p>一句话：<strong>边界上一切默认拒绝——能进来的是声明过的输入，能出去的是检查过的结果。</strong></p>
+<h3 id="5-6-并发与隔离-200-个租户同时跑-凭什么互不踩踏">5.6 并发与隔离：200 个租户同时跑，凭什么互不踩踏</h3>
+<p>Worker 水平扩容解决了&quot;跑得下&quot;，没解决&quot;跑得公平&quot;。并发隔离要回答三个问题：</p>
+<ul>
+<li><strong>执行模型怎么选</strong>：LLM 调用是 I/O 密集，协程（asyncio）足够；沙箱里的 Python 是 CPU 密集，必须进程/容器隔离。混用准则：<strong>协程管等待，进程管计算，容器管信任</strong>。</li>
+<li><strong>邻居吵闹（noisy neighbor）怎么办</strong>：5.4 节的配额 + 独立队列是答案的一半；另一半是<strong>沙箱资源也按租户计量</strong>——A 租户一条跑飞的全表扫描，烧的必须是他自己的额度。</li>
+<li><strong>故障怎么不传染</strong>：单 Worker 宕机由 Lease 机制接管（5.3 节）；单租户故障（如某租户的数据源全挂）不能拖垮公共队列——按租户隔离的重试与熔断，让&quot;他的雪崩只是他的&quot;。</li>
+</ul>
+<p>这与卷04《分布式架构与平台工程》的多租户资源隔离一脉相承：Agent Runtime 只是把&quot;请求&quot;换成了&quot;长任务&quot;，隔离的功课一题都少不了 <sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[3]</a></sup>。</p>
+<hr>
+<h2 id="6-故障工程-用故障证明系统可靠">6. 故障工程：用故障证明系统可靠</h2>
+<h3 id="6-1-failure-taxonomy">6.1 Failure Taxonomy</h3>
+<p>没有统一故障分类，就没有统一的处理策略。企业级 Agent 的故障谱系：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>例子</th>
+<th>特征</th>
+<th>策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>瞬时故障</td>
+<td>模型 429、网络抖动</td>
+<td>重试可恢复</td>
+<td>Attempt 级指数退避重试</td>
+</tr>
+<tr>
+<td>环境故障</td>
+<td>数据源不可用、凭据过期</td>
+<td>重试无用</td>
+<td>快速失败 → Replan 或降级</td>
+</tr>
+<tr>
+<td>逻辑故障</td>
+<td>Verifier 反复打回</td>
+<td>模型方向错误</td>
+<td>Replan（计入预算），耗尽则人工</td>
+</tr>
+<tr>
+<td>基础设施故障</td>
+<td>Worker 宕机、分区</td>
+<td>执行中断</td>
+<td>Lease 过期 + Checkpoint 接管</td>
+</tr>
+<tr>
+<td>人为介入</td>
+<td>审批拒绝、强制取消</td>
+<td>外部决策</td>
+<td>走状态机对应分支</td>
+</tr>
+<tr>
+<td>语义故障</td>
+<td>指标口径错、权限数据错</td>
+<td>结果&quot;看似正常但错误&quot;</td>
+<td>最危险——靠 Eval 与不变量发现</td>
+</tr>
+</tbody>
+</table></div>
+<p>最后一类最阴险：系统不报错，只是安静地给出错答案。它引出下一概念。</p>
+<h3 id="6-2-retry-resume-replay-fork-四个-重来-不是一回事">6.2 Retry / Resume / Replay / Fork：四个&quot;重来&quot;不是一回事</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>机制</th>
+<th>粒度</th>
+<th>从哪开始</th>
+<th>改变输入吗</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Retry</td>
+<td>Attempt</td>
+<td>重试当前 Step</td>
+<td>否</td>
+<td>瞬时故障</td>
+</tr>
+<tr>
+<td>Resume</td>
+<td>Run</td>
+<td>最近 Checkpoint 之后</td>
+<td>否（但重校验前置条件）</td>
+<td>崩溃/接管恢复</td>
+</tr>
+<tr>
+<td>Replay</td>
+<td>Run/区间</td>
+<td>用历史事件流重新执行</td>
+<td>否，确定性重放</td>
+<td>排障、策略对比、审计</td>
+</tr>
+<tr>
+<td>Fork</td>
+<td>Run</td>
+<td>从某个 Checkpoint 分叉新 Run</td>
+<td>是（换模型/换策略）</td>
+<td>A/B、what-if 分析</td>
+</tr>
+</tbody>
+</table></div>
+<p>混用这四个词是团队沟通灾难的源头。&quot;帮我重跑一下这个任务&quot;必须翻译成上面四个之一才有意义。</p>
+<h3 id="6-3-runtime-invariant-永远不能破坏的原则">6.3 Runtime Invariant：永远不能破坏的原则</h3>
+<p>Invariant 是恢复逻辑再花哨也不许违反的底线，典型清单：</p>
+<ol>
+<li><strong>事件流只增不改</strong>：历史 Event 永不删除、永不修改（修正用新事件表达）；</li>
+<li><strong>状态机迁移合法</strong>：任何情况下 Run 状态迁移走白名单；</li>
+<li><strong>副作用幂等</strong>：同一幂等键业务效果最多一次；</li>
+<li><strong>租户隔离</strong>：任何恢复路径不得把 A 租户的 Checkpoint 装给 B 租户；</li>
+<li><strong>Checkpoint 单调</strong>：恢复只能向前推进，不得回退已完成且已提交副作用的 Step；</li>
+<li><strong>预算守恒</strong>：恢复不重置已消耗预算（否则崩溃成了省钱手段）。</li>
+</ol>
+<p>建议把 Invariant 写成<strong>可执行断言</strong>，在测试和故障注入中持续校验。</p>
+<h3 id="6-4-故障注入测试-证明-能跨故障完成任务">6.4 故障注入测试：证明&quot;能跨故障完成任务&quot;</h3>
+<p>可靠性不是靠祈祷，是靠主动打碎系统。DataAgent 的故障注入清单（每个都应自动化）：</p>
+<ul>
+<li>分析 Loop 跑到一半，kill Worker → 验证 Lease 过期、他机接管、结论与未中断基线一致；</li>
+<li>审批挂起期间重启全部服务 → 验证审批任务仍在、Run 可恢复；</li>
+<li>副作用调用后、确认前断网 → 验证恢复时先查账不重复执行；</li>
+<li>模型持续返回垃圾 → 验证 Verifier 打回 + Replan 预算耗尽后走人工出口；</li>
+<li>SQL Gateway 挂掉 → 验证快速失败、Timeline 记录、降级报告明确标注&quot;缺证据&quot;；</li>
+<li>注入过期指标定义 → 验证语义层版本校验拦截（与第六篇联动）。</li>
+</ul>
+<p>验收标准不是&quot;系统不崩&quot;，而是三句话：<strong>能恢复（Resume 成功）、能接管（他机续跑）、能解释（Timeline 说清发生了什么）</strong>。</p>
+<hr>
+<h2 id="常见误区">常见误区</h2>
+<ol>
+<li><strong>把 Harness 当 Agent 的智商问题</strong>：循环跑偏就换更强模型。真相：90% 的&quot;跑偏&quot;是缺 Verifier、缺 Stop Condition、缺预算——是管理问题不是智商问题。</li>
+<li><strong>状态塞在 messages 数组里</strong>：聊天记录当数据库用，崩溃即失忆。状态必须是独立于对话历史的结构化对象。</li>
+<li><strong>用线程 sleep 等审批</strong>：进程一重启审批就丢了。Human Gate 必须持久化挂起 + 事件回调。</li>
+<li><strong>&quot;重试&quot;包治百病</strong>：对语义故障重试只是稳定地生产错误；对非幂等副作用重试是在重复扣款。先分类，再谈策略。</li>
+<li><strong>先做分布式再补幂等</strong>：上了多 Worker 才发现重复执行。顺序应反过来：单进程时就建好幂等键与事件流，分布式只是顺手的事。</li>
+<li><strong>故障注入当表演</strong>：演示时 kill 一下就算验证。没有基线对比（中断 Run 与完整 Run 结论一致性校验）的故障注入只是行为艺术。</li>
+</ol>
+<h2 id="本篇实战-把-退款率异常诊断-从-while-循环升级为可恢复的-run">本篇实战：把&quot;退款率异常诊断&quot;从 while 循环升级为可恢复的 Run</h2>
+<p>目标：亲手走完&quot;裸循环 → 套 Harness → 状态外置&quot;的三级跳，体会每一层各解决什么死法。</p>
+<p><strong>Step 1：裸循环 baseline（约 30 分钟）</strong></p>
+<ul>
+<li>目标：用 ReAct 三段式写一个最简分析循环，跑通&quot;退款率假设验证&quot;（可用 mock 数据与 mock 模型）。</li>
+<li>操作：<code>while</code> 循环 + 每轮打印 Thought / Action / Observation。</li>
+<li>验收标准：循环在 mock 下能跑完；并且你亲眼确认——没有任何机制阻止它无限跑下去。</li>
+</ul>
+<p><strong>Step 2：套上 Harness 三件套（约 45 分钟）</strong></p>
+<ul>
+<li>目标：给循环加 Task Contract、Stop Condition、Autonomy Budget。</li>
+<li>操作：定义 done_criteria（每个假设都有证据结论）；实现&quot;连续 2 步零信息增益即停&quot;；步数预算 10。</li>
+<li>验收标准：mock 一个&quot;永远查不到证据&quot;的场景，循环在预算耗尽时走降级出口而非死循环；每次停止都输出带原因的终态事件。</li>
+</ul>
+<p><strong>Step 3：状态外置 + Checkpoint（约 45 分钟）</strong></p>
+<ul>
+<li>目标：把假设树从内存变量变成可序列化的 AnalysisState，实现崩溃恢复。</li>
+<li>操作：每个 Step 边界写 Checkpoint（SQLite 或 JSON 文件均可），实现 <code>resume()</code>。</li>
+<li>验收标准：第 3 步后 kill 进程，重启从 Checkpoint 续跑完成，且最终结论与不中断基线一致。</li>
+</ul>
+<p><strong>Step 4：加一个 Human Gate（约 30 分钟）</strong></p>
+<ul>
+<li>目标：把&quot;建议上调退款审核阈值&quot;做成持久化审批节点。</li>
+<li>操作：到达 Gate 时 Run 转 WAITING_APPROVAL 并落盘；外部写入审批结论文件后回调恢复。</li>
+<li>验收标准：审批等待期间重启程序，Run 仍能恢复并正确读取审批结论；审批拒绝走 CANCELLED 分支。</li>
+</ul>
+<h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
+<p><strong>① 可复制的 AI 提示词模板</strong></p>
+<pre><code class="language-text">你是资深分布式系统工程师。我们在给一个 ReAct 分析循环加企业级 Harness，请只完成当前步骤，不要提前实现后面的步骤。
+
+背景（我现有的裸循环）：
+[粘贴 Step 1 的循环代码]
+
+当前步骤：[粘贴 Step N 的目标与操作]
+
+硬性要求：
+1. 状态迁移必须走白名单，非法迁移直接抛异常；模型代码不允许直接改 Run 状态；
+2. 一切值得记录的事实都落成 append-only Event（step_started / tool_result / budget_exhausted…）；
+3. Checkpoint 只打在 Step 边界，Step 内部视为原子；
+4. Human Gate 必须持久化挂起，禁止用 sleep 或内存变量等待；
+5. 附带测试：[本步对应验收场景]。
+
+先给实现，再给测试，最后说明这个设计相比裸循环堵住了哪种死法。
+</code></pre>
+<p><strong>② AI 初版人工评审清单</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox"> 循环停止的条件是&quot;模型说做完了&quot;还是&quot;done_criteria 被满足&quot;？（前者直接打回）</li>
+<li class="task-item"><input type="checkbox"> Replan / 反思循环有没有计入预算？（AI 很爱写一个不计成本的无限重试）</li>
+<li class="task-item"><input type="checkbox"> Checkpoint 恢复后是否重新校验了前置条件（权限、凭据），还是盲目继续？</li>
+<li class="task-item"><input type="checkbox"> Human Gate 是持久化挂起还是内存等待？进程重启场景下会发生什么？</li>
+<li class="task-item"><input type="checkbox"> 事件流是否真的 append-only？代码里有没有 update / delete 历史事件的写法？</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<p>四个 Step 各自验收通过；能用一份 Run Timeline（哪怕是文本日志）讲清&quot;每一步为什么发生、Run 为什么停&quot;；kill 进程故障注入后，恢复跑出的结论与基线一致。</p>
+<hr>
+<h2 id="动手练习">动手练习</h2>
+<ol>
+<li><strong>Task Contract 设计</strong>：为&quot;退款率异常诊断&quot;写一份完整 Task Contract，要求 done_criteria 全部可机器判定，并指出你的 Verifier 如何逐条检查。</li>
+<li><strong>状态机落地</strong>：基于本文 3.3 的骨架代码，补全事件存储（可用 SQLite），实现 <code>suspend()</code> / <code>resume()</code>，并写一个测试：在第 3 个 Step 后崩溃，从 Checkpoint 恢复并跑完。</li>
+<li><strong>审批流幂等</strong>：模拟&quot;预算调整&quot;副作用，分别演示 (a) 无幂等键时崩溃重放导致重复调整，(b) 加幂等键 + 查账逻辑后的正确行为。</li>
+<li><strong>Lease 脑裂实验</strong>：起两个 Worker 进程，人为让 Worker-1 假死（暂停心跳而非退出），观察 Scheduler 接管；随后恢复 Worker-1，验证 fencing token 拒绝其过期写入。</li>
+<li><strong>故障注入报告</strong>：任选三个故障注入场景跑通，产出一份 Run Timeline 对比报告，回答：恢复点在哪、丢没丢证据、预算是否守恒。</li>
+</ol>
+<h2 id="自测清单">自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox"> 我能说出 Task Contract 五个字段，并解释为什么 done_criteria 必须可机器验证</li>
+<li class="task-item"><input type="checkbox"> 我能为一个新任务在五种执行范式中做出选择并说明理由</li>
+<li class="task-item"><input type="checkbox"> 我能画出控制权矩阵，指出哪些决策绝不能交给模型</li>
+<li class="task-item"><input type="checkbox"> 我能解释 Harness 与 Agent Loop 的区别，并列出五类 Stop Condition</li>
+<li class="task-item"><input type="checkbox"> 我能区分 Run / Step / Attempt，并说明为什么重试发生在 Attempt 层</li>
+<li class="task-item"><input type="checkbox"> 我能默画 Run 状态机，包含 WAITING_APPROVAL 与 SUSPENDED 两个关键态</li>
+<li class="task-item"><input type="checkbox"> 我能写清副作用幂等的三件套：幂等键、意图事件、恢复查账</li>
+<li class="task-item"><input type="checkbox"> 我能解释 Lease + Heartbeat + fencing token 如何协作防止脑裂</li>
+<li class="task-item"><input type="checkbox"> 我能区分 Retry / Resume / Replay / Fork 并各举一个使用场景</li>
+<li class="task-item"><input type="checkbox"> 我能列出至少五条 Runtime Invariant，并说明违反任意一条的后果</li>
+</ul>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：篇06-1 · Agent 上下文治理（上）——信息契约、语义层与装配预算</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-ddia8">Martin Kleppmann《数据密集型应用系统设计》（DDIA）第 8 章「分布式系统的麻烦」——部分失败与不可靠时钟的工程含义，Lease 与心跳设计的理论背景。 <a class="fn-back" href="#ref-ddia8" aria-label="回到正文">↩</a></li>
+<li id="fn-ddia9">Martin Kleppmann《数据密集型应用系统设计》（DDIA）第 9 章「一致性与共识」——fencing token 防止脑裂双写的经典论述（&quot;领导者与锁&quot;一节）。 <a class="fn-back" href="#ref-ddia9" aria-label="回到正文">↩</a></li>
+<li id="fn-phoenix">周志明《凤凰架构：构建可靠的大型分布式系统》——服务治理、熔断与多租户资源隔离的体系化讨论。<a href="https://icyfenix.cn">https://icyfenix.cn</a> <a class="fn-back" href="#ref-phoenix" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-05-1.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇05-1 · Harness 与 Run 执行模型</span></a>
+      <a class="next" href="chapter-06-1.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇06-1 · 上下文契约与装配预算</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#4-用-durable-workflow-收口自主分析">4. 用 Durable Workflow 收口自主分析</a>
+    <a class="toc-h3" href="#4-1-workflow-shell-开放分析必须被包进壳里">4.1 Workflow Shell：开放分析必须被包进壳里</a>
+    <a class="toc-h3" href="#4-2-checkpoint-与-resume">4.2 Checkpoint 与 Resume</a>
+    <a class="toc-h3" href="#4-3-human-approval-让人成为系统的一等节点">4.3 Human Approval：让人成为系统的一等节点</a>
+    <a class="toc-h3" href="#4-4-副作用幂等">4.4 副作用幂等</a>
+    <a class="toc-h2" href="#5-从单进程到分布式-runtime">5. 从单进程到分布式 Runtime</a>
+    <a class="toc-h3" href="#5-1-分层架构">5.1 分层架构</a>
+    <a class="toc-h3" href="#5-2-scheduler-queue-worker">5.2 Scheduler / Queue / Worker</a>
+    <a class="toc-h3" href="#5-3-lease-与-heartbeat-分布式下-只执行一次-的现实解">5.3 Lease 与 Heartbeat：分布式下"只执行一次"的现实解</a>
+    <a class="toc-h3" href="#5-4-多租户资源治理">5.4 多租户资源治理</a>
+    <a class="toc-h3" href="#5-5-沙箱执行-把-模型写的代码-关进笼子">5.5 沙箱执行：把"模型写的代码"关进笼子</a>
+    <a class="toc-h3" href="#5-6-并发与隔离-200-个租户同时跑-凭什么互不踩踏">5.6 并发与隔离：200 个租户同时跑，凭什么互不踩踏</a>
+    <a class="toc-h2" href="#6-故障工程-用故障证明系统可靠">6. 故障工程：用故障证明系统可靠</a>
+    <a class="toc-h3" href="#6-1-failure-taxonomy">6.1 Failure Taxonomy</a>
+    <a class="toc-h3" href="#6-2-retry-resume-replay-fork-四个-重来-不是一回事">6.2 Retry / Resume / Replay / Fork：四个"重来"不是一回事</a>
+    <a class="toc-h3" href="#6-3-runtime-invariant-永远不能破坏的原则">6.3 Runtime Invariant：永远不能破坏的原则</a>
+    <a class="toc-h3" href="#6-4-故障注入测试-证明-能跨故障完成任务">6.4 故障注入测试：证明"能跨故障完成任务"</a>
+    <a class="toc-h2" href="#常见误区">常见误区</a>
+    <a class="toc-h2" href="#本篇实战-把-退款率异常诊断-从-while-循环升级为可恢复的-run">本篇实战：把"退款率异常诊断"从 while 循环升级为可恢复的 Run</a>
+    <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
+    <a class="toc-h2" href="#动手练习">动手练习</a>
+    <a class="toc-h2" href="#自测清单">自测清单</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:chapter-05-2:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

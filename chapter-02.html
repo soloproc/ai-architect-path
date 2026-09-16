@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第二篇：企业级 AI Coding 道法术器——把概率性生成转化为确定性交付 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="第二篇：企业级 AI Coding 道法术器——把概率性生成转化为确定性交付 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html" class="active">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="第二篇-企业级-ai-coding-道法术器-把概率性生成转化为确定性交付">第二篇：企业级 AI Coding 道法术器——把概率性生成转化为确定性交付</h1>
+<blockquote>
+<p>导语：几乎所有工程师都体验过 AI Coding 的两副面孔：写 Demo 时如有神助，进生产时事故频发——生成的代码跑不通、改 A 坏 B、换了个人用同样的工具效果天差地别。差距不在&quot;谁的 Prompt 更玄学&quot;，而在是否把 AI Coding 当成一个<strong>生产系统</strong>来经营。本篇用&quot;道法术器&quot;四层框架<sup class="fn-ref"><a href="#fn-course" id="ref-course">[1]</a></sup>解决这个问题：<strong>道</strong>回答&quot;人与 AI 各自扮演什么角色、谁对结果负责&quot;；<strong>法</strong>回答&quot;用什么方法论把概率性生成收敛成确定性交付&quot;；<strong>术</strong>回答&quot;日常实操中有哪些高杠杆的控制变量与技巧&quot;；<strong>器</strong>回答&quot;如何把个人经验外置成团队可复用、可治理的基础设施&quot;。</p>
+</blockquote>
+<hr>
+<h2 id="1-道-角色观-生产观-责任观">1. 道：角色观、生产观、责任观</h2>
+<h3 id="1-1-个人级-vs-企业级-ai-coding">1.1 个人级 vs 企业级 AI Coding</h3>
+<p>同一个 AI 编码工具，在个人手里和在企业里，是两种完全不同的活动：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>个人级 AI Coding</th>
+<th>企业级 AI Coding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>目标</td>
+<td>把&quot;我这个任务&quot;快速搞定</td>
+<td>让&quot;团队所有任务&quot;持续、可靠、低成本地交付</td>
+</tr>
+<tr>
+<td>方法</td>
+<td>临场发挥，依赖个人 Prompt 手感</td>
+<td>方法论驱动：SPEC、Contract、Eval、流程化</td>
+</tr>
+<tr>
+<td>上下文</td>
+<td>人脑里装着项目背景，随口补充</td>
+<td>上下文必须外置、可复现、可继承（Agent-Friendly Repo）</td>
+</tr>
+<tr>
+<td>质量</td>
+<td>作者自己跑一遍觉得行就行</td>
+<td>独立验证 + 自动化测试 + 回归门禁</td>
+</tr>
+<tr>
+<td>反馈迭代</td>
+<td>错了就再聊一轮</td>
+<td>Badcase 回流为评测资产，系统越用越强</td>
+</tr>
+<tr>
+<td>资产归属</td>
+<td>Prompt 和技巧散在个人手里</td>
+<td>Skill、规则、Eval 集是团队工程资产</td>
+</tr>
+<tr>
+<td>风险承担</td>
+<td>翻车了重来，代价是半小时</td>
+<td>翻车了上生产事故，代价是客户与资损</td>
+</tr>
+</tbody>
+</table></div>
+<p>由此得到<strong>企业级 AI Coding 有效产出公式</strong>：</p>
+<blockquote>
+<p><strong>有效产出 = AI 生成量 × 验证通过率 × 资产复用率 − 返工与事故成本</strong></p>
+</blockquote>
+<p>个人级只优化第一项（生成量），企业级必须同时经营后三项。这也解释了为什么&quot;AI 写了 80% 的代码，团队却变更慢了&quot;——验证与返工成本吞掉了生成红利。</p>
+<h3 id="1-2-道法术器四层架构">1.2 道法术器四层架构</h3>
+<pre class="mermaid">flowchart TD
+    D[&quot;道: 角色观 / 生产观 / 责任观&lt;br/&gt;核心问题: 谁定义? 谁执行? 谁负责?&quot;]
+    F[&quot;法: SPEC·SDD·CE·Contract·TaskGraph·TDD/EDD·Loop·Verify·Deliver&lt;br/&gt;核心问题: 如何把不确定性收敛为确定性交付?&quot;]
+    S[&quot;术: 八个控制变量与实操技巧&lt;br/&gt;核心问题: 单次任务如何又高又稳又省?&quot;]
+    Q[&quot;器: AI Coding Harness&lt;br/&gt;Context System / Sandbox / Workflow / Observability / 资产平台&lt;br/&gt;核心问题: 如何让能力不依赖个人?&quot;]
+    D -- &quot;指导&quot; --&gt; F
+    F -- &quot;落地为&quot; --&gt; S
+    S -- &quot;沉淀为&quot; --&gt; Q
+    Q -- &quot;反哺&quot; --&gt; D
+</pre>
+<h3 id="1-3-三观详解">1.3 三观详解</h3>
+<p><strong>角色观：从&quot;写代码的人&quot;到&quot;软件交付系统的设计者&quot;。</strong> 你的产出不再是代码本身，而是&quot;一套能持续产出可靠代码的系统&quot;——包括任务定义、上下文供给、执行编排与审查机制。亲手 Coding 让位于**定义（Define）、编排（Orchestrate）、审查（Review）**三件套。这并不意味着不读代码——恰恰相反，审查者必须比写作者更懂代码，只是体力活外包给了 AI。</p>
+<p><strong>生产观：三个转向。</strong></p>
+<ol>
+<li><strong>从&quot;Prompt 决定质量&quot;到&quot;工程系统决定质量&quot;。</strong> 同一条 Prompt 在不同上下文、不同验证机制下产出质量天差地别。质量是系统的涌现属性，不是某句话的功劳。</li>
+<li><strong>从&quot;节省 Token&quot;到&quot;优化总交付成本&quot;。</strong> Token 成本往往只是总成本的小头，返工、事故、人力审查才是大头。多花 3 倍 Token 做一次独立验证，可能省掉一次线上事故——总账是赚的。</li>
+<li><strong>从&quot;一次任务完成&quot;到&quot;每次任务形成复利资产&quot;。</strong> 每次任务结束问一句：这次有没有产出可复用的 SPEC 模板、Skill、Badcase、Eval 用例？有，则团队下一次更快；没有，则永远原地踏步。</li>
+</ol>
+<p><strong>责任观：从&quot;追求全自动&quot;到&quot;风险适配的自动化&quot;。</strong> 自动化程度不该由&quot;技术上能不能&quot;决定，而由&quot;错了代价多大&quot;决定：低风险（草稿、探索）全自动；中风险（只读操作、内部变更）自动执行 + 独立验证；高风险（写库、付款、对外发布）AI 提议、人审批、确定性系统执行。全自动不是目标，<strong>可信的自动化</strong>才是。</p>
+<h3 id="1-4-信任校准-人机协作的隐形主轴">1.4 信任校准：人机协作的隐形主轴</h3>
+<p>三观落到实处，是一个每天发生几十次的微观决策：<strong>这次 AI 的产出，我该信几分、查多深？</strong> 这就是信任校准（Trust Calibration）。它有两个方向的失败，且两个方向都烧钱：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>失败方向</th>
+<th>表现</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>过度信任</strong>（自动化偏见）</td>
+<td>AI 生成的代码扫一眼就合并；AI 给的数字直接写进报告</td>
+<td>幻觉直送生产；事故后发现&quot;没人真的审过&quot;</td>
+</tr>
+<tr>
+<td><strong>信任不足</strong>（人肉兜底成瘾）</td>
+<td>每一行都重写、每次都从头验证</td>
+<td>AI 红利归零，人成为瓶颈，团队退回前 AI 时代的吞吐</td>
+</tr>
+</tbody>
+</table></div>
+<p>校准的目标不是&quot;更信&quot;或&quot;更不信&quot;，而是<strong>让信任度贴着 AI 在该任务类型上的真实靠谱率走</strong>。三个可操作的校准动作：</p>
+<ol>
+<li><strong>按任务类型建档，不按感觉。</strong> 维护一份&quot;AI 任务靠谱度台账&quot;：哪类任务（CRUD、正则、SQL、并发代码、边界条件）AI 历史翻车率高？篇01 的 Badcase 本就是个人版，团队版就是 Eval 集。信任应该跟着台账走，不跟着心情走。</li>
+<li><strong>授权从窄到宽，用证据升级。</strong> 新工具/新模型上线，先给&quot;低风险 + 全量审查&quot;的窄授权；攒够 N 次无事故记录，再放宽到&quot;抽检&quot;。这和金融机构的信用额度是同一套逻辑——额度是挣出来的，不是宣誓出来的。</li>
+<li><strong>把&quot;信不信任&quot;翻译成&quot;验证强度&quot;，而不是情绪。</strong> 不信任的正确表达不是盯着屏幕焦虑，而是加一条自动化断言、一次独立验证会话、一个人工确认点。<strong>信任问题的出口永远是机制，不是态度。</strong></li>
+</ol>
+<p>把道的三观、法的流水线、术的变量串起来，人机协作的日常就是下面这个循环——注意人的位置：<strong>人不在生成环里，人在定义点和评审点上。</strong></p>
+<pre class="mermaid">flowchart LR
+    H1[&quot;人: 写 SPEC&lt;br/&gt;定义目标与验收&quot;] --&gt; A1[&quot;AI: 生成初版&lt;br/&gt;代码/方案/SQL&quot;]
+    A1 --&gt; A2[&quot;确定性检查&lt;br/&gt;Lint/测试/Schema&quot;]
+    A2 -- &quot;不过&quot; --&gt; A1
+    A2 -- &quot;过&quot; --&gt; H2[&quot;人: 评审 diff&lt;br/&gt;对照 SPEC 验收&quot;]
+    H2 -- &quot;打回: 附具体原因&quot; --&gt; A1
+    H2 -- &quot;通过&quot; --&gt; D[&quot;交付 + 沉淀&lt;br/&gt;Badcase/模板入库&quot;]
+    D -. &quot;信任台账更新&quot; .-&gt; H1
+</pre>
+<p>这张图的三个要点：第一，<strong>AI 的自证不算数</strong>——绿色那个&quot;确定性检查&quot;是代码在审，不是 AI 在审；第二，<strong>打回必须附具体原因</strong>（哪条验收不达标），模糊的&quot;不太好&quot;会让 AI 在原地打转烧 Token；第三，<strong>循环的终点不是&quot;代码写完&quot;，是资产入库</strong>——这就是生产观第三条&quot;复利&quot;的闭环。</p>
+<hr>
+<h2 id="2-法-九大企业级方法论">2. 法：九大企业级方法论</h2>
+<p>法的总纲是一条交付流水线，每一环对应一种收敛不确定性的方法。AI Coding 的不确定性有且仅有四类：<strong>目标不确定</strong>（要做什么没说清）、<strong>上下文不确定</strong>（AI 不知道该看什么）、<strong>执行不确定</strong>（过程跑偏）、<strong>验证不确定</strong>（不知道做得对不对）。九种方法分别对准这四类：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;模糊需求&quot;] --&gt; B[&quot;SDD&lt;br/&gt;规格驱动开发&quot;]
+    B --&gt; C[&quot;SPEC&lt;br/&gt;可执行规格&quot;]
+    C --&gt; D[&quot;CE&lt;br/&gt;最小充分上下文&quot;]
+    D --&gt; E[&quot;Contract-First&lt;br/&gt;契约与不变量先行&quot;]
+    E --&gt; F[&quot;Task Graph&lt;br/&gt;任务拆解编排&quot;]
+    F --&gt; G[&quot;TDD/EDD&lt;br/&gt;测试与评测驱动&quot;]
+    G --&gt; H[&quot;Loop Engineering&lt;br/&gt;受控执行闭环&quot;]
+    H --&gt; I[&quot;Independent Verification&lt;br/&gt;独立验证&quot;]
+    I --&gt; J[&quot;Progressive Delivery&lt;br/&gt;渐进交付上线&quot;]
+    J --&gt; K[&quot;Distill&lt;br/&gt;沉淀资产&quot;]
+    K -.Badcase/模板回流.-&gt; B
+</pre>
+<h3 id="2-1-sdd-spec-driven-development-从模糊需求到可执行规格">2.1 SDD（Spec-Driven Development）：从模糊需求到可执行规格</h3>
+<p>SDD 主张：<strong>AI 时代写代码之前先写规格，且规格要精确到&quot;可执行&quot;程度</strong>——包含目标、非目标、输入输出契约、验收标准、边界情况。为什么？因为 LLM 是&quot;字面意义的天才&quot;：规格里没写的它不会替你补常识，规格里模糊的它会用幻觉填坑。一份好 SPEC 同时是给人看的对齐文档和给 AI 看的编程输入。</p>
+<p>以贯穿项目 DataAgent 为例：&quot;支持租户查询经营数据&quot;是坏规格；&quot;输入：自然语言问题 + 租户 ID；输出：SQL + 结果表 + 口径说明；约束：仅只读、仅本租户数据、单查询≤30s；验收：20 个标注问题中口径正确率≥90%&quot;才是可执行规格。</p>
+<p><strong>六段式 SPEC 模板</strong>（直接复制使用，这也是篇03 立项书的种子）：</p>
+<pre><code class="language-markdown">## SPEC-&lt;编号&gt;：&lt;一句话标题&gt;
+### 1. 目标（Goal）
+这次要做到什么，一句话说清。只写&quot;做成什么样&quot;，不写&quot;怎么做&quot;。
+### 2. 非目标（Non-Goals）
+明确排除什么。AI 最擅长在模糊地带自由发挥，非目标是防扩scope的护栏。
+### 3. 输入输出契约（Contract）
+输入：字段、类型、来源；输出：结构、Schema、示例。契约先行，实现后补。
+### 4. 约束（Constraints）
+性能上限、权限边界、禁止事项（负面约束比正面描述更有效）。
+### 5. 验收标准（Acceptance）
+可自动检查优先：测试通过 / Eval ≥ X / 命令 Y 输出 Z。
+每条都要能回答&quot;凭什么算做完&quot;。
+### 6. 边界情况（Edge Cases）
+至少列 3 条：空输入、极端值、并发/失败场景。这是 AI 最容易漏的地方。
+</code></pre>
+<p>一个反直觉的经验：<strong>SPEC 里&quot;非目标&quot;和&quot;边界情况&quot;两段的杠杆最大</strong>——目标写得再漂亮，AI 也会在未声明的边界处翻车；而人写 SPEC 时最常偷懒的恰恰是这两段。</p>
+<h3 id="2-2-context-engineering-构造最小充分上下文">2.2 Context Engineering：构造最小充分上下文</h3>
+<p>法的层面强调**&quot;最小充分&quot;原则**：给少了，AI 靠猜（幻觉）；给多了，关键信号被淹没（lost in the middle）且成本爆炸。操作要点：</p>
+<ul>
+<li><strong>分层供给</strong>：稳定层（架构原则、代码规范）常驻；任务层（相关文件、接口定义、相似实现）按需注入；即时层（当前错误信息、diff）精确投放。</li>
+<li><strong>高信号密度</strong>：一段 20 行的接口契约胜过一个 2000 行的整个文件。教会 AI（和自己）&quot;先给契约，再给实现片段，最后才给全文件&quot;。</li>
+<li><strong>可复现</strong>：同一份上下文清单（Context Manifest）应能让任何 Agent 在任何机器上重建相同的任务环境。</li>
+</ul>
+<h3 id="2-3-contract-first-与-invariant-driven-development">2.3 Contract-First 与 Invariant-Driven Development</h3>
+<p>先定契约（接口签名、Schema、协议），再让 AI 填实现——契约是 AI 与人类、AI 与 AI 之间的<strong>稳定锚点</strong>。不变量驱动更进一步：明确&quot;无论实现怎么改都必须成立的性质&quot;（如&quot;所有租户查询必须带 tenant_id 过滤&quot;&quot;任何写操作必须有审批记录&quot;），并把不变量写成可执行的断言/测试。AI 生成代码的天然风险是&quot;局部正确、全局破约&quot;，不变量断言把全局约束变成每次生成都必须越过的栏杆。</p>
+<h3 id="2-4-task-graph-复杂任务的拆解与编排">2.4 Task Graph：复杂任务的拆解与编排</h3>
+<p>超过一个上下文窗口或一个专注度的任务，必须显式拆解为<strong>有依赖关系的任务图</strong>：节点是子任务（各自带 SPEC、上下文、验收），边是依赖。拆解的原则：</p>
+<ul>
+<li><strong>每个节点独立可验证</strong>——验收标准随任务一起下发，而不是最后统一验收；</li>
+<li><strong>依赖最小化</strong>——可并行的分支（如&quot;订单模块改造&quot;与&quot;库存模块改造&quot;）显式标出，交给 SubAgent 并行；</li>
+<li><strong>关键路径人工看护</strong>——影响面大的节点（改公共契约、动数据库结构）标记为需人工评审。</li>
+</ul>
+<p>以 DataAgent&quot;月度经营分析报告&quot;为例，一张任务图长这样——注意每个节点都自带 SPEC 与验收，诊断节点是 Agentic 的、其余是确定性编排：</p>
+<pre class="mermaid">flowchart LR
+    R[&quot;月报任务&lt;br/&gt;入口 SPEC&quot;] --&gt; A[&quot;并行取数&lt;br/&gt;订单/库存/广告 · SPEC-101&quot;]
+    R --&gt; B[&quot;指标计算与口径对齐&lt;br/&gt;SPEC-102&quot;]
+    A --&gt; C[&quot;异常诊断子任务&lt;br/&gt;Autonomous 节点 · 带预算&quot;]
+    B --&gt; C
+    C --&gt; D[&quot;报告成文&lt;br/&gt;SPEC-103&quot;]
+    D --&gt; E[&quot;Evaluator 事实核查&lt;br/&gt;证据链完整性&quot;]
+    E -- &quot;不达标: 打回&quot; --&gt; D
+    E -- &quot;通过&quot; --&gt; F[&quot;交付 + 执行记录入库&quot;]
+</pre>
+<p>取数与口径对齐之间没有依赖、显式并行——这正是&quot;依赖最小化&quot;的应用；诊断节点嵌入 Autonomous 但被 DAG 的骨架约束住——这就是篇01 说的 Agentic Workflow 在任务图上的样子。</p>
+<h3 id="2-5-tdd-与-edd-test-eval-driven-development">2.5 TDD 与 EDD（Test/Eval-Driven Development）</h3>
+<p>TDD 在 AI Coding 里获得新生：<strong>测试先行 = 给 AI 一个客观的、可自动检查的完成信号。</strong> 先写（或让 AI 先写但人审）失败测试，再让 AI 实现到测试通过——AI 的&quot;我觉得写完了&quot;被替换为&quot;测试绿了&quot;。</p>
+<p>EDD 把同一思想推广到无法用单元测试断言的领域（生成质量、Agent 行为）：为任务定义 Eval 集（输入 + 评分标准 + Grader），让&quot;效果达标&quot;像&quot;测试通过&quot;一样可自动判定。DataAgent 的&quot;口径正确率≥90%&quot;就是 EDD 而非 TDD 的对象。</p>
+<h3 id="2-6-loop-engineering-建立受控执行闭环">2.6 Loop Engineering：建立受控执行闭环</h3>
+<p>让 AI 迭代（写→跑→看报错→改）是提效的源泉，失控迭代（无限重试、原地打转、越改越坏）是烧钱的深渊。受控闭环四要素：</p>
+<ol>
+<li><strong>停止条件</strong>：成功判据（测试绿/Eval 达标）+ 失败判据（最大轮次、预算耗尽、同一错误重复 N 次）；</li>
+<li><strong>状态压缩</strong>：每轮只把&quot;当前代码 + 最新错误&quot;喂回去，不让对话无限膨胀；</li>
+<li><strong>升级机制</strong>：连续失败时升级给人，而不是让 AI 在死胡同里烧 Token；</li>
+<li><strong>可观测</strong>：每一轮的输入、输出、工具调用留 Trace，事后能复盘&quot;它在第几轮开始跑偏的&quot;。</li>
+</ol>
+<h3 id="2-7-independent-verification-独立验证与证据驱动审查">2.7 Independent Verification：独立验证与证据驱动审查</h3>
+<p>核心原则：<strong>产出者和验证者不能是同一个上下文。</strong> 让写代码的 Agent 自证&quot;我写对了&quot;没有意义——同一个模型、同一份上下文会犯同一个盲点错误。独立验证的实现：</p>
+<ul>
+<li>用另一个会话（甚至另一个模型）只看&quot;SPEC + 产出 diff&quot;，不带实现过程的自我辩护；</li>
+<li>验证产出必须是<strong>证据</strong>：测试运行结果、静态扫描报告、契约比对——而不是&quot;看起来对&quot;的意见；</li>
+<li>高风险变更要求机器证据 + 人工签认双保险。</li>
+</ul>
+<p><strong>落地成日常，就是 Review-Driven 工作流</strong>：把&quot;评审 AI 产出&quot;当成和&quot;写代码&quot;同等正式的工作环节，而不是做完顺手扫一眼。一套可执行的人工评审动线（越靠前越先查）：</p>
+<ol>
+<li><strong>先查验收，再看代码</strong>：diff 对照 SPEC 的验收标准逐条打勾，不过的项直接打回，不进入细节评审；</li>
+<li><strong>先查边界，再查主路</strong>：AI 的主路径实现通常像模像样，翻车集中在空输入、并发、权限、资源释放——评审时间应向边界倾斜；</li>
+<li><strong>先查契约，再查实现</strong>：接口签名、数据结构、SQL 语义对不对，比变量命名重要一个数量级；</li>
+<li><strong>删掉的代码和新增的一样重要</strong>：AI 重构时&quot;悄悄删掉一个不理解的兜底逻辑&quot;是高频事故，diff 里的红色部分逐行确认；</li>
+<li><strong>评审意见回流</strong>：每次打回的原因如果是&quot;这类错误 AI 常犯&quot;，就把它写成一条团队 Rule 或 Eval 用例——评审的尽头是资产（2.9 节）。</li>
+</ol>
+<h3 id="2-8-progressive-delivery-从代码完成到安全上线">2.8 Progressive Delivery：从代码完成到安全上线</h3>
+<p>代码写完只是交付的起点。渐进交付链条：本地验证 → CI 全量测试 → 预发环境 → 小流量 Canary → 全量，每一级都有可量化的通过标准和一键回滚<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>。对 AI 生成代码尤其重要，因为它的失败模式（边界遗漏、隐性假设）往往在真实流量下才暴露。</p>
+<h3 id="2-9-distill-资产蒸馏">2.9 Distill：资产蒸馏</h3>
+<p>每次任务结束时，把可复用的部分蒸馏出来：新沉淀的 SPEC 模板、一条团队规则、一个 Skill、若干 Badcase 和 Eval 用例。这是&quot;生产观&quot;第三条（复利资产）的落地机制，也是从&quot;法&quot;通向&quot;器&quot;的桥梁。</p>
+<hr>
+<h2 id="3-术-八个控制变量与实战技巧">3. 术：八个控制变量与实战技巧</h2>
+<p>法是方法论，术是手感。企业级 AI Coding 的日常优化围绕<strong>八个控制变量</strong>展开，并且始终同时优化四个目标：<strong>效果、效率、成本、人类注意力</strong>（注意力是最稀缺的资源——凡是能让 AI 自动检查的就别让人看）。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>控制变量</th>
+<th>控制什么</th>
+<th>关键技巧</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>任务粒度</strong></td>
+<td>单次交给 AI 的任务大小</td>
+<td>小到能在一个上下文内自洽验证；大到值得一次编排开销</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>上下文配比</strong></td>
+<td>喂什么、喂多少、什么顺序</td>
+<td>契约优先、示例居中、动态信息靠后；定期&quot;重启上下文&quot;防污染</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Prompt 结构</strong></td>
+<td>指令的表达</td>
+<td>角色+目标+约束+输出格式+示例五段式；负面约束（不许做什么）比正面描述更有效</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>执行节奏</strong></td>
+<td>何时自动、何时暂停等人</td>
+<td>计划确认点、关键变更确认点、预算检查点</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Loop 参数</strong></td>
+<td>迭代轮次、预算、停止条件</td>
+<td>每类任务预设预算上限；同一错误 3 次即升级</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>验证强度</strong></td>
+<td>用什么证据放行</td>
+<td>风险分级匹配验证强度（低风险抽检、高风险全量+双人）</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>工具与权限</strong></td>
+<td>AI 能调什么、能动什么</td>
+<td>最小权限；只读/写分离；副作用操作强制审批</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>模型与路由</strong></td>
+<td>哪个任务用哪个模型</td>
+<td>简单任务用小模型，规划/诊断用推理模型；失败时升级模型而非死磕</td>
+</tr>
+</tbody>
+</table></div>
+<p>高频技巧举要：</p>
+<ul>
+<li><strong>Prompt 与任务控制</strong>：把大需求写成&quot;验收标准清单&quot;而非描述性段落；要求 AI 先复述理解再动手（便宜的误解检查）；给&quot;完成定义&quot;（Definition of Done）。</li>
+<li><strong>上下文工程</strong>：定期清空对话重开（带新上下文清单），比在 100 轮污染对话里继续有效；用结构化摘要替代长历史。</li>
+<li><strong>Hook 与确定性自动化</strong>：能用脚本保证的（格式化、Lint、提交前测试、危险命令拦截）绝不让模型&quot;自觉遵守&quot;——Hook 是 100% 可靠的，模型的自觉不是。</li>
+<li><strong>Skill 沉淀</strong>：把重复三次以上的操作流程封装成 Skill（带触发条件、步骤、验收），让最佳实践脱离个人记忆。</li>
+<li><strong>SubAgent 编排</strong>：把&quot;探索&quot;（读大量代码找线索）和&quot;执行&quot;（精确修改）分给不同 SubAgent——探索者上下文脏了无所谓，执行者的上下文必须干净；并行 SubAgent 处理独立模块，主 Agent 只做合并与冲突裁决。</li>
+</ul>
+<p><strong>提示词工程的最大杠杆：五段式结构。</strong> 八个控制变量里，Prompt 结构是普通人提升最快的单点。把日常指令从&quot;一句话提需求&quot;升级为五段式，质量跃迁立竿见影：</p>
+<pre><code class="language-text">【角色】你是资深数据工程师，熟悉零售 SaaS 多租户架构。
+【目标】为 orders 表写一个按租户+日期范围查 GMV 的查询函数。
+【约束】只读；必须带 tenant_id 过滤；禁止 SELECT *；用参数化查询防注入。
+【格式】返回：Python 函数 + 对应 SQL + 三条边界测试用例；不要解释原理。
+【示例】参考现有函数 query_orders(status) 的风格：&lt;粘贴 20 行参考代码&gt;
+</code></pre>
+<p>为什么五段式有效？因为它逐段对应 LLM 的机制：<strong>角色</strong>激活相关参数分布，<strong>目标</strong>锚定生成方向，<strong>约束</strong>（尤其负面约束）压缩不合规输出的概率空间，<strong>格式</strong>把&quot;验收&quot;提前写进请求，<strong>示例</strong>则直接调用 ICL——3~5 个好示例胜过长篇规则描述（篇01 1.6 节）。注意它和上面 SPEC 六段式的关系：<strong>SPEC 是项目级的契约，五段式是单次任务的契约</strong>——同一个思想在两个尺度上的应用。</p>
+<p><strong>提示词质量对比（交互实验）</strong>：下面这个 Demo 把同一个需求的&quot;烂提示词 / 普通提示词 / 五段式提示词&quot;放在一起，逐项拆解五段式每一段的贡献，并让你动手给一个真实提示词&quot;诊断打分&quot;：</p>
+<div class="demo-embed" data-demo="prompt-compare"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>依次切换三档提示词，观察右侧&quot;结构覆盖率&quot;雷达条如何从 1/5 涨到 5/5——找到每一档缺的是哪几段。</li>
+<li>对比&quot;普通&quot;与&quot;五段式&quot;两档的预期产出差异列表，找出&quot;约束&quot;和&quot;示例&quot;各自消灭了哪一类翻车。</li>
+<li>用底部的诊断模式，把你自己最近发过的一条真实提示词逐段对照打分，记下缺哪段。</li>
+<li>回答 Demo 结论区的问题：为什么&quot;示例&quot;通常比&quot;约束&quot;更难写、但杠杆更高？（提示：回想篇01 的 ICL。）</li>
+</ol>
+<hr>
+<h2 id="4-器-ai-coding-harness">4. 器：AI Coding Harness</h2>
+<h3 id="4-1-从工具到-harness">4.1 从工具到 Harness</h3>
+<p>单点工具（一个 IDE 插件）→ 工具链（插件 + CI + 脚本）→ <strong>Harness（企业级生产系统）</strong>。器的本质是：<strong>把&quot;道&quot;的制度、&quot;法&quot;的流程、&quot;术&quot;的经验，全部外置为不依赖个人自觉的基础设施。</strong> 判断你有没有 Harness 的标准很简单：一个新人第一天入职，不请教任何人，能否在系统的引导下产出符合团队标准的 AI 辅助代码？</p>
+<h3 id="4-2-harness-五大组件">4.2 Harness 五大组件</h3>
+<pre class="mermaid">flowchart TD
+    subgraph Harness[&quot;企业级 AI Coding Harness&quot;]
+        CS[&quot;Context System&lt;br/&gt;Agent-Friendly Repo · 权威信息源&lt;br/&gt;规则继承 · Context Manifest&quot;]
+        SB[&quot;Sandbox 与执行环境&lt;br/&gt;Worktree 隔离 · 多 Agent 并行&lt;br/&gt;秘钥治理 · 执行集群&quot;]
+        WO[&quot;编排基础设施&lt;br/&gt;Workflow · Hook · Skill · SubAgent&quot;]
+        OB[&quot;Observability 与治理&lt;br/&gt;Agent Trace · 成本观测 · 效能度量&quot;]
+        AP[&quot;资产平台&lt;br/&gt;Prompt/Rule/Skill/Eval 资产库&lt;br/&gt;版本与生命周期 · Badcase 回流&quot;]
+    end
+    CS --&gt; WO
+    SB --&gt; WO
+    WO --&gt; OB
+    OB -- &quot;Badcase/效能数据&quot; --&gt; AP
+    AP -- &quot;规则/Skill下发&quot; --&gt; CS
+</pre>
+<p><strong>① Context System：让 Agent 获得最小必要信息。</strong> 建设 Agent-Friendly Repository：架构决策有 ADR、模块有 README、接口有契约文件、术语有词表——AI 和人一样，进项目先读文档。治理三个老大难：<strong>规则继承</strong>（全局规则→仓库规则→模块规则的覆盖链）、<strong>冲突治理</strong>（两份文档说法不一致时谁是权威源）、<strong>过期治理</strong>（文档与代码漂移的检测）。Context Manifest 记录&quot;本次任务用了哪些上下文版本&quot;，保证任务可复现、事故可回溯。</p>
+<p><strong>② Sandbox 与执行环境。</strong> 每个 Agent 任务在独立 Worktree/容器中执行，互不污染；秘钥与环境变量集中治理、按需注入、不留痕在上下文里（防泄露进 Prompt 日志）；从开发者本机演进到企业执行集群后，多 Agent 并行跑任务成为标准能力。</p>
+<p><strong>③ Workflow / Hook / Skill 编排基础设施。</strong> Workflow 承载固定流程（如&quot;需求→SPEC→实现→验证→PR&quot;），Hook 承载确定性闸门（提交前必跑测试、危险 SQL 拦截、预算超限熔断），Skill 承载可复用操作手册。三者关系：<strong>Workflow 定流程，Hook 守底线，Skill 传经验。</strong></p>
+<p><strong>④ Observability 与组织治理。</strong> 从&quot;监控 Token 用量&quot;升级为&quot;观测软件生产效能&quot;：每个任务花了多少 Token、几轮迭代、验证通过率、人工介入次数、最终返工率。Agent Trace（每一次模型调用、工具调用、决策点的完整记录）既是调试工具也是审计依据。治理层面，这些数据支撑&quot;AI 领导力&quot;决策：哪些流程值得加大自动化、哪些团队在裸奔、哪些模型路由策略在浪费钱。</p>
+<p><strong>⑤ 资产平台。</strong> 划清五类资产的边界与生命周期：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>资产</th>
+<th>本质</th>
+<th>所有者</th>
+<th>生命周期管理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Prompt</td>
+<td>单次/模板化指令</td>
+<td>个人→团队</td>
+<td>版本化，随模型升级回归测试</td>
+</tr>
+<tr>
+<td>Rule</td>
+<td>团队级约束与规范</td>
+<td>团队</td>
+<td>评审制变更，过期审查</td>
+</tr>
+<tr>
+<td>Skill</td>
+<td>封装的操作流程</td>
+<td>团队</td>
+<td>触发条件明确，带验收标准</td>
+</tr>
+<tr>
+<td>Workflow</td>
+<td>编排好的流程</td>
+<td>平台组</td>
+<td>变更走发布流程</td>
+</tr>
+<tr>
+<td>Eval</td>
+<td>评测数据集与 Grader</td>
+<td>团队 + QA</td>
+<td>Badcase 持续回流，防过拟合</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>个人资产→团队资产的升级机制</strong>：个人验证有效 → 补充测试与文档 → 评审入库 → 全员可用 → 持续由 Badcase 回流喂养。这个飞轮转起来，组织的 AI 能力就能<strong>随模型共同进化</strong>——新模型发布时，用团队 Eval 集回归一遍，就知道哪些资产失效、哪些能力解锁，而不是靠玄学体感。</p>
+<h3 id="4-3-工具选型-分类框架比名单更重要">4.3 工具选型：分类框架比名单更重要</h3>
+<p>AI Coding 工具半年一洗牌，追名单没有意义，<strong>要掌握的是分类框架</strong>——每一类工具对应一种人机控制权的分配方式：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>代表形态</th>
+<th>控制权分配</th>
+<th>擅长</th>
+<th>短板</th>
+<th>适配任务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>补全型</strong></td>
+<td>IDE 内联补全</td>
+<td>人写主驾，AI 猜下一行</td>
+<td>样板代码、重复模式</td>
+<td>无任务概念，只见光标附近</td>
+<td>手写为主时的加速器</td>
+</tr>
+<tr>
+<td><strong>对话型</strong></td>
+<td>IDE 聊天面板 / 网页对话</td>
+<td>人描述，AI 出片段，人搬运</td>
+<td>答疑、小函数、解释代码</td>
+<td>上下文靠人肉喂，不能动手执行</td>
+<td>学习、探索、局部生成</td>
+</tr>
+<tr>
+<td><strong>Agent 型（CLI/IDE）</strong></td>
+<td>能读写文件、跑命令的编码 Agent</td>
+<td>人定目标，AI 自主循环执行</td>
+<td>跨文件改造、跑测试修错、多步任务</td>
+<td>失控风险高，必须配沙箱与预算</td>
+<td>法与术的全部主战场</td>
+</tr>
+<tr>
+<td><strong>平台型</strong></td>
+<td>团队级 Harness / 编码平台</td>
+<td>组织定流程，AI 在轨道内跑</td>
+<td>权限、审计、资产复用、批量任务</td>
+<td>建设成本高</td>
+<td>企业级交付的终态</td>
+</tr>
+</tbody>
+</table></div>
+<p>选型决策三问：</p>
+<ol>
+<li><strong>这个工具把上下文管理的责任放在谁身上？</strong> 靠人肉粘贴上下文的工具，天花板是你的耐心；能读仓库结构、有规则继承机制的，才能进企业级。</li>
+<li><strong>它的&quot;手&quot;和&quot;护栏&quot;各是什么？</strong> 能执行命令是&quot;手&quot;，审批点、预算、沙箱是&quot;护栏&quot;——只比较手不比较护栏的选型，是在给事故选型。</li>
+<li><strong>产出能不能沉淀为资产？</strong> Prompt、规则、Skill 在工具内是私有格式还是可导出的工程文件？锁死在某个工具私有格式里的资产，是负资产。</li>
+</ol>
+<blockquote>
+<p>名单层面的建议只说一句：<strong>先用熟一个 Agent 型工具的全部机制（规则文件、Hook、SubAgent、权限模式），再谈第二把刀。</strong> 工具之间的差异远小于&quot;会用&quot;与&quot;会用透&quot;之间的差异。</p>
+</blockquote>
+<hr>
+<h2 id="5-ai-coding-反模式清单-红线合集">5. AI Coding 反模式清单（红线合集）</h2>
+<p>道法术器讲&quot;该做什么&quot;，这一节讲&quot;千万别做什么&quot;。每条反模式都来自真实团队的事故复盘，按道法术器归档——评审自己团队的工作流时，可以拿这张表当检查单：</p>
+<p><strong>道之反模式</strong></p>
+<ol>
+<li><strong>甩锅式交付</strong>：&quot;这是 AI 写的&quot;成为质量问题的免责理由。——提交即背书，没有例外。</li>
+<li><strong>全自动崇拜</strong>：把&quot;不用人管&quot;当 KPI，高风险操作也无人审批。——自动化程度必须跟着错误代价走。</li>
+<li><strong>沉默的使用</strong>：团队里人人用 AI，但没人记录怎么用的、翻车在哪儿。——没有台账就没有校准，永远在重复踩坑。</li>
+</ol>
+<p><strong>法之反模式</strong></p>
+<ol start="4">
+<li><strong>裸聊开工</strong>：不写 SPEC、不带上下文，一句&quot;帮我做个 XX&quot;就开聊，然后抱怨 AI 不懂业务。——四类不确定性一个都没收敛。</li>
+<li><strong>生成者自证</strong>：让写代码的 Agent 自查一遍&quot;你觉得对吗&quot;就算验证。——同一上下文同一盲点（2.7 节）。</li>
+<li><strong>无限续命循环</strong>：AI 修一个报错连改 8 轮还在原地打转，人不去接管也不停手。——缺停止条件与升级机制（2.6 节）。</li>
+</ol>
+<p><strong>术之反模式</strong></p>
+<ol start="7">
+<li><strong>上下文倾倒</strong>：不分层、不筛选，把几十个文件全塞进会话，然后困惑 AI 为什么抓不住重点。——lost in the middle 自助套餐。</li>
+<li><strong>一句话需求</strong>：&quot;优化一下这段代码&quot;——没有目标、约束、验收，AI 只能自由发挥，你还无法验收。</li>
+<li><strong>在污染会话里长征</strong>：一个会话聊了 100 轮、横跨 5 个任务还在用，上下文早已互相污染。——定期重启上下文，带新清单重开。</li>
+<li><strong>让 AI 自觉遵守纪律</strong>：指望 Prompt 里写&quot;提交前记得跑测试&quot;，而不是配一个 Hook。——模型的自觉不可靠，Hook 才可靠。</li>
+</ol>
+<p><strong>器之反模式</strong></p>
+<ol start="11">
+<li><strong>密钥裸奔</strong>：API key 写进 Prompt、代码、CI 日志里。——密钥治理是器的第一课，也是最低线。</li>
+<li><strong>经验锁在个人手里</strong>：高手的 Prompt 和技巧存在他私人的工具配置里，人走即失。——资产不入库，组织能力为零。</li>
+</ol>
+<hr>
+<h2 id="常见误区">常见误区</h2>
+<ol>
+<li><strong>&quot;AI 生成代码快 = 团队交付快。&quot;</strong> 生成量只是公式第一项。验证、返工、事故成本不治理，写得越快欠账越多。</li>
+<li><strong>&quot;找到一条神 Prompt 就能解决质量问题。&quot;</strong> 质量是 SPEC、上下文、验证、流程的系统涌现。同一条 Prompt 换个人、换个项目就失灵，因为它依赖的隐性上下文没外置。</li>
+<li><strong>&quot;追求全自动是先进，人工审批是落后。&quot;</strong> 全自动调预算、写生产库的企业系统等于裸奔。风险适配的自动化才是成熟：低风险全速跑，高风险人守门。</li>
+<li><strong>&quot;让写代码的 Agent 自己检查一遍就算验证了。&quot;</strong> 同一上下文同一盲点。独立验证的价值恰恰在&quot;不知情&quot;——只看 SPEC 和 diff 的验证者才能发现实现者的系统性偏差。</li>
+<li><strong>&quot;上下文给得越全越好，把仓库都塞给它。&quot;</strong> 全量上下文 = 低信号密度 + 高成本 + lost in the middle。最小充分 + 契约优先才是正解。</li>
+<li><strong>&quot;资产平台是大公司才需要的奢侈品。&quot;</strong> 恰恰相反——没有资产沉淀，团队规模稍大就会陷入&quot;每个人重复踩同一个坑&quot;。三个人就该开始攒 Skill 和 Badcase。</li>
+</ol>
+<h2 id="本篇实战-五个递进修炼-每步都有验收标准">本篇实战：五个递进修炼（每步都有验收标准）</h2>
+<p>五个修炼按&quot;法&quot;的流水线顺序排列：先写规格 → 再造环境 → 再建闭环 → 再练验证 → 最后盘点变量。建议用同一个真实需求贯穿始终，走完一遍就是一次完整的企业级 AI Coding 微循环。</p>
+<p><strong>修炼 1：写一份可执行 SPEC</strong></p>
+<ul>
+<li><strong>目标</strong>：把六段式模板用出肌肉记忆，亲身体会&quot;规格决定产出上限&quot;。</li>
+<li><strong>操作</strong>：选一个你本周要做的真实需求（如&quot;为 DataAgent 增加库存预警&quot;），按六段式写 SPEC；然后分别用&quot;有 SPEC&quot;和&quot;无 SPEC 口头描述&quot;两种方式让 AI 实现，各跑一次。</li>
+<li><strong>验收标准</strong>：记录两种方式的产出质量与返工轮次，写出 3 行对比结论——结论里必须指出 SPEC 的哪一段（目标/约束/验收/边界）贡献最大。</li>
+</ul>
+<p><strong>修炼 2：给项目做一次 Agent-Friendly 改造</strong></p>
+<ul>
+<li><strong>目标</strong>：让&quot;零上下文的新会话&quot;也能在你的仓库里开工。</li>
+<li><strong>操作</strong>：为一个仓库补齐三样——根 README（架构一句话图 + 如何跑测试）、一份 ADR（最近一个重要决策）、模块级接口契约文件。</li>
+<li><strong>验收标准</strong>：开一个全新会话完成一个小任务，记录它比改造前少问了你几个问题；少问 3 个以上算达标。</li>
+</ul>
+<p><strong>修炼 3：搭建最小受控 Loop</strong></p>
+<ul>
+<li><strong>目标</strong>：把 2.6 节四要素（停止条件/状态压缩/升级机制/可观测）变成可运行脚本。</li>
+<li><strong>操作</strong>：为任意 AI 编码任务实现脚本化闭环——跑测试 → 失败则把错误日志喂回 AI → 最多 5 轮 → 仍失败则停止并输出完整 Trace。</li>
+<li><strong>验收标准</strong>：记录 AI 在哪类错误上原地打转；据此调整一条停止条件（如&quot;同一报错出现 2 次即升级&quot;），重跑验证有效。</li>
+</ul>
+<p><strong>修炼 4：独立验证对照实验</strong></p>
+<ul>
+<li><strong>目标</strong>：亲手测出&quot;产出者与验证者分离&quot;的增量价值。</li>
+<li><strong>操作</strong>：让 AI 实现一个有 5 个边界条件的函数；先让它自查并报告&quot;没问题&quot;，再用一个只给&quot;SPEC + diff&quot;的干净会话独立验证。</li>
+<li><strong>验收标准</strong>：对比两边发现的问题数；如果独立验证多发现了 ≥1 个问题，写下它对的是哪类错误（通常是实现者的系统性盲点）。</li>
+</ul>
+<p><strong>修炼 5：绘制你的控制变量基线</strong></p>
+<ul>
+<li><strong>目标</strong>：把八个控制变量从&quot;无意识默认&quot;变成&quot;有意识调参&quot;。</li>
+<li><strong>操作</strong>：选一个常用 AI 工作流，逐项标注八个变量当前的取值（任务粒度多大、上下文怎么配、预算上限、验证强度……）。</li>
+<li><strong>验收标准</strong>：找出其中&quot;从未有意识调过&quot;的三项，各做一次调整实验并记录前后效果；把基线表存档，一个月后回看。</li>
+</ul>
+<h3 id="ai-coding-实操模式-全书样板">AI Coding 实操模式（全书样板）</h3>
+<p>本篇是 AI Coding 方法论主卷，这一节给出全书后续各篇「AI Coding 实操模式」的完整样板：提示词模板 + 评审清单 + 验收标准三件套。后续各篇会按各自主题裁剪，但骨架不变。</p>
+<p><strong>① 可复制提示词模板（四条，覆盖全流程）</strong></p>
+<p>让 AI 帮你写 SPEC（注意：是帮你写，不是替你写——写完必须人来改）：</p>
+<pre><code class="language-text">我要实现一个功能，先不要写代码。请按六段式（目标/非目标/输入输出契约/约束/
+验收标准/边界情况）帮我起草一份 SPEC。我的初步想法是：【一句话描述】。
+要求：(1) 你不确定的字段，列成问题清单问我，不要自行假设；
+(2) 验收标准必须可自动检查；(3) 边界情况至少给 4 条，覆盖空输入、极端值、
+并发、外部依赖失败。
+</code></pre>
+<p>任务开工（五段式 + 复述检查，一次解决&quot;理解偏差&quot;）：</p>
+<pre><code class="language-text">【角色】你是资深后端工程师，熟悉本仓库（规则见 AGENTS.md）。
+【目标】实现 SPEC-012 中的库存预警功能。
+【约束】不改公共契约；不写库；测试随代码一起给。
+【格式】先复述你的理解和实施计划（不超过 10 行），等我确认后再动手。
+【上下文】SPEC 全文如下：&lt;粘贴&gt;；相关文件：&lt;文件清单&gt;
+</code></pre>
+<p>打回重做（带具体原因的反馈，避免原地打转）：</p>
+<pre><code class="language-text">上一版没有通过验收，不要全盘重写，只做针对性修改：
+【未达标项】第 3 条：tenant_id 过滤缺失，见 diff 第 42 行。
+【期望】所有查询路径都必须带 tenant_id，包括你新增的分支。
+【约束】保持已通过的其余验收项不回退；改完列出你动过的每一处。
+</code></pre>
+<p>评审助手（AI 当评审的脚手架，但结论人来下）：</p>
+<pre><code class="language-text">你是独立评审者，没有参与实现。只看下面的 SPEC 和 diff，不要听任何实现者的解释。
+请输出：(1) 验收标准逐条过/不过 + 证据（行号）；(2) 边界情况遗漏清单；
+(3) diff 中被删除的逻辑逐条确认是否安全；(4) 你不确定、需要人确认的点。
+【SPEC】&lt;粘贴&gt;
+【diff】&lt;粘贴&gt;
+</code></pre>
+<p><strong>② AI 初版人工评审清单（6 条红线，逐条过）</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox"> <strong>验收对照</strong>：SPEC 的每条验收标准都有对应证据（测试输出/命令结果），不是&quot;看起来实现了&quot;</li>
+<li class="task-item"><input type="checkbox"> <strong>红色 diff</strong>：被删除/被改写的既有逻辑逐行确认过——AI 重构最常见的暗伤是&quot;删掉不理解的兜底&quot;</li>
+<li class="task-item"><input type="checkbox"> <strong>边界抽查</strong>：空输入、超长输入、并发、外部依赖失败，至少亲手触发过两个</li>
+<li class="task-item"><input type="checkbox"> <strong>契约不破</strong>：公共接口、数据结构、数据库 Schema 没有未经授权的变更</li>
+<li class="task-item"><input type="checkbox"> <strong>无静默吞错</strong>：不存在 <code>except: pass</code>、被注释掉的测试、被跳过的校验</li>
+<li class="task-item"><input type="checkbox"> <strong>我懂每一行</strong>：关键路径上的代码我能逐行讲清意图——讲不出的部分，要么追问到懂，要么不合并</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<ul>
+<li>五个修炼全部通过各自的验收标准，产出物（SPEC、README/ADR、Loop 脚本、对照实验记录、变量基线表）全部存档；</li>
+<li>四个提示词模板至少各真实使用过一次，并根据使用效果改过其中一条；</li>
+<li>评审清单 6 条在至少一次真实合并前完整走过一遍——最好抓到过至少一个问题，那才是它存在的意义。</li>
+</ul>
+<h2 id="自测清单">自测清单</h2>
+<ul>
+<li class="task-item"><input type="checkbox"> 我能写出企业级 AI Coding 有效产出公式，并解释每一项如何被&quot;法&quot;和&quot;器&quot;优化。</li>
+<li class="task-item"><input type="checkbox"> 我能说清三观（角色观/生产观/责任观）各自的&quot;从什么转向什么&quot;。</li>
+<li class="task-item"><input type="checkbox"> 我能解释 AI Coding 的四类不确定性，以及九种方法分别对准哪一类。</li>
+<li class="task-item"><input type="checkbox"> 我能写出一份六段式可执行 SPEC，并说出它与&quot;需求描述&quot;的本质区别。</li>
+<li class="task-item"><input type="checkbox"> 我理解&quot;最小充分上下文&quot;与&quot;高信号密度&quot;，知道契约为什么要先于实现喂给 AI。</li>
+<li class="task-item"><input type="checkbox"> 我能说明 Contract-First、不变量断言、TDD/EDD 如何共同构成&quot;确定性锚点&quot;。</li>
+<li class="task-item"><input type="checkbox"> 我能设计带停止条件、状态压缩、升级机制的受控 Loop。</li>
+<li class="task-item"><input type="checkbox"> 我理解独立验证为什么必须与产出者分离，并能给出两种实现方式。</li>
+<li class="task-item"><input type="checkbox"> 我能列出八个控制变量，并说明如何在效果、效率、成本、人类注意力之间权衡。</li>
+<li class="task-item"><input type="checkbox"> 我能画出 Harness 五大组件及其相互关系，解释&quot;个人资产→团队资产&quot;的升级飞轮。</li>
+</ul>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-course">极客时间专栏《企业级 Agent 工程化》——本篇&quot;道法术器&quot;四层框架、九大企业级方法论与 Harness 五大组件的划分均重构自该课程的 AI Coding 章节。 <a class="fn-back" href="#ref-course" aria-label="回到正文">↩</a></li>
+<li id="fn-phoenix">周志明《凤凰架构：构建可靠的大型分布式系统》，&quot;持续交付&quot;相关章节——渐进交付链条与各级门禁、一键回滚的工程依据，<a href="https://icyfenix.cn">https://icyfenix.cn</a> 。 <a class="fn-back" href="#ref-phoenix" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-01.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇01 · AI 核心认知</span></a>
+      <a class="next" href="chapter-03.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇03 · 实战立项</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-道-角色观-生产观-责任观">1. 道：角色观、生产观、责任观</a>
+    <a class="toc-h3" href="#1-1-个人级-vs-企业级-ai-coding">1.1 个人级 vs 企业级 AI Coding</a>
+    <a class="toc-h3" href="#1-2-道法术器四层架构">1.2 道法术器四层架构</a>
+    <a class="toc-h3" href="#1-3-三观详解">1.3 三观详解</a>
+    <a class="toc-h3" href="#1-4-信任校准-人机协作的隐形主轴">1.4 信任校准：人机协作的隐形主轴</a>
+    <a class="toc-h2" href="#2-法-九大企业级方法论">2. 法：九大企业级方法论</a>
+    <a class="toc-h3" href="#2-1-sdd-spec-driven-development-从模糊需求到可执行规格">2.1 SDD（Spec-Driven Development）：从模糊需求到可执行规格</a>
+    <a class="toc-h3" href="#2-2-context-engineering-构造最小充分上下文">2.2 Context Engineering：构造最小充分上下文</a>
+    <a class="toc-h3" href="#2-3-contract-first-与-invariant-driven-development">2.3 Contract-First 与 Invariant-Driven Development</a>
+    <a class="toc-h3" href="#2-4-task-graph-复杂任务的拆解与编排">2.4 Task Graph：复杂任务的拆解与编排</a>
+    <a class="toc-h3" href="#2-5-tdd-与-edd-test-eval-driven-development">2.5 TDD 与 EDD（Test/Eval-Driven Development）</a>
+    <a class="toc-h3" href="#2-6-loop-engineering-建立受控执行闭环">2.6 Loop Engineering：建立受控执行闭环</a>
+    <a class="toc-h3" href="#2-7-independent-verification-独立验证与证据驱动审查">2.7 Independent Verification：独立验证与证据驱动审查</a>
+    <a class="toc-h3" href="#2-8-progressive-delivery-从代码完成到安全上线">2.8 Progressive Delivery：从代码完成到安全上线</a>
+    <a class="toc-h3" href="#2-9-distill-资产蒸馏">2.9 Distill：资产蒸馏</a>
+    <a class="toc-h2" href="#3-术-八个控制变量与实战技巧">3. 术：八个控制变量与实战技巧</a>
+    <a class="toc-h2" href="#4-器-ai-coding-harness">4. 器：AI Coding Harness</a>
+    <a class="toc-h3" href="#4-1-从工具到-harness">4.1 从工具到 Harness</a>
+    <a class="toc-h3" href="#4-2-harness-五大组件">4.2 Harness 五大组件</a>
+    <a class="toc-h3" href="#4-3-工具选型-分类框架比名单更重要">4.3 工具选型：分类框架比名单更重要</a>
+    <a class="toc-h2" href="#5-ai-coding-反模式清单-红线合集">5. AI Coding 反模式清单（红线合集）</a>
+    <a class="toc-h2" href="#常见误区">常见误区</a>
+    <a class="toc-h2" href="#本篇实战-五个递进修炼-每步都有验收标准">本篇实战：五个递进修炼（每步都有验收标准）</a>
+    <a class="toc-h3" href="#ai-coding-实操模式-全书样板">AI Coding 实操模式（全书样板）</a>
+    <a class="toc-h2" href="#自测清单">自测清单</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:chapter-02:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

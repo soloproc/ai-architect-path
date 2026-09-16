@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>篇06-1：Agent 上下文治理（上）——信息契约、语义层与装配预算 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="篇06-1：Agent 上下文治理（上）——信息契约、语义层与装配预算 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html" class="active">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="篇06-1-agent-上下文治理-上-信息契约-语义层与装配预算">篇06-1：Agent 上下文治理（上）——信息契约、语义层与装配预算</h1>
+<h2 id="导语">导语</h2>
+<p>如果把第五篇的 Runtime 比作 DataAgent 的&quot;心脏和血管&quot;，上下文就是它的&quot;血液&quot;：模型每一个决策的质量上限，不取决于模型本身，而取决于这一次调用时它看到了什么。本子页是篇06 的上半篇：先打破&quot;上下文 = Prompt&quot;的等式，把信息按类别、Schema、生命周期分库分治，并为每个决策点定义&quot;必须看到 / 可以看到 / 禁止看到&quot;的输入契约（第 1 节）；再让 DataAgent 先理解指标、再接触数据，用语义层把&quot;猜口径&quot;变成&quot;引口径&quot;（第 2 节）；最后把拼字符串升级为可观测的六阶段装配管线，用分区 Token 预算守住&quot;必需信息优先保障&quot;的底线，正面回应 lost-in-the-middle 的注意力陷阱（第 3 节）。贯穿案例仍是多租户零售经营分析 DataAgent <sup class="fn-ref"><a href="#fn-geektime" id="ref-geektime">[1]</a></sup>。</p>
+<hr>
+<h2 id="1-从-prompt-拼接到-context-runtime-先定义每一步决策的信息契约">1. 从 Prompt 拼接到 Context Runtime：先定义每一步决策的信息契约</h2>
+<h3 id="1-1-上下文-prompt">1.1 上下文 ≠ Prompt</h3>
+<p>&quot;上下文&quot;常被默认等同于&quot;发给模型的那串文本&quot;。这个等式是治理失败的起点。拆解一下，一次模型调用的输入里其实混着四类性质完全不同的东西：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>信息类别</th>
+<th>来源</th>
+<th>生命周期</th>
+<th>信任级别</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对话历史</td>
+<td>用户与模型的过往消息</td>
+<td>整个 Session</td>
+<td>中（用户输入，需防注入）</td>
+</tr>
+<tr>
+<td>任务与运行状态</td>
+<td>Task Contract、Analysis State</td>
+<td>单个 Run</td>
+<td>高（系统持有）</td>
+</tr>
+<tr>
+<td>业务知识</td>
+<td>指标口径、经营规则、文档</td>
+<td>跨 Run、按版本演进</td>
+<td>高（治理过的）/ 低（未治理的外部内容）</td>
+</tr>
+<tr>
+<td>工具与检索结果</td>
+<td>SQL 结果、文档、网页</td>
+<td>单个 Step 为主</td>
+<td>低（外部数据，视为不可信）</td>
+</tr>
+</tbody>
+</table></div>
+<p>它们混在一起拼接，就意味着：治理策略（谁能看）、生命周期（该留多久）、信任级别（能不能当指令）全都丢失了。Context Runtime 的第一步就是把这四类<strong>分库、分 schema、分生命周期</strong>管理，只在&quot;调用模型前一刻&quot;按需装配。</p>
+<h3 id="1-2-面向决策组织上下文">1.2 面向决策组织上下文</h3>
+<p>DataAgent 的一次 Run 里有性质迥异的决策点，它们需要看到的东西完全不同：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>决策步骤</th>
+<th>必须看到</th>
+<th>可以看到</th>
+<th>禁止看到</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分析规划</td>
+<td>任务契约、指标口径、可用数据源清单</td>
+<td>历史类似案例摘要</td>
+<td>原始大表、具体证据数据</td>
+</tr>
+<tr>
+<td>查询设计（写 SQL）</td>
+<td>指标口径、目标表 schema、行列权限、时间语义</td>
+<td>少量样例值</td>
+<td>无关表结构、超权限字段</td>
+</tr>
+<tr>
+<td>证据验证</td>
+<td>当前假设、对应查询结果（Artifact 引用）、数据新鲜度</td>
+<td>相邻假设结论</td>
+<td>无来源的二手结论</td>
+</tr>
+<tr>
+<td>建议生成</td>
+<td>已验证的证据链、经营规则、风险分级</td>
+<td>原始明细的摘要</td>
+<td>未验证的假设、超权限数据</td>
+</tr>
+</tbody>
+</table></div>
+<p>&quot;共用一套大 Prompt 模板&quot;的问题在这里一目了然：给写 SQL 的步骤塞进整份经营规则文档，既浪费 token 又稀释注意力；给建议生成步骤放进未验证假设，报告就会一本正经地写推测。<strong>每个决策点有自己的输入契约（Decision Context Contract）：必须看到、可以看到、禁止看到，三张清单都由代码执行，不靠模型自觉。</strong></p>
+<h3 id="1-3-统一-context-schema-每条信息自带元数据">1.3 统一 Context Schema：每条信息自带元数据</h3>
+<p>契约要可执行，前提是每条进入上下文的信息是结构化对象而不是裸字符串：</p>
+<pre><code class="language-text">ContextItem {
+  id, content 或 artifact_ref,
+  source: &quot;semantic_layer&quot; | &quot;sql_result&quot; | &quot;user_input&quot; | &quot;external_doc&quot; | ...,
+  version: &quot;metric_registry v42&quot;           # 来源版本，可追溯可复现
+  trust: &quot;system&quot; | &quot;tenant_governed&quot; | &quot;external_untrusted&quot;,
+  permission_scope: { tenant_id, roles, row_col_policy_ref },
+  confidence: 0.0~1.0 或枚举(governed/derived/unverified),
+  lifecycle: &quot;step&quot; | &quot;run&quot; | &quot;session&quot; | &quot;persistent&quot;,
+  freshness: { data_as_of, ingested_at, ttl },
+  token_cost: 估计占用
+}
+</code></pre>
+<p>元数据不是装饰：权限过滤看 <code>permission_scope</code>，新鲜度检查看 <code>freshness</code>，防注入看 <code>trust</code>，预算分配看 <code>token_cost</code>，审计回放看 <code>source + version</code>。<strong>没有元数据的上下文不可治理</strong>——这句是本篇的元规则。</p>
+<h3 id="1-4-拆分-context-provider">1.4 拆分 Context Provider</h3>
+<p>把信息获取从 Prompt 构造逻辑里解耦，每类信息一个 Provider：</p>
+<ul>
+<li><code>TenantContextProvider</code>：租户身份、角色、行列级权限；</li>
+<li><code>TaskContextProvider</code>：Task Contract、当前 Step 目标；</li>
+<li><code>RunStateProvider</code>：Analysis State、计划进度、预算消耗；</li>
+<li><code>SemanticProvider</code>：指标口径、术语别名（下一节的主角）；</li>
+<li><code>EvidenceProvider</code>：Artifact 引用与证据包。</li>
+</ul>
+<p>Provider 化让每类信息可以独立缓存、独立测试、独立版本化。第 6 节的 ContextOps 会证明这种拆分的回报。</p>
+<h3 id="1-5-关键上下文缺失即停止">1.5 关键上下文缺失即停止</h3>
+<p>最重要的治理规则只有一条：<strong>宁可报错停止，不可带着猜测继续。</strong> 指标口径查不到、租户身份解析失败、目标表权限不明确——这些情况下正确行为是 Run 进入&quot;阻塞待补全&quot;状态并报出缺什么，而不是让模型&quot;根据经验合理推测&quot;。DataAgent 猜错一次 GMV 口径，损失的可能是一次真实预算决策。</p>
+<hr>
+<h2 id="2-经营语义上下文-让-dataagent-先理解指标-再接触数据">2. 经营语义上下文：让 DataAgent 先理解指标，再接触数据</h2>
+<h3 id="2-1-数据库字段-业务语义">2.1 数据库字段 ≠ 业务语义</h3>
+<p>让模型对着 <code>dwd_trade_order_di</code> 表猜&quot;GMV&quot;，它会编造：是含退款还是不含？含运费吗？按下单时间还是支付时间？企业里这些问题都有<strong>确定答案</strong>，但答案不在字段名里，在人的约定里。语义层（Semantic Layer）就是把这些约定显式化、机器可读化。</p>
+<h3 id="2-2-语义层的六个构件">2.2 语义层的六个构件</h3>
+<ol>
+<li><strong>指标统一定义（Metric Registry）</strong>：每个核心指标一条注册记录——<code>gmv = sum(pay_amount) where pay_status='success'</code>，含统计口径、责任部门、版本号。多租户环境下口径允许按租户定制，但<strong>每个租户每个时刻只有一个生效版本</strong>，模型只引用不创造。</li>
+<li><strong>术语与别名</strong>：建立&quot;销售额 / 成交额 / GMV / gmv&quot;→ 同一指标 ID 的映射，自然语言映射由查表完成，不靠模型联想。</li>
+<li><strong>粒度与时间语义</strong>：显式声明指标的粒度（日/周/自然月）、时区（UTC+8）、币种、以及&quot;上周&quot;指自然周还是近 7 天。这类歧义是经营分析错误的高发区，且错得毫无痕迹。</li>
+<li><strong>Data Catalog 与血缘</strong>：指标 → 物理表字段 → 计算规则 → 上游数据源的链路。它让每条结论可追溯，也让&quot;这个字段能不能这么用&quot;有据可查。</li>
+<li><strong>权限先于相关性</strong>：检索和装配的第一道闸是权限——当前租户+角色无权访问的表、字段、行，<strong>根本不进入候选池</strong>，而不是&quot;检出来再提醒模型别用&quot;。相关性永远排在权限之后。</li>
+<li><strong>数据新鲜度与质量</strong>：每个数据资产带 <code>data_as_of</code>（数据截止时间）与质量标记。用延迟 6 小时的库存数据解释&quot;此刻为什么缺货&quot;，结论必然失真；上下文应显式携带新鲜度，让模型（和人类读者）知道证据的时间边界。</li>
+</ol>
+<p>DataAgent 实战落点：为 GMV、订单数、客单价、转化率、退款率建 Metric Registry，每条含口径 SQL、粒度、时区、币种、版本、负责人。模型在上下文中只见到<strong>指标 ID + 定义引用</strong>，口径 SQL 由语义层在查询设计时注入——模型不再&quot;猜口径&quot;，只能&quot;引口径&quot;。</p>
+<hr>
+<h2 id="3-动态上下文装配与预算">3. 动态上下文装配与预算</h2>
+<h3 id="3-1-装配管线化">3.1 装配管线化</h3>
+<p>把&quot;拼字符串&quot;改造成可观测的流水线：</p>
+<pre class="mermaid">flowchart LR
+    subgraph Candidates[&quot;候选收集&quot;]
+        P1[TenantProvider] &amp; P2[TaskProvider] &amp; P3[StateProvider] &amp; P4[SemanticProvider] &amp; P5[EvidenceProvider]
+    end
+    Candidates --&gt; F1[&quot;① 硬性过滤&lt;br/&gt;权限/租户/有效期/信任级别&quot;]
+    F1 --&gt; F2[&quot;② 软性排序&lt;br/&gt;与当前决策的相关性打分&quot;]
+    F2 --&gt; F3[&quot;③ 去重与冲突处理&lt;br/&gt;同指标多版本/矛盾证据&quot;]
+    F3 --&gt; F4[&quot;④ 分区 Token Budget 分配&lt;br/&gt;必需信息保底&quot;]
+    F4 --&gt; F5[&quot;⑤ 可信压缩&lt;br/&gt;摘要化 / Artifact 引用替换&quot;]
+    F5 --&gt; F6[&quot;⑥ 调用前充分性检查&lt;br/&gt;必需项是否齐备&quot;]
+    F6 --&gt; LLM[&quot;LLM 调用&quot;]
+    F1 -.-&gt;|被过滤原因| T[(Context Decision Trace)]
+    F2 &amp; F3 &amp; F4 &amp; F5 -.-&gt; T
+</pre>
+<p>管线化的意义：每一阶段可单测、可打日志、可替换实现。&quot;这次调用为什么没看到退款率口径&quot;能被定位到具体阶段——是候选没产出、被权限过滤了、还是被预算挤掉了。</p>
+<h3 id="3-2-硬性过滤与软性排序">3.2 硬性过滤与软性排序</h3>
+<ul>
+<li><strong>硬性过滤</strong>不可被相关性绕过：跨租户数据、超角色权限的字段、已过有效期的口径版本、<code>trust=external_untrusted</code> 的内容想进指令区——一律在第一阶段出局，无论它和问题&quot;多相关&quot;。这是安全底线，不接受&quot;它真的很相关所以破例&quot;。</li>
+<li><strong>软性排序</strong>只在通过硬闸的候选内进行：按与当前 Step 决策的相关性打分排序，决定预算不够时谁先谁后。</li>
+</ul>
+<p>顺序绝对不能反：<strong>先过滤后排序</strong>。反过来做，等于让相关性有机会为越权内容说情。</p>
+<h3 id="3-3-分区-token-budget">3.3 分区 Token Budget</h3>
+<p>不给上下文分区，结果就是谁嗓门大（内容长）谁占窗口：一次 5 万行的 SQL 结果把指标口径挤没了。分区预算给每类信息划地：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>分区</th>
+<th>内容</th>
+<th>典型占比</th>
+<th>保障级别</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>规则区</td>
+<td>系统指令、行为准则、输出格式</td>
+<td>15%</td>
+<td>硬性保底</td>
+</tr>
+<tr>
+<td>任务区</td>
+<td>Task Contract、当前 Step 目标</td>
+<td>10%</td>
+<td>硬性保底</td>
+</tr>
+<tr>
+<td>状态区</td>
+<td>Analysis State 摘要、未闭合问题</td>
+<td>15%</td>
+<td>硬性保底</td>
+</tr>
+<tr>
+<td>语义区</td>
+<td>本步涉及的指标口径、维度定义</td>
+<td>20%</td>
+<td>高优先</td>
+</tr>
+<tr>
+<td>证据区</td>
+<td>Artifact 引用、关键证据摘要</td>
+<td>25%</td>
+<td>弹性</td>
+</tr>
+<tr>
+<td>输出预留</td>
+<td>模型回答空间</td>
+<td>15%</td>
+<td>硬性保底</td>
+</tr>
+</tbody>
+</table></div>
+<p>核心原则：<strong>必需信息优先保障</strong>。工具描述、历史记录、检索结果只能在弹性区内竞争，永远不许挤占保底区。</p>
+<p>为什么&quot;保底区&quot;值得用工程手段死守？两个来自实验与线上事故的理由：</p>
+<ol>
+<li><strong>注意力存在 U 型曲线</strong>：实验表明，模型对长上下文开头与结尾的信息利用最好，埋在中段的信息最容易被&quot;丢失&quot;（lost-in-the-middle）<sup class="fn-ref"><a href="#fn-lost" id="ref-lost">[2]</a></sup>。这意味着&quot;塞进去了&quot;≠&quot;会被用到&quot;——关键口径若埋在五万行证据中间，模型大概率视而不见。分区保底 + 证据压缩，本质是把关键信息固定在注意力的高地上。</li>
+<li><strong>挤压是无声的</strong>：超预算不是报错，而是某条信息被悄悄挤掉。没有分区，你无法回答&quot;口径此刻还在不在窗口里&quot;；有了分区，&quot;保底区完整&quot;本身就是一条可断言的不变量。</li>
+</ol>
+<p>用下面的交互 Demo 亲手制造一次预算挤压：拖证据需求滑块，或直接注入&quot;5 万行 SQL 结果&quot;洪峰，观察分区模式的两级自保（先压缩成 Artifact 引用卡，仍不够才按排序剔除）；再切到「无分区」对照，看语义区口径如何被挤出窗口、充分性检查如何缺席：</p>
+<div class="demo-embed" data-demo="context-budget"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>默认状态下记录六个分区的容量分配，指出哪几个是&quot;硬性保底&quot;，对应上方表格的哪些行。</li>
+<li>把证据需求拖到证据区容量之上（但不注入洪峰）：明细表中证据区状态何时从&quot;原始装入&quot;变为&quot;压缩为引用卡&quot;？引用卡按正文 3.4 节必须保留哪三类信息？</li>
+<li>注入 SQL 洪峰后切到「无分区对照」：找出被挤出的分区，并解释为什么这类故障&quot;不报错，只生产错误结论&quot;。</li>
+<li>在&quot;无分区 + 洪峰&quot;状态下观察&quot;充分性检查&quot;一行：它为什么显示这道闸不存在？这对应 1.5 节的哪条治理规则？</li>
+<li>把总窗口从 32000 缩到 8000，在两种模式下各观察一次：55% 的保底占比设计在小窗口下是否仍然成立？你会怎么调整？</li>
+</ol>
+<h3 id="3-4-去重-冲突与可信压缩">3.4 去重、冲突与可信压缩</h3>
+<ul>
+<li><strong>去重</strong>：同一指标定义被三个 Provider 各送一遍？按 <code>source + version</code> 去重，保留一份。重复证据只留引用计数。</li>
+<li><strong>冲突处理</strong>：两条信息矛盾（口径 v41 说 GMV 含运费、v42 说不含）时，规则化裁决：版本新者优先、治理级别高者优先、且<strong>冲突事实本身写入上下文</strong>让模型知悉，而不是静默二选一。</li>
+<li><strong>可信压缩与 Artifact 引用</strong>：5 万行的查询结果不进上下文，进 Artifact Store，上下文中只放 <code>{artifact_id, 行列规模, 关键统计量, 数据时间}</code> 的引用卡。压缩必须&quot;可信&quot;：摘要须保留来源引用与数据时间，禁止摘要改写成与原文矛盾的新断言（压缩不变量见第 5 节）。</li>
+<li><strong>调用前充分性检查</strong>：装配完成、调用模型前的最后一道闸：当前 Step 契约里&quot;必须看到&quot;的项是否都在？缺了，停止调用并报缺失项——把&quot;能调就调&quot;改成&quot;够了才调&quot;。</li>
+</ul>
+<h3 id="3-5-代码骨架-contextassembler">3.5 代码骨架：ContextAssembler</h3>
+<pre><code class="language-python">from __future__ import annotations
+from dataclasses import dataclass, field
+from typing import Protocol
+
+@dataclass
+class ContextItem:
+    id: str; content: str | None; artifact_ref: str | None
+    source: str; version: str; trust: str        # system/governed/external
+    tenant_id: str; roles: set[str]; lifecycle: str
+    data_as_of: float; token_cost: int; required: bool = False
+
+class Provider(Protocol):
+    def collect(self, req: &quot;AssembleRequest&quot;) -&gt; list[ContextItem]: ...
+
+@dataclass
+class AssembleRequest:
+    run_id: str; tenant_id: str; role: str
+    step_contract: dict          # 本步决策契约：必须/可以/禁止
+    budgets: dict[str, int]      # 分区 token 预算, 如 {&quot;rules&quot;:3000,&quot;semantic&quot;:4000,...}
+
+class ContextAssembler:
+    def __init__(self, providers: list[Provider], ranker, trace_sink):
+        self.providers, self.ranker, self.trace = providers, ranker, trace_sink
+
+    def assemble(self, req: AssembleRequest) -&gt; &quot;AssembledContext&quot;:
+        # 1. 收集候选
+        cands = [c for p in self.providers for c in p.collect(req)]
+        self.trace.log(&quot;candidates&quot;, [(c.id, c.source, c.version) for c in cands])
+        # 2. 硬性过滤：租户、角色权限、有效期、信任边界 —— 不可被相关性绕过
+        kept = [c for c in cands if self._hard_pass(c, req)]
+        self.trace.log(&quot;filtered&quot;, [(c.id, &quot;hard_filter&quot;) for c in cands if c not in kept])
+        # 3. 软性排序：只在过闸者内部按相关性排
+        ranked = self.ranker.rank(kept, req)
+        # 4. 去重与冲突裁决（按 source+version 去重；版本新/治理级别高者优先）
+        ranked = self._dedup_and_resolve(ranked)
+        # 5. 分区预算：required 项保底装入，弹性项按序填充
+        packed = self._pack_by_budget(ranked, req.budgets)
+        # 6. 充分性检查：契约必需项缺失即拒绝调用
+        missing = [m for m in req.step_contract[&quot;required_ids&quot;]
+                   if m not in {c.id for c in packed}]
+        if missing:
+            raise InsufficientContext(missing)   # 停止执行，报告缺口
+        return AssembledContext(items=packed, trace_id=self.trace.id)
+
+    def _hard_pass(self, c: ContextItem, req) -&gt; bool:
+        return (c.tenant_id == req.tenant_id and req.role in c.roles
+                and not self._expired(c) and self._trust_allowed(c, req))
+</code></pre>
+<h3 id="3-6-dataagent-实战-四个-context-profile">3.6 DataAgent 实战：四个 Context Profile</h3>
+<p>为规划、查询设计、原因分析、建议生成各建一份 Profile：规划 Profile 的语义区占大头、证据区留空；查询设计 Profile 加大 schema 与行列权限、砍掉历史对话；原因分析 Profile 把预算向证据区倾斜；建议生成 Profile 只收&quot;已验证&quot;状态的证据引用。四个 Profile 共用同一条管线、不同的契约参数——这正是 Provider 化与契约化带来的复用。</p>
+<p>看完代码骨架，用下面的交互 Demo 把整条管线亲手跑一遍：左侧候选池有 15 条信息，里面埋了四处隐患——一条租户 B 的口径、一份含注入指令的外部文档、一对冲突的 GMV 口径版本、一条重复投递的证据。点「开始装配」，观察四段管线如何依次裁决：跨租户与不可信条目在①硬过滤直接出局（无论它多&quot;相关&quot;），v41 口径在②冲突裁决中被 v42 取代，③分区装填时证据区预算不足会把 5 万行原始结果压缩成 Artifact 引用卡。然后把 Token Budget 拖到 4000 以下，看保底区纹丝不动、弹性证据区先压缩后剔除的取舍顺序；最后打开「关闭硬过滤」开关再跑一次——右侧审计日志会告诉你注入与跨租户泄漏是怎样发生的：</p>
+<div class="demo-embed" data-demo="context-assembler"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>点「开始装配」走一遍默认流程：在审计日志里找出四处隐患各自的&quot;死法&quot;（跨租户口径、注入文档、冲突版本、重复证据），并指出分别死于管线六阶段中的哪一阶段。</li>
+<li>找到被 v42 取代的 v41 口径：裁决依据是什么？冲突事实本身有没有写入上下文？对应 3.4 节哪条规则？</li>
+<li>把 Token Budget 拖到 4000 以下再装配：记录保底区与弹性区的不同命运，解释&quot;必需信息优先保障&quot;在日志里的体现。</li>
+<li>打开「关闭硬过滤」开关重跑：注入文档与租户 B 口径各自走到了哪一步？这违反了 6.1 节信任三圈的哪条铁律？</li>
+<li>思考：为什么关闭硬过滤后注入不是&quot;必然成功&quot;而只是&quot;风险敞口&quot;？防御为什么必须分层（对照 6.1 节攻击路径图）？</li>
+</ol>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：篇06-2 · Agent 上下文治理（下）——证据体系、长任务与 ContextOps</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-geektime">极客时间《企业级 Agent 工程化》课程——本篇 Context Runtime、Decision Context Contract、语义层、证据体系与 ContextOps 的主线来源。 <a class="fn-back" href="#ref-geektime" aria-label="回到正文">↩</a></li>
+<li id="fn-lost">Liu et al., &quot;Lost in the Middle: How Language Models Use Long Contexts&quot;（TACL 2024）——长上下文注意力 U 型曲线、中段信息丢失的实验证据。<a href="https://arxiv.org/abs/2307.03172">https://arxiv.org/abs/2307.03172</a> <a class="fn-back" href="#ref-lost" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-05-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇05-2 · Workflow 与分布式 Runtime</span></a>
+      <a class="next" href="chapter-06-2.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇06-2 · 证据长任务与 ContextOps</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#导语">导语</a>
+    <a class="toc-h2" href="#1-从-prompt-拼接到-context-runtime-先定义每一步决策的信息契约">1. 从 Prompt 拼接到 Context Runtime：先定义每一步决策的信息契约</a>
+    <a class="toc-h3" href="#1-1-上下文-prompt">1.1 上下文 ≠ Prompt</a>
+    <a class="toc-h3" href="#1-2-面向决策组织上下文">1.2 面向决策组织上下文</a>
+    <a class="toc-h3" href="#1-3-统一-context-schema-每条信息自带元数据">1.3 统一 Context Schema：每条信息自带元数据</a>
+    <a class="toc-h3" href="#1-4-拆分-context-provider">1.4 拆分 Context Provider</a>
+    <a class="toc-h3" href="#1-5-关键上下文缺失即停止">1.5 关键上下文缺失即停止</a>
+    <a class="toc-h2" href="#2-经营语义上下文-让-dataagent-先理解指标-再接触数据">2. 经营语义上下文：让 DataAgent 先理解指标，再接触数据</a>
+    <a class="toc-h3" href="#2-1-数据库字段-业务语义">2.1 数据库字段 ≠ 业务语义</a>
+    <a class="toc-h3" href="#2-2-语义层的六个构件">2.2 语义层的六个构件</a>
+    <a class="toc-h2" href="#3-动态上下文装配与预算">3. 动态上下文装配与预算</a>
+    <a class="toc-h3" href="#3-1-装配管线化">3.1 装配管线化</a>
+    <a class="toc-h3" href="#3-2-硬性过滤与软性排序">3.2 硬性过滤与软性排序</a>
+    <a class="toc-h3" href="#3-3-分区-token-budget">3.3 分区 Token Budget</a>
+    <a class="toc-h3" href="#3-4-去重-冲突与可信压缩">3.4 去重、冲突与可信压缩</a>
+    <a class="toc-h3" href="#3-5-代码骨架-contextassembler">3.5 代码骨架：ContextAssembler</a>
+    <a class="toc-h3" href="#3-6-dataagent-实战-四个-context-profile">3.6 DataAgent 实战：四个 Context Profile</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:chapter-06-1:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

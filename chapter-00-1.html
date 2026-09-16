@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>篇00-1：小白前置篇（上）——基本功：环境、命令行、Git 与 Python/SQL · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="篇00-1：小白前置篇（上）——基本功：环境、命令行、Git 与 Python/SQL · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 学习路径</a>
+    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <a href="chapter-00-1.html" class="active">篇00-1 · 基本功</a>
+    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
+    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
+    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
+    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
+    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html">课程分析报告</a>
+    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="篇00-1-小白前置篇-上-基本功-环境-命令行-git-与-python-sql">篇00-1：小白前置篇（上）——基本功：环境、命令行、Git 与 Python/SQL</h1>
+<blockquote>
+<p>导语：本页是「篇00 小白前置篇」的上半部分，面向真正的零基础读者。<strong>这页学什么</strong>：开发环境三概念（解释器 / 第三方包 / 虚拟环境）、10 条命令行生存命令、Git 最小操作、Python 七件最小知识与 SQLite 五个必会查询。<strong>学完能做什么</strong>：你能在自己电脑上装好隔离的 Python 环境并跑通验证、用 Git 给代码打快照、读懂并亲手运行每一段小脚本，还能建出贯穿项目要用的电商订单库 <code>shop.db</code>——这些都是下一页三个 LLM Demo 的地基，也是进入篇01 的硬门槛。本页与正篇共用同一个贯穿项目语境「多租户零售经营分析 DataAgent」<sup class="fn-ref"><a href="#fn-course" id="ref-course">[1]</a></sup>，第 4 节的订单库就是它的第一块基石，后面篇03 立项时会直接复用。</p>
+<p><strong>使用本页的三个建议</strong>：第一，所有代码都必须亲手敲一遍（或至少亲手复制运行一遍），只看不跑等于没学；第二，遇到报错先把完整报错信息喂给 Kimi 或其他 AI 助手提问——学会用 AI 学 AI，本身就是本教程要培养的能力；第三，不要跳过第 3、4 节直接去玩下一页的 Demo——Demo 2 要用到 dict、json、异常处理和 SQL 查询，前面欠的账会在 Debug 时加倍偿还。</p>
+</blockquote>
+<hr>
+<h2 id="1-学习地图与时间安排">1. 学习地图与时间安排</h2>
+<p>零基础到&quot;能开始篇01&quot;，快则 4 周（每天 1~1.5 小时），慢则 8 周（每周 3~4 次、每次 1 小时）。路线不分岔，只有一条：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;第1阶段&lt;br/&gt;环境搭建&lt;br/&gt;Python + VS Code + 虚拟环境&quot;] --&gt; B[&quot;第2阶段&lt;br/&gt;Python 最小必要知识&lt;br/&gt;函数/dict/json/请求库&quot;]
+    B --&gt; C[&quot;第3阶段&lt;br/&gt;SQL 最小必要知识&lt;br/&gt;SQLite 电商订单数据集&quot;]
+    C --&gt; D[&quot;第4阶段&lt;br/&gt;三个递进 Demo&lt;br/&gt;聊天 → 工具调用 → RAG&quot;]
+    D --&gt; E[&quot;自测清单 10 项全过&lt;br/&gt;进入篇01&quot;]
+</pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时间（4 周版 / 8 周版）</th>
+<th>每周目标</th>
+<th>产出物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一、环境搭建</td>
+<td>第 1 周 / 第 1–2 周</td>
+<td>装好 Python 3.11+、VS Code、虚拟环境；跑通 <code>hello.py</code></td>
+<td>一个可用的项目目录 + 验证命令全部通过</td>
+</tr>
+<tr>
+<td>二、Python 最小知识</td>
+<td>第 2 周 / 第 3–4 周</td>
+<td>掌握函数、dict/list、异常、f-string、json、httpx/requests</td>
+<td>每个知识点一段可运行小脚本</td>
+</tr>
+<tr>
+<td>三、SQL 最小知识</td>
+<td>第 3 周 / 第 5–6 周</td>
+<td>用 SQLite 建出订单/商品两张表，会写 SELECT/WHERE/JOIN/GROUP BY</td>
+<td><code>shop.db</code> 数据库 + 5 条查询脚本</td>
+</tr>
+<tr>
+<td>四、三个递进 Demo</td>
+<td>第 4 周 / 第 7–8 周</td>
+<td>跑通聊天机器人、Function Calling 小 Agent、最小 RAG</td>
+<td>3 个可运行的 <code>.py</code> 文件 + 每步运行日志</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>节奏建议</strong>：不要跳过阶段二、三直接玩 Demo。Demo 2 要用到 dict、json、异常处理和 SQL 查询，前面欠的账会在 Debug 时加倍偿还。</p>
+<hr>
+<h2 id="2-环境搭建-macos-为主-兼顾-windows">2. 环境搭建（macOS 为主，兼顾 Windows）</h2>
+<h3 id="2-0-先讲-为什么-开发环境到底是什么">2.0 先讲&quot;为什么&quot;：开发环境到底是什么</h3>
+<p>很多小白把&quot;装环境&quot;当成纯体力活，跟着教程敲命令、报错就换一篇教程。其实环境搭建背后只有三个概念，理解了它们，90% 的报错你都能自己看懂：</p>
+<ol>
+<li><strong>解释器（Interpreter）</strong>：Python 代码本身只是文本文件，必须有一个叫&quot;解释器&quot;的程序逐行读懂并执行它。你安装的 <code>python3.11</code> 就是这个程序。电脑上可以同时存在好几个解释器（系统自带 3.9、你装的 3.11……），&quot;用哪个&quot;取决于你调用了哪个可执行文件——这就是&quot;多版本混乱&quot;这个天坑的根源。</li>
+<li><strong>第三方包（Packages）</strong>：别人写好的可复用代码（如 <code>openai</code>、<code>httpx</code>），用 <code>pip</code>/<code>uv</code> 从网上仓库（PyPI）下载到本地。<strong>包是被装到&quot;某个解释器&quot;名下的</strong>——装错了解释器，<code>import</code> 时就找不到。</li>
+<li><strong>虚拟环境（Virtual Environment）</strong>：给每个项目圈一块独立领地，领地里有自己专属的&quot;解释器指针 + 一套包&quot;。A 项目要 openai 1.x，B 项目要 openai 2.x，互不打架。它解决的不是&quot;能不能跑&quot;，而是&quot;多个项目在同一台机器上长期共存&quot;的问题——这是工程思维的第一课：<strong>环境即依赖，依赖必须隔离且可复现</strong><sup class="fn-ref"><a href="#fn-venv" id="ref-venv">[2]</a></sup>。</li>
+</ol>
+<p><strong>那为什么要用命令行（终端），而不是点点鼠标？</strong> 三个原因：第一，<strong>可复现</strong>——命令是文本，可以复制、记录、写进文档和脚本，鼠标点击不能；第二，<strong>可自动化</strong>——后面篇05 的 Harness、CI 流水线全都是命令的编排，图形界面没有 API；第三，<strong>AI 协作的基本面</strong>——你给 AI 助手描述问题时，贴一段终端输出截图文字，AI 能精确理解；描述&quot;我点了一个按钮它变灰了&quot;，谁也帮不了你。学会和终端相处，是学会和 AI 协作的前置技能。</p>
+<p>整个开发环境的数据流，记住这张图就够了——后面所有排错都是在定位&quot;这条链路的哪一环断了&quot;：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;你写的代码&lt;br/&gt;hello.py&quot;] --&gt; B[&quot;编辑器&lt;br/&gt;VS Code&quot;]
+    B --&gt; C[&quot;终端命令&lt;br/&gt;python hello.py&quot;]
+    C --&gt; D[&quot;当前虚拟环境的&lt;br/&gt;Python 解释器&quot;]
+    D --&gt; E[&quot;该环境专属的&lt;br/&gt;第三方包仓库&quot;]
+    E --&gt; F[&quot;运行结果 / 报错&quot;]
+    F -. &quot;报错信息复制给 AI 助手&quot; .-&gt; G[&quot;Kimi 等 AI&lt;br/&gt;协助排错&quot;]
+    G -. &quot;修复建议&quot; .-&gt; A
+</pre>
+<blockquote>
+<p><strong>导师提示</strong>：每次遇到 <code>ModuleNotFoundError</code>、<code>command not found</code> 这类报错，先问自己——&quot;我现在站在图的哪一环？我激活的虚拟环境是哪一个？&quot; 八成的问题答案就在这里。</p>
+</blockquote>
+<h3 id="2-1-安装-python-3-11">2.1 安装 Python 3.11+</h3>
+<p><strong>macOS</strong>：推荐用 Homebrew（没有的话先装 Homebrew：https://brew.sh，一行命令）：</p>
+<pre><code class="language-bash">brew install python@3.11
+python3 --version    # 期望输出 Python 3.11.x 或更高
+</code></pre>
+<p><strong>Windows</strong>：到 https://www.python.org/downloads/ 下载 3.11+ 安装包，安装时<strong>务必勾选 &quot;Add Python to PATH&quot;</strong>，装完打开&quot;终端 / PowerShell&quot;运行：</p>
+<pre><code class="language-powershell">python --version     # 期望输出 Python 3.11.x 或更高
+</code></pre>
+<blockquote>
+<p>Windows 上 <code>python</code> 和 <code>python3</code> 可能只有一个可用，以能输出版本号的那个为准，后文命令自行替换。</p>
+</blockquote>
+<h3 id="2-2-安装-vs-code">2.2 安装 VS Code</h3>
+<p>到 https://code.visualstudio.com 下载安装。装两个官方扩展：<strong>Python</strong>（Microsoft 出品）和 <strong>Pylance</strong>。装完后用 VS Code 打开你的项目文件夹，后续所有代码都在里面写。</p>
+<h3 id="2-3-创建项目与虚拟环境-uv-或-venv-pip">2.3 创建项目与虚拟环境（uv 或 venv+pip）</h3>
+<p><strong>虚拟环境是新手最该养成的习惯</strong>：它给每个项目一个独立的&quot;包仓库&quot;，避免不同项目的依赖互相打架。</p>
+<p>方式 A（推荐，用 uv，快且省心）：</p>
+<pre><code class="language-bash"># 安装 uv：macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# Windows 用 PowerShell：powershell -c &quot;irm https://astral.sh/uv/install.ps1 | iex&quot;
+
+mkdir agent-tutorial &amp;&amp; cd agent-tutorial
+uv venv                      # 创建 .venv 虚拟环境
+source .venv/bin/activate    # 激活（Windows: .venv\Scripts\activate）
+uv pip install openai httpx  # 装包
+</code></pre>
+<p>方式 B（标准库自带，无需额外安装）：</p>
+<pre><code class="language-bash">mkdir agent-tutorial &amp;&amp; cd agent-tutorial
+python3 -m venv .venv
+source .venv/bin/activate    # Windows: .venv\Scripts\activate
+pip install openai httpx
+</code></pre>
+<p><strong>验证环境</strong>（在激活虚拟环境后执行）：</p>
+<pre><code class="language-bash">python -c &quot;import openai, httpx; print(&#x27;环境 OK&#x27;)&quot;
+</code></pre>
+<p>输出 <code>环境 OK</code> 即通过。注意激活后命令行提示符前面会出现 <code>(.venv)</code> 字样。</p>
+<p><strong>把&quot;激活虚拟环境&quot;想明白</strong>：激活脚本做的事其实很小——它把 <code>.venv/bin</code> 这个目录<strong>临时加到了终端的 PATH 环境变量最前面</strong>。于是你敲 <code>python</code> 时，终端优先找到的是 <code>.venv/bin/python</code> 而不是系统 Python；<code>pip install</code> 装的包自然也落进这个环境的仓库。这就是为什么&quot;换了一个终端窗口，环境就丢了&quot;——环境变量只在当前窗口生效，新窗口要重新激活。理解了这一层，&quot;为什么我在 VS Code 里能跑、在终端里跑不了&quot;这类问题就不会再困扰你。</p>
+<p><strong>环境自检（交互清单）</strong>：下面这个小工具把&quot;环境是否健康&quot;做成了 8 项可逐项核对的体检表。建议装完环境后对着走一遍——每过一项打一次勾，全部通过会给出进入下一步的结论；任何一项卡住，按它给出的终端命令去验证：</p>
+<div class="demo-embed" data-demo="env-check"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>先不按顺序乱点几项，观察顶部进度条和底部结论区的变化——理解&quot;8 项全过&quot;才是终点判据。</li>
+<li>找到&quot;虚拟环境已激活&quot;这一项，阅读它附带的验证命令，在你的真实终端里敲一遍，对比输出。</li>
+<li>故意留最后一项不打勾，读结论区给出的&quot;最常见短板&quot;提示，想想它为什么把 API key 单列为一项。</li>
+<li>全部打勾后，把结论区的&quot;环境数据流一句话总结&quot;和第 2.0 节的 mermaid 图对照一遍，确认每一环你都亲手验证过。</li>
+</ol>
+<h3 id="2-4-常见坑对照">2.4 常见坑对照</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>多 Python 版本混乱</td>
+<td><code>python3 --version</code> 显示 3.9，<code>brew install</code> 的 3.11 找不到</td>
+<td>用全路径调用，如 <code>/opt/homebrew/bin/python3.11 -m venv .venv</code>；虚拟环境一旦创建，里面的 Python 就是创建它的那个版本</td>
+</tr>
+<tr>
+<td>权限报错</td>
+<td><code>pip install</code> 报 Permission denied</td>
+<td><strong>不要加 sudo</strong>。确认已激活虚拟环境（提示符有 <code>(.venv)</code>）</td>
+</tr>
+<tr>
+<td>网络超时</td>
+<td>装包卡住或报 Read timed out</td>
+<td>换国内镜像：<code>pip install -i https://pypi.tuna.tsinghua.edu.cn/simple openai httpx</code></td>
+</tr>
+<tr>
+<td>激活失败</td>
+<td>Windows PowerShell 报&quot;禁止运行脚本&quot;</td>
+<td>管理员 PowerShell 执行一次：<code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></td>
+</tr>
+<tr>
+<td>公司代理</td>
+<td>API 请求连不上</td>
+<td>排查代理环境变量 <code>HTTP_PROXY/HTTPS_PROXY</code>；必要时在代码里给 httpx 配代理</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-5-git-最小必要知识-代码的-时间机器">2.5 Git 最小必要知识：代码的&quot;时间机器&quot;</h3>
+<p><strong>为什么学 Agent 之前要先学 Git？</strong> 因为接下来你要写大量实验性代码——改 Demo、让 AI 帮你重构、试错。没有版本控制，&quot;改坏了想回到能跑的版本&quot;只能靠记忆和文件名后缀（<code>demo2_final_真最终版.py</code>）。Git 给你的东西用一句话说：<strong>代码的每一次有意义的变更都被快照存档，随时可以对比、回退、开平行宇宙。</strong><sup class="fn-ref"><a href="#fn-git" id="ref-git">[3]</a></sup></p>
+<p>三个核心概念，先建立心智模型再敲命令：</p>
+<ol>
+<li><strong>仓库（Repository）</strong>：一个被 Git 托管的目录，里面有个隐藏的 <code>.git</code> 文件夹，存着全部历史。</li>
+<li><strong>提交（Commit）</strong>：一次快照 + 一句说明（&quot;新增 query_orders 工具&quot;）。提交是 Git 世界的基本单位——<strong>提交要小而频繁，每次只干一件事</strong>。</li>
+<li><strong>分支（Branch）</strong>：从某个提交长出来的平行时间线。主分支 <code>main</code> 保持&quot;随时能跑&quot;，实验在 feature 分支上做，成功了再合并回去。</li>
+</ol>
+<pre class="mermaid">flowchart LR
+    C1[&quot;提交1&lt;br/&gt;init_db.py&quot;] --&gt; C2[&quot;提交2&lt;br/&gt;demo1 聊天机器人&quot;]
+    C2 --&gt; C3[&quot;提交3&lt;br/&gt;demo2 工具调用&quot;]
+    C2 -.-&gt; F1[&quot;feature 分支&lt;br/&gt;实验: 加新工具&quot;]
+    F1 -.-&gt; F2[&quot;实验成功&lt;br/&gt;提交4&quot;]
+    F2 == &quot;merge 合并&quot; ==&gt; C4[&quot;main: 提交5&lt;br/&gt;demo2 + 新工具&quot;]
+    C3 --&gt; C4
+</pre>
+<p>最小命令集（今天就会用到）：</p>
+<pre><code class="language-bash">git init                          # 在当前目录初始化仓库（每个项目做一次）
+git status                        # 随时看：哪些文件改了、哪些还没存档
+git add demo1_chat.py             # 把文件放进&quot;待提交区&quot;
+git commit -m &quot;新增聊天机器人 Demo&quot;   # 打快照，说明写人话
+git log --oneline                 # 看历史时间线
+git checkout -b experiment        # 开一个实验分支并切过去
+git checkout main                 # 切回主分支
+git merge experiment              # 把实验分支合并回 main
+</code></pre>
+<p><strong>两条新手铁律</strong>：第一，建仓库后立刻创建 <code>.gitignore</code> 文件，写入 <code>.venv/</code>、<code>__pycache__/</code>、<code>.env</code>、<code>shop.db</code>——虚拟环境、缓存、密钥、本地数据库<strong>永远不进仓库</strong>；第二，<strong>API key 即使只提交过一次也要当作已泄露</strong>，立刻去服务商后台作废重发，删文件救不回来（历史里还在）。</p>
+<blockquote>
+<p>本教程不深入 Git 协作（冲突解决、远程仓库、Pull Request），那属于篇02「器」层面团队工作流的内容。这里你只需要养成一个习惯：<strong>每次 Demo 跑通，立刻 commit。</strong> 这个习惯会在你第一次把能跑的代码改崩时救你一命。</p>
+</blockquote>
+<h3 id="2-6-命令行生存指南-附录式速查">2.6 命令行生存指南（附录式速查）</h3>
+<p>后面所有操作都在终端里完成，这 10 条命令覆盖 95% 的日常：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pwd</code></td>
+<td>我现在在哪个目录</td>
+<td>看手机地图的定位点</td>
+</tr>
+<tr>
+<td><code>ls</code>（Win: <code>dir</code>）</td>
+<td>当前目录有什么</td>
+<td>打开文件夹看一眼</td>
+</tr>
+<tr>
+<td><code>cd 目录名</code></td>
+<td>进入某目录；<code>cd ..</code> 返回上一层</td>
+<td>走进/走出房间</td>
+</tr>
+<tr>
+<td><code>mkdir 名字</code></td>
+<td>新建目录</td>
+<td>新建文件夹</td>
+</tr>
+<tr>
+<td><code>touch a.py</code>（Win: <code>ni a.py</code>）</td>
+<td>新建空文件</td>
+<td>新建空白文档</td>
+</tr>
+<tr>
+<td><code>cat a.py</code>（Win: <code>type a.py</code>）</td>
+<td>查看文件内容</td>
+<td>双击打开看一眼</td>
+</tr>
+<tr>
+<td><code>cp a.py b.py</code></td>
+<td>复制文件</td>
+<td>复制粘贴</td>
+</tr>
+<tr>
+<td><code>mv a.py sub/</code></td>
+<td>移动/重命名文件</td>
+<td>剪切粘贴</td>
+</tr>
+<tr>
+<td><code>rm a.py</code>（慎用）</td>
+<td>删除文件，<strong>不进回收站</strong></td>
+<td>粉碎文件</td>
+</tr>
+<tr>
+<td><code>echo $DEEPSEEK_API_KEY</code></td>
+<td>查看环境变量的值</td>
+<td>看便利贴上写了什么</td>
+</tr>
+</tbody>
+</table></div>
+<p>一个高频心法：<strong>终端的报错是&quot;读出来的&quot;，不是&quot;看出来的&quot;。</strong> 报错文本从最后一行往前读，最后一行是错误类型和原因，上面的 Traceback 是&quot;出错时程序走到哪了&quot;。把完整的报错文本复制给 AI 助手提问，是小白最快的成长路径。</p>
+<hr>
+<h2 id="3-python-最小必要知识">3. Python 最小必要知识</h2>
+<p>只讲后面 Demo 用到的七件事，每件配一段可直接运行的小例子。</p>
+<p><strong>为什么是这七件？</strong> 因为 Agent 代码的本质就三句话：<strong>把数据装成 dict/list 发给模型（3.2、3.4、3.5），把模型返回的 JSON 解析出来（3.5），据此决定调哪个函数、失败了就兜住（3.1、3.3、3.6）</strong>。学会了它们，你看任何 Agent 框架的源码都不会发怵——框架再厚，剥到底层也是这七个零件在转。学的时候建议每个例子都故意改坏一次（比如删掉一个引号、传错一个类型），亲眼看看报错长什么样——认识报错和认识语法同样重要。</p>
+<h3 id="3-1-函数">3.1 函数</h3>
+<p>函数是&quot;输入 → 加工 → 输出&quot;的黑盒。Agent 里的每个工具就是一个 Python 函数。</p>
+<pre><code class="language-python">def add(a: float, b: float) -&gt; float:
+    &quot;&quot;&quot;两个数相加。这个 docstring 后面会喂给模型看。&quot;&quot;&quot;
+    return a + b
+
+result = add(3, 4)      # 调用
+print(result)           # 7
+</code></pre>
+<h3 id="3-2-dict-与-list">3.2 dict 与 list</h3>
+<p>dict（字典）是键值对，list（列表）是有序集合。<strong>模型 API 的 messages、工具定义、返回结果，全都是 dict 和 list 的嵌套</strong>——看懂它们就看懂了一半的 Agent 代码。</p>
+<p><strong>为什么偏偏是 dict/list 统治了 Agent 世界？</strong> 因为它们恰好对应 JSON 的两种结构，而 JSON 是整个 LLM 生态的&quot;通用货币&quot;：API 请求与响应、工具定义、工具参数、配置文件，全是 JSON。可以把 dict 想成一张<strong>登记表</strong>（键是栏目名，值是填写内容），list 想成<strong>一叠按顺序码放的登记表</strong>——<code>messages</code> 就是&quot;一叠对话登记表&quot;，每轮对话往上加一张。</p>
+<pre><code class="language-python">message = {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;你好&quot;}   # dict
+messages = [                                     # list 装 dict
+    {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: &quot;你是助手&quot;},
+    message,
+]
+print(messages[1][&quot;content&quot;])   # 你好：先取第 2 个元素，再取 content 键
+messages.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;你好！&quot;})  # 追加一轮
+print(len(messages))            # 3
+</code></pre>
+<h3 id="3-3-异常处理">3.3 异常处理</h3>
+<p>网络请求、JSON 解析都会失败。用 <code>try/except</code> 兜住，程序才不会一错就崩。</p>
+<pre><code class="language-python">try:
+    value = int(&quot;abc&quot;)          # 这行会抛 ValueError
+except ValueError as e:
+    print(f&quot;转换失败：{e}&quot;)      # 打印错误，程序继续往下走
+</code></pre>
+<h3 id="3-4-f-string">3.4 f-string</h3>
+<p>在字符串里嵌变量的最简写法，打印日志全靠它。</p>
+<pre><code class="language-python">name, count = &quot;订单&quot;, 5
+print(f&quot;查到 {count} 条{name}&quot;)   # 查到 5 条订单
+</code></pre>
+<h3 id="3-5-json-模块">3.5 json 模块</h3>
+<p>模型返回的工具参数是 JSON 字符串，要解析成 dict 才能用；反过来 dict 也能序列化成 JSON 字符串。</p>
+<pre><code class="language-python">import json
+
+text = &#x27;{&quot;name&quot;: &quot;calculator&quot;, &quot;arguments&quot;: {&quot;expr&quot;: &quot;1+2&quot;}}&#x27;
+data = json.loads(text)              # JSON 字符串 → dict
+print(data[&quot;arguments&quot;][&quot;expr&quot;])     # 1+2
+print(json.dumps(data, ensure_ascii=False))  # dict → JSON 字符串
+</code></pre>
+<h3 id="3-6-requests-httpx-http-请求库">3.6 requests / httpx（HTTP 请求库）</h3>
+<p>调用第三方 HTTP 接口用。<code>openai</code> SDK 底层就是 httpx，理解一次&quot;发请求拿响应&quot;对后面排错很有帮助。</p>
+<pre><code class="language-python">import httpx
+
+resp = httpx.get(&quot;https://api.github.com/zen&quot;, timeout=10)
+print(resp.status_code)   # 200 表示成功；401 是认证失败；429 是被限流
+print(resp.text)          # 响应正文
+</code></pre>
+<h3 id="3-7-虚拟环境装包">3.7 虚拟环境装包</h3>
+<p>第三方库不内置在 Python 里，要在<strong>已激活的虚拟环境</strong>中安装：</p>
+<pre><code class="language-bash">pip install openai httpx        # 或 uv pip install openai httpx
+python -c &quot;import openai; print(openai.__version__)&quot;   # 验证装上了
+</code></pre>
+<hr>
+<h2 id="4-sql-最小必要知识-sqlite-版">4. SQL 最小必要知识（SQLite 版）</h2>
+<p><strong>为什么学前置 SQL？</strong> 本教程包的贯穿项目是「多租户零售经营分析 DataAgent」——一个用自然语言查经营数据的 Agent。它的大脑是 LLM，但它的手是 SQL。这里用 SQLite 学最小集合：SQLite 免安装服务、单文件存储，Python 内置 <code>sqlite3</code> 模块直接可用。</p>
+<h3 id="4-1-建表-造数-电商订单小数据集">4.1 建表 + 造数（电商订单小数据集）</h3>
+<p>把下面代码存为 <code>init_db.py</code> 运行一次，生成 <code>shop.db</code>：</p>
+<pre><code class="language-python">import sqlite3
+
+conn = sqlite3.connect(&quot;shop.db&quot;)   # 不存在则自动创建
+cur = conn.cursor()
+cur.executescript(&quot;&quot;&quot;
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL);
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY, product_id INTEGER, quantity INTEGER,
+    amount REAL, status TEXT, created_at TEXT);
+DELETE FROM products; DELETE FROM orders;
+INSERT INTO products VALUES
+    (1,&#x27;机械键盘&#x27;,&#x27;数码&#x27;,399.0),(2,&#x27;保温杯&#x27;,&#x27;家居&#x27;,89.0),(3,&#x27;耳机&#x27;,&#x27;数码&#x27;,699.0);
+INSERT INTO orders(product_id,quantity,amount,status,created_at) VALUES
+    (1,2,798.0,&#x27;已完成&#x27;,&#x27;2025-01-05&#x27;),(2,5,445.0,&#x27;已完成&#x27;,&#x27;2025-01-06&#x27;),
+    (3,1,699.0,&#x27;已退款&#x27;,&#x27;2025-01-07&#x27;),(1,1,399.0,&#x27;已完成&#x27;,&#x27;2025-01-08&#x27;),
+    (2,3,267.0,&#x27;已完成&#x27;,&#x27;2025-01-09&#x27;);
+&quot;&quot;&quot;)
+conn.commit()
+print(&quot;初始化完成&quot;); conn.close()
+</code></pre>
+<h3 id="4-2-五个必会查询">4.2 五个必会查询</h3>
+<pre><code class="language-python">import sqlite3
+
+conn = sqlite3.connect(&quot;shop.db&quot;)
+cur = conn.cursor()
+
+# 1) SELECT：全表查
+cur.execute(&quot;SELECT * FROM products&quot;)
+print(cur.fetchall())
+
+# 2) WHERE：条件过滤
+cur.execute(&quot;SELECT name, price FROM products WHERE price &gt; 100&quot;)
+
+# 3) JOIN：两表关联——每笔订单买的是哪个商品
+cur.execute(&quot;&quot;&quot;
+    SELECT o.id, p.name, o.quantity, o.amount
+    FROM orders o JOIN products p ON o.product_id = p.id
+&quot;&quot;&quot;)
+
+# 4) GROUP BY：分组聚合——各品类总销售额
+cur.execute(&quot;&quot;&quot;
+    SELECT p.category, SUM(o.amount) AS gmv
+    FROM orders o JOIN products p ON o.product_id = p.id
+    WHERE o.status = &#x27;已完成&#x27;
+    GROUP BY p.category
+&quot;&quot;&quot;)
+
+# 5) 参数化查询（防 SQL 注入，Demo 2 会用到）
+cur.execute(&quot;SELECT * FROM orders WHERE status = ?&quot;, (&quot;已完成&quot;,))
+rows = cur.fetchall()
+print(f&quot;已完成订单 {len(rows)} 条&quot;)
+conn.close()
+</code></pre>
+<p><strong>三条要点</strong>：<code>?</code> 占位符传参永远比 f-string 拼 SQL 安全；<code>JOIN ... ON</code> 是把两张表&quot;按外键对齐&quot;；<code>GROUP BY</code> 配合 <code>SUM/COUNT</code> 就是经营分析的日常。Demo 2 的 <code>query_orders</code> 工具就是这套东西。</p>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<p>➡️ 下一页：篇00-2 · 小白前置篇（下）——三个递进 Demo 与实战（聊天机器人 → Function Calling → 最小 RAG）</p>
+
+<section class="footnotes">
+<ol>
+<li id="fn-course">极客时间专栏《企业级 Agent 工程化》——本教程「篇00–篇10」这条线的重构蓝本，贯穿项目 DataAgent 的里程碑划分与治理机制均源自该课程的方法论体系。 <a class="fn-back" href="#ref-course" aria-label="回到正文">↩</a></li>
+<li id="fn-venv">Python 官方文档，《venv — 创建虚拟环境》：&quot;每个虚拟环境都有自己的 Python 二进制文件和独立的 site-packages 目录&quot;，<a href="https://docs.python.org/zh-cn/3/library/venv.html">https://docs.python.org/zh-cn/3/library/venv.html</a> 。 <a class="fn-back" href="#ref-venv" aria-label="回到正文">↩</a></li>
+<li id="fn-git">Scott Chacon, Ben Straub《Pro Git（第二版）》，第 1–3 章（起步、Git 基础、分支），官方免费中译本，<a href="https://git-scm.com/book/zh/v2">https://git-scm.com/book/zh/v2</a> 。 <a class="fn-back" href="#ref-git" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-05-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷05-2 · 软考与文档实战</span></a>
+      <a class="next" href="chapter-00-2.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇00-2 · 三个递进 Demo</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-学习地图与时间安排">1. 学习地图与时间安排</a>
+    <a class="toc-h2" href="#2-环境搭建-macos-为主-兼顾-windows">2. 环境搭建（macOS 为主，兼顾 Windows）</a>
+    <a class="toc-h3" href="#2-0-先讲-为什么-开发环境到底是什么">2.0 先讲"为什么"：开发环境到底是什么</a>
+    <a class="toc-h3" href="#2-1-安装-python-3-11">2.1 安装 Python 3.11+</a>
+    <a class="toc-h3" href="#2-2-安装-vs-code">2.2 安装 VS Code</a>
+    <a class="toc-h3" href="#2-3-创建项目与虚拟环境-uv-或-venv-pip">2.3 创建项目与虚拟环境（uv 或 venv+pip）</a>
+    <a class="toc-h3" href="#2-4-常见坑对照">2.4 常见坑对照</a>
+    <a class="toc-h3" href="#2-5-git-最小必要知识-代码的-时间机器">2.5 Git 最小必要知识：代码的"时间机器"</a>
+    <a class="toc-h3" href="#2-6-命令行生存指南-附录式速查">2.6 命令行生存指南（附录式速查）</a>
+    <a class="toc-h2" href="#3-python-最小必要知识">3. Python 最小必要知识</a>
+    <a class="toc-h3" href="#3-1-函数">3.1 函数</a>
+    <a class="toc-h3" href="#3-2-dict-与-list">3.2 dict 与 list</a>
+    <a class="toc-h3" href="#3-3-异常处理">3.3 异常处理</a>
+    <a class="toc-h3" href="#3-4-f-string">3.4 f-string</a>
+    <a class="toc-h3" href="#3-5-json-模块">3.5 json 模块</a>
+    <a class="toc-h3" href="#3-6-requests-httpx-http-请求库">3.6 requests / httpx（HTTP 请求库）</a>
+    <a class="toc-h3" href="#3-7-虚拟环境装包">3.7 虚拟环境装包</a>
+    <a class="toc-h2" href="#4-sql-最小必要知识-sqlite-版">4. SQL 最小必要知识（SQLite 版）</a>
+    <a class="toc-h3" href="#4-1-建表-造数-电商订单小数据集">4.1 建表 + 造数（电商订单小数据集）</a>
+    <a class="toc-h3" href="#4-2-五个必会查询">4.2 五个必会查询</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:chapter-00-1:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>
