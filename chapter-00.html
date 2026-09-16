@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>篇00：小白前置篇——从零基础到能开始篇01 的桥梁 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html" class="active">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="篇00-小白前置篇-从零基础到能开始篇01-的桥梁">篇00：小白前置篇——从零基础到能开始篇01 的桥梁</h1>
+<blockquote>
+<p>导语：本教程包的正篇（篇01–篇10）默认你&quot;做过 LLM Demo&quot;——至少调通过一次模型 API、跑过一轮工具调用。如果你看到 <code>messages</code>、<code>Function Calling</code>、<code>Embedding</code> 这些词还发怵，或者电脑上连 Python 环境都没有，那么本篇就是为你准备的。本篇不追求深度，只追求一件事：<strong>把真正的零基础读者带到篇01 的起点</strong>。读完本篇的终点判据非常具体——你能独立写出并跑通这样一个循环：<strong>模型调用你自定义的 Python 函数、拿到函数返回结果、再基于结果继续生成回答</strong>。这个循环就是一切 Agent 的最小骨架，也是篇05「Agent Harness 与 Runtime」里所有复杂机制的雏形。本篇全部内容围绕这条主线展开：环境 → Python 最小知识 → SQL 最小知识 → 三个递进 Demo（聊天机器人 → Function Calling 小 Agent → 最小 RAG）。只讲后面 Demo 用得到的，不多讲一句。</p>
+</blockquote>
+<p><strong>使用本篇的三个建议</strong>：第一，所有代码都必须亲手敲一遍（或至少亲手复制运行一遍），只看不跑等于没学；第二，遇到报错先查各 Demo 末尾的&quot;常见报错对照表&quot;，查不到再把完整报错信息喂给 Kimi 或其他 AI 助手提问——学会用 AI 学 AI，本身就是本教程要培养的能力；第三，本篇与正篇共用同一个贯穿项目语境「多租户零售经营分析 DataAgent」<sup class="fn-ref"><a href="#fn-course" id="ref-course">[1]</a></sup>，第 4 节的电商订单库和第 5 节的 <code>query_orders</code> 工具，就是它的第一块基石，后面篇03 立项时会直接复用。</p>
+<hr>
+<h2 id="1-学习地图与时间安排">1. 学习地图与时间安排</h2>
+<p>零基础到&quot;能开始篇01&quot;，快则 4 周（每天 1~1.5 小时），慢则 8 周（每周 3~4 次、每次 1 小时）。路线不分岔，只有一条：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;第1阶段&lt;br/&gt;环境搭建&lt;br/&gt;Python + VS Code + 虚拟环境&quot;] --&gt; B[&quot;第2阶段&lt;br/&gt;Python 最小必要知识&lt;br/&gt;函数/dict/json/请求库&quot;]
+    B --&gt; C[&quot;第3阶段&lt;br/&gt;SQL 最小必要知识&lt;br/&gt;SQLite 电商订单数据集&quot;]
+    C --&gt; D[&quot;第4阶段&lt;br/&gt;三个递进 Demo&lt;br/&gt;聊天 → 工具调用 → RAG&quot;]
+    D --&gt; E[&quot;自测清单 10 项全过&lt;br/&gt;进入篇01&quot;]
+</pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>时间（4 周版 / 8 周版）</th>
+<th>每周目标</th>
+<th>产出物</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一、环境搭建</td>
+<td>第 1 周 / 第 1–2 周</td>
+<td>装好 Python 3.11+、VS Code、虚拟环境；跑通 <code>hello.py</code></td>
+<td>一个可用的项目目录 + 验证命令全部通过</td>
+</tr>
+<tr>
+<td>二、Python 最小知识</td>
+<td>第 2 周 / 第 3–4 周</td>
+<td>掌握函数、dict/list、异常、f-string、json、httpx/requests</td>
+<td>每个知识点一段可运行小脚本</td>
+</tr>
+<tr>
+<td>三、SQL 最小知识</td>
+<td>第 3 周 / 第 5–6 周</td>
+<td>用 SQLite 建出订单/商品两张表，会写 SELECT/WHERE/JOIN/GROUP BY</td>
+<td><code>shop.db</code> 数据库 + 5 条查询脚本</td>
+</tr>
+<tr>
+<td>四、三个递进 Demo</td>
+<td>第 4 周 / 第 7–8 周</td>
+<td>跑通聊天机器人、Function Calling 小 Agent、最小 RAG</td>
+<td>3 个可运行的 <code>.py</code> 文件 + 每步运行日志</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>节奏建议</strong>：不要跳过阶段二、三直接玩 Demo。Demo 2 要用到 dict、json、异常处理和 SQL 查询，前面欠的账会在 Debug 时加倍偿还。</p>
+<hr>
+<h2 id="2-环境搭建-macos-为主-兼顾-windows">2. 环境搭建（macOS 为主，兼顾 Windows）</h2>
+<h3 id="2-0-先讲-为什么-开发环境到底是什么">2.0 先讲&quot;为什么&quot;：开发环境到底是什么</h3>
+<p>很多小白把&quot;装环境&quot;当成纯体力活，跟着教程敲命令、报错就换一篇教程。其实环境搭建背后只有三个概念，理解了它们，90% 的报错你都能自己看懂：</p>
+<ol>
+<li><strong>解释器（Interpreter）</strong>：Python 代码本身只是文本文件，必须有一个叫&quot;解释器&quot;的程序逐行读懂并执行它。你安装的 <code>python3.11</code> 就是这个程序。电脑上可以同时存在好几个解释器（系统自带 3.9、你装的 3.11……），&quot;用哪个&quot;取决于你调用了哪个可执行文件——这就是&quot;多版本混乱&quot;这个天坑的根源。</li>
+<li><strong>第三方包（Packages）</strong>：别人写好的可复用代码（如 <code>openai</code>、<code>httpx</code>），用 <code>pip</code>/<code>uv</code> 从网上仓库（PyPI）下载到本地。<strong>包是被装到&quot;某个解释器&quot;名下的</strong>——装错了解释器，<code>import</code> 时就找不到。</li>
+<li><strong>虚拟环境（Virtual Environment）</strong>：给每个项目圈一块独立领地，领地里有自己专属的&quot;解释器指针 + 一套包&quot;。A 项目要 openai 1.x，B 项目要 openai 2.x，互不打架。它解决的不是&quot;能不能跑&quot;，而是&quot;多个项目在同一台机器上长期共存&quot;的问题——这是工程思维的第一课：<strong>环境即依赖，依赖必须隔离且可复现</strong><sup class="fn-ref"><a href="#fn-venv" id="ref-venv">[2]</a></sup>。</li>
+</ol>
+<p><strong>那为什么要用命令行（终端），而不是点点鼠标？</strong> 三个原因：第一，<strong>可复现</strong>——命令是文本，可以复制、记录、写进文档和脚本，鼠标点击不能；第二，<strong>可自动化</strong>——后面篇05 的 Harness、CI 流水线全都是命令的编排，图形界面没有 API；第三，<strong>AI 协作的基本面</strong>——你给 AI 助手描述问题时，贴一段终端输出截图文字，AI 能精确理解；描述&quot;我点了一个按钮它变灰了&quot;，谁也帮不了你。学会和终端相处，是学会和 AI 协作的前置技能。</p>
+<p>整个开发环境的数据流，记住这张图就够了——后面所有排错都是在定位&quot;这条链路的哪一环断了&quot;：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;你写的代码&lt;br/&gt;hello.py&quot;] --&gt; B[&quot;编辑器&lt;br/&gt;VS Code&quot;]
+    B --&gt; C[&quot;终端命令&lt;br/&gt;python hello.py&quot;]
+    C --&gt; D[&quot;当前虚拟环境的&lt;br/&gt;Python 解释器&quot;]
+    D --&gt; E[&quot;该环境专属的&lt;br/&gt;第三方包仓库&quot;]
+    E --&gt; F[&quot;运行结果 / 报错&quot;]
+    F -. &quot;报错信息复制给 AI 助手&quot; .-&gt; G[&quot;Kimi 等 AI&lt;br/&gt;协助排错&quot;]
+    G -. &quot;修复建议&quot; .-&gt; A
+</pre>
+<blockquote>
+<p><strong>导师提示</strong>：每次遇到 <code>ModuleNotFoundError</code>、<code>command not found</code> 这类报错，先问自己——&quot;我现在站在图的哪一环？我激活的虚拟环境是哪一个？&quot; 八成的问题答案就在这里。</p>
+</blockquote>
+<h3 id="2-1-安装-python-3-11">2.1 安装 Python 3.11+</h3>
+<p><strong>macOS</strong>：推荐用 Homebrew（没有的话先装 Homebrew：https://brew.sh，一行命令）：</p>
+<pre><code class="language-bash">brew install python@3.11
+python3 --version    # 期望输出 Python 3.11.x 或更高
+</code></pre>
+<p><strong>Windows</strong>：到 https://www.python.org/downloads/ 下载 3.11+ 安装包，安装时<strong>务必勾选 &quot;Add Python to PATH&quot;</strong>，装完打开&quot;终端 / PowerShell&quot;运行：</p>
+<pre><code class="language-powershell">python --version     # 期望输出 Python 3.11.x 或更高
+</code></pre>
+<blockquote>
+<p>Windows 上 <code>python</code> 和 <code>python3</code> 可能只有一个可用，以能输出版本号的那个为准，后文命令自行替换。</p>
+</blockquote>
+<h3 id="2-2-安装-vs-code">2.2 安装 VS Code</h3>
+<p>到 https://code.visualstudio.com 下载安装。装两个官方扩展：<strong>Python</strong>（Microsoft 出品）和 <strong>Pylance</strong>。装完后用 VS Code 打开你的项目文件夹，后续所有代码都在里面写。</p>
+<h3 id="2-3-创建项目与虚拟环境-uv-或-venv-pip">2.3 创建项目与虚拟环境（uv 或 venv+pip）</h3>
+<p><strong>虚拟环境是新手最该养成的习惯</strong>：它给每个项目一个独立的&quot;包仓库&quot;，避免不同项目的依赖互相打架。</p>
+<p>方式 A（推荐，用 uv，快且省心）：</p>
+<pre><code class="language-bash"># 安装 uv：macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# Windows 用 PowerShell：powershell -c &quot;irm https://astral.sh/uv/install.ps1 | iex&quot;
+
+mkdir agent-tutorial &amp;&amp; cd agent-tutorial
+uv venv                      # 创建 .venv 虚拟环境
+source .venv/bin/activate    # 激活（Windows: .venv\Scripts\activate）
+uv pip install openai httpx  # 装包
+</code></pre>
+<p>方式 B（标准库自带，无需额外安装）：</p>
+<pre><code class="language-bash">mkdir agent-tutorial &amp;&amp; cd agent-tutorial
+python3 -m venv .venv
+source .venv/bin/activate    # Windows: .venv\Scripts\activate
+pip install openai httpx
+</code></pre>
+<p><strong>验证环境</strong>（在激活虚拟环境后执行）：</p>
+<pre><code class="language-bash">python -c &quot;import openai, httpx; print(&#x27;环境 OK&#x27;)&quot;
+</code></pre>
+<p>输出 <code>环境 OK</code> 即通过。注意激活后命令行提示符前面会出现 <code>(.venv)</code> 字样。</p>
+<p><strong>把&quot;激活虚拟环境&quot;想明白</strong>：激活脚本做的事其实很小——它把 <code>.venv/bin</code> 这个目录<strong>临时加到了终端的 PATH 环境变量最前面</strong>。于是你敲 <code>python</code> 时，终端优先找到的是 <code>.venv/bin/python</code> 而不是系统 Python；<code>pip install</code> 装的包自然也落进这个环境的仓库。这就是为什么&quot;换了一个终端窗口，环境就丢了&quot;——环境变量只在当前窗口生效，新窗口要重新激活。理解了这一层，&quot;为什么我在 VS Code 里能跑、在终端里跑不了&quot;这类问题就不会再困扰你。</p>
+<p><strong>环境自检（交互清单）</strong>：下面这个小工具把&quot;环境是否健康&quot;做成了 8 项可逐项核对的体检表。建议装完环境后对着走一遍——每过一项打一次勾，全部通过会给出进入下一步的结论；任何一项卡住，按它给出的终端命令去验证：</p>
+<div class="demo-embed" data-demo="env-check"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>先不按顺序乱点几项，观察顶部进度条和底部结论区的变化——理解&quot;8 项全过&quot;才是终点判据。</li>
+<li>找到&quot;虚拟环境已激活&quot;这一项，阅读它附带的验证命令，在你的真实终端里敲一遍，对比输出。</li>
+<li>故意留最后一项不打勾，读结论区给出的&quot;最常见短板&quot;提示，想想它为什么把 API key 单列为一项。</li>
+<li>全部打勾后，把结论区的&quot;环境数据流一句话总结&quot;和第 2.0 节的 mermaid 图对照一遍，确认每一环你都亲手验证过。</li>
+</ol>
+<h3 id="2-4-常见坑对照">2.4 常见坑对照</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>坑</th>
+<th>现象</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>多 Python 版本混乱</td>
+<td><code>python3 --version</code> 显示 3.9，<code>brew install</code> 的 3.11 找不到</td>
+<td>用全路径调用，如 <code>/opt/homebrew/bin/python3.11 -m venv .venv</code>；虚拟环境一旦创建，里面的 Python 就是创建它的那个版本</td>
+</tr>
+<tr>
+<td>权限报错</td>
+<td><code>pip install</code> 报 Permission denied</td>
+<td><strong>不要加 sudo</strong>。确认已激活虚拟环境（提示符有 <code>(.venv)</code>）</td>
+</tr>
+<tr>
+<td>网络超时</td>
+<td>装包卡住或报 Read timed out</td>
+<td>换国内镜像：<code>pip install -i https://pypi.tuna.tsinghua.edu.cn/simple openai httpx</code></td>
+</tr>
+<tr>
+<td>激活失败</td>
+<td>Windows PowerShell 报&quot;禁止运行脚本&quot;</td>
+<td>管理员 PowerShell 执行一次：<code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></td>
+</tr>
+<tr>
+<td>公司代理</td>
+<td>API 请求连不上</td>
+<td>排查代理环境变量 <code>HTTP_PROXY/HTTPS_PROXY</code>；必要时在代码里给 httpx 配代理</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-5-git-最小必要知识-代码的-时间机器">2.5 Git 最小必要知识：代码的&quot;时间机器&quot;</h3>
+<p><strong>为什么学 Agent 之前要先学 Git？</strong> 因为接下来你要写大量实验性代码——改 Demo、让 AI 帮你重构、试错。没有版本控制，&quot;改坏了想回到能跑的版本&quot;只能靠记忆和文件名后缀（<code>demo2_final_真最终版.py</code>）。Git 给你的东西用一句话说：<strong>代码的每一次有意义的变更都被快照存档，随时可以对比、回退、开平行宇宙。</strong><sup class="fn-ref"><a href="#fn-git" id="ref-git">[3]</a></sup></p>
+<p>三个核心概念，先建立心智模型再敲命令：</p>
+<ol>
+<li><strong>仓库（Repository）</strong>：一个被 Git 托管的目录，里面有个隐藏的 <code>.git</code> 文件夹，存着全部历史。</li>
+<li><strong>提交（Commit）</strong>：一次快照 + 一句说明（&quot;新增 query_orders 工具&quot;）。提交是 Git 世界的基本单位——<strong>提交要小而频繁，每次只干一件事</strong>。</li>
+<li><strong>分支（Branch）</strong>：从某个提交长出来的平行时间线。主分支 <code>main</code> 保持&quot;随时能跑&quot;，实验在 feature 分支上做，成功了再合并回去。</li>
+</ol>
+<pre class="mermaid">flowchart LR
+    C1[&quot;提交1&lt;br/&gt;init_db.py&quot;] --&gt; C2[&quot;提交2&lt;br/&gt;demo1 聊天机器人&quot;]
+    C2 --&gt; C3[&quot;提交3&lt;br/&gt;demo2 工具调用&quot;]
+    C2 -.-&gt; F1[&quot;feature 分支&lt;br/&gt;实验: 加新工具&quot;]
+    F1 -.-&gt; F2[&quot;实验成功&lt;br/&gt;提交4&quot;]
+    F2 == &quot;merge 合并&quot; ==&gt; C4[&quot;main: 提交5&lt;br/&gt;demo2 + 新工具&quot;]
+    C3 --&gt; C4
+</pre>
+<p>最小命令集（今天就会用到）：</p>
+<pre><code class="language-bash">git init                          # 在当前目录初始化仓库（每个项目做一次）
+git status                        # 随时看：哪些文件改了、哪些还没存档
+git add demo1_chat.py             # 把文件放进&quot;待提交区&quot;
+git commit -m &quot;新增聊天机器人 Demo&quot;   # 打快照，说明写人话
+git log --oneline                 # 看历史时间线
+git checkout -b experiment        # 开一个实验分支并切过去
+git checkout main                 # 切回主分支
+git merge experiment              # 把实验分支合并回 main
+</code></pre>
+<p><strong>两条新手铁律</strong>：第一，建仓库后立刻创建 <code>.gitignore</code> 文件，写入 <code>.venv/</code>、<code>__pycache__/</code>、<code>.env</code>、<code>shop.db</code>——虚拟环境、缓存、密钥、本地数据库<strong>永远不进仓库</strong>；第二，<strong>API key 即使只提交过一次也要当作已泄露</strong>，立刻去服务商后台作废重发，删文件救不回来（历史里还在）。</p>
+<blockquote>
+<p>本教程不深入 Git 协作（冲突解决、远程仓库、Pull Request），那属于篇02「器」层面团队工作流的内容。这里你只需要养成一个习惯：<strong>每次 Demo 跑通，立刻 commit。</strong> 这个习惯会在你第一次把能跑的代码改崩时救你一命。</p>
+</blockquote>
+<h3 id="2-6-命令行生存指南-附录式速查">2.6 命令行生存指南（附录式速查）</h3>
+<p>后面所有操作都在终端里完成，这 10 条命令覆盖 95% 的日常：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>命令</th>
+<th>作用</th>
+<th>类比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pwd</code></td>
+<td>我现在在哪个目录</td>
+<td>看手机地图的定位点</td>
+</tr>
+<tr>
+<td><code>ls</code>（Win: <code>dir</code>）</td>
+<td>当前目录有什么</td>
+<td>打开文件夹看一眼</td>
+</tr>
+<tr>
+<td><code>cd 目录名</code></td>
+<td>进入某目录；<code>cd ..</code> 返回上一层</td>
+<td>走进/走出房间</td>
+</tr>
+<tr>
+<td><code>mkdir 名字</code></td>
+<td>新建目录</td>
+<td>新建文件夹</td>
+</tr>
+<tr>
+<td><code>touch a.py</code>（Win: <code>ni a.py</code>）</td>
+<td>新建空文件</td>
+<td>新建空白文档</td>
+</tr>
+<tr>
+<td><code>cat a.py</code>（Win: <code>type a.py</code>）</td>
+<td>查看文件内容</td>
+<td>双击打开看一眼</td>
+</tr>
+<tr>
+<td><code>cp a.py b.py</code></td>
+<td>复制文件</td>
+<td>复制粘贴</td>
+</tr>
+<tr>
+<td><code>mv a.py sub/</code></td>
+<td>移动/重命名文件</td>
+<td>剪切粘贴</td>
+</tr>
+<tr>
+<td><code>rm a.py</code>（慎用）</td>
+<td>删除文件，<strong>不进回收站</strong></td>
+<td>粉碎文件</td>
+</tr>
+<tr>
+<td><code>echo $DEEPSEEK_API_KEY</code></td>
+<td>查看环境变量的值</td>
+<td>看便利贴上写了什么</td>
+</tr>
+</tbody>
+</table></div>
+<p>一个高频心法：<strong>终端的报错是&quot;读出来的&quot;，不是&quot;看出来的&quot;。</strong> 报错文本从最后一行往前读，最后一行是错误类型和原因，上面的 Traceback 是&quot;出错时程序走到哪了&quot;。把完整的报错文本复制给 AI 助手提问，是小白最快的成长路径。</p>
+<hr>
+<h2 id="3-python-最小必要知识">3. Python 最小必要知识</h2>
+<p>只讲后面 Demo 用到的七件事，每件配一段可直接运行的小例子。</p>
+<p><strong>为什么是这七件？</strong> 因为 Agent 代码的本质就三句话：<strong>把数据装成 dict/list 发给模型（3.2、3.4、3.5），把模型返回的 JSON 解析出来（3.5），据此决定调哪个函数、失败了就兜住（3.1、3.3、3.6）</strong>。学会了它们，你看任何 Agent 框架的源码都不会发怵——框架再厚，剥到底层也是这七个零件在转。学的时候建议每个例子都故意改坏一次（比如删掉一个引号、传错一个类型），亲眼看看报错长什么样——认识报错和认识语法同样重要。</p>
+<h3 id="3-1-函数">3.1 函数</h3>
+<p>函数是&quot;输入 → 加工 → 输出&quot;的黑盒。Agent 里的每个工具就是一个 Python 函数。</p>
+<pre><code class="language-python">def add(a: float, b: float) -&gt; float:
+    &quot;&quot;&quot;两个数相加。这个 docstring 后面会喂给模型看。&quot;&quot;&quot;
+    return a + b
+
+result = add(3, 4)      # 调用
+print(result)           # 7
+</code></pre>
+<h3 id="3-2-dict-与-list">3.2 dict 与 list</h3>
+<p>dict（字典）是键值对，list（列表）是有序集合。<strong>模型 API 的 messages、工具定义、返回结果，全都是 dict 和 list 的嵌套</strong>——看懂它们就看懂了一半的 Agent 代码。</p>
+<p><strong>为什么偏偏是 dict/list 统治了 Agent 世界？</strong> 因为它们恰好对应 JSON 的两种结构，而 JSON 是整个 LLM 生态的&quot;通用货币&quot;：API 请求与响应、工具定义、工具参数、配置文件，全是 JSON。可以把 dict 想成一张<strong>登记表</strong>（键是栏目名，值是填写内容），list 想成<strong>一叠按顺序码放的登记表</strong>——<code>messages</code> 就是&quot;一叠对话登记表&quot;，每轮对话往上加一张。</p>
+<pre><code class="language-python">message = {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;你好&quot;}   # dict
+messages = [                                     # list 装 dict
+    {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: &quot;你是助手&quot;},
+    message,
+]
+print(messages[1][&quot;content&quot;])   # 你好：先取第 2 个元素，再取 content 键
+messages.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: &quot;你好！&quot;})  # 追加一轮
+print(len(messages))            # 3
+</code></pre>
+<h3 id="3-3-异常处理">3.3 异常处理</h3>
+<p>网络请求、JSON 解析都会失败。用 <code>try/except</code> 兜住，程序才不会一错就崩。</p>
+<pre><code class="language-python">try:
+    value = int(&quot;abc&quot;)          # 这行会抛 ValueError
+except ValueError as e:
+    print(f&quot;转换失败：{e}&quot;)      # 打印错误，程序继续往下走
+</code></pre>
+<h3 id="3-4-f-string">3.4 f-string</h3>
+<p>在字符串里嵌变量的最简写法，打印日志全靠它。</p>
+<pre><code class="language-python">name, count = &quot;订单&quot;, 5
+print(f&quot;查到 {count} 条{name}&quot;)   # 查到 5 条订单
+</code></pre>
+<h3 id="3-5-json-模块">3.5 json 模块</h3>
+<p>模型返回的工具参数是 JSON 字符串，要解析成 dict 才能用；反过来 dict 也能序列化成 JSON 字符串。</p>
+<pre><code class="language-python">import json
+
+text = &#x27;{&quot;name&quot;: &quot;calculator&quot;, &quot;arguments&quot;: {&quot;expr&quot;: &quot;1+2&quot;}}&#x27;
+data = json.loads(text)              # JSON 字符串 → dict
+print(data[&quot;arguments&quot;][&quot;expr&quot;])     # 1+2
+print(json.dumps(data, ensure_ascii=False))  # dict → JSON 字符串
+</code></pre>
+<h3 id="3-6-requests-httpx-http-请求库">3.6 requests / httpx（HTTP 请求库）</h3>
+<p>调用第三方 HTTP 接口用。<code>openai</code> SDK 底层就是 httpx，理解一次&quot;发请求拿响应&quot;对后面排错很有帮助。</p>
+<pre><code class="language-python">import httpx
+
+resp = httpx.get(&quot;https://api.github.com/zen&quot;, timeout=10)
+print(resp.status_code)   # 200 表示成功；401 是认证失败；429 是被限流
+print(resp.text)          # 响应正文
+</code></pre>
+<h3 id="3-7-虚拟环境装包">3.7 虚拟环境装包</h3>
+<p>第三方库不内置在 Python 里，要在<strong>已激活的虚拟环境</strong>中安装：</p>
+<pre><code class="language-bash">pip install openai httpx        # 或 uv pip install openai httpx
+python -c &quot;import openai; print(openai.__version__)&quot;   # 验证装上了
+</code></pre>
+<hr>
+<h2 id="4-sql-最小必要知识-sqlite-版">4. SQL 最小必要知识（SQLite 版）</h2>
+<p><strong>为什么学前置 SQL？</strong> 本教程包的贯穿项目是「多租户零售经营分析 DataAgent」——一个用自然语言查经营数据的 Agent。它的大脑是 LLM，但它的手是 SQL。这里用 SQLite 学最小集合：SQLite 免安装服务、单文件存储，Python 内置 <code>sqlite3</code> 模块直接可用。</p>
+<h3 id="4-1-建表-造数-电商订单小数据集">4.1 建表 + 造数（电商订单小数据集）</h3>
+<p>把下面代码存为 <code>init_db.py</code> 运行一次，生成 <code>shop.db</code>：</p>
+<pre><code class="language-python">import sqlite3
+
+conn = sqlite3.connect(&quot;shop.db&quot;)   # 不存在则自动创建
+cur = conn.cursor()
+cur.executescript(&quot;&quot;&quot;
+CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY, name TEXT, category TEXT, price REAL);
+CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY, product_id INTEGER, quantity INTEGER,
+    amount REAL, status TEXT, created_at TEXT);
+DELETE FROM products; DELETE FROM orders;
+INSERT INTO products VALUES
+    (1,&#x27;机械键盘&#x27;,&#x27;数码&#x27;,399.0),(2,&#x27;保温杯&#x27;,&#x27;家居&#x27;,89.0),(3,&#x27;耳机&#x27;,&#x27;数码&#x27;,699.0);
+INSERT INTO orders(product_id,quantity,amount,status,created_at) VALUES
+    (1,2,798.0,&#x27;已完成&#x27;,&#x27;2025-01-05&#x27;),(2,5,445.0,&#x27;已完成&#x27;,&#x27;2025-01-06&#x27;),
+    (3,1,699.0,&#x27;已退款&#x27;,&#x27;2025-01-07&#x27;),(1,1,399.0,&#x27;已完成&#x27;,&#x27;2025-01-08&#x27;),
+    (2,3,267.0,&#x27;已完成&#x27;,&#x27;2025-01-09&#x27;);
+&quot;&quot;&quot;)
+conn.commit()
+print(&quot;初始化完成&quot;); conn.close()
+</code></pre>
+<h3 id="4-2-五个必会查询">4.2 五个必会查询</h3>
+<pre><code class="language-python">import sqlite3
+
+conn = sqlite3.connect(&quot;shop.db&quot;)
+cur = conn.cursor()
+
+# 1) SELECT：全表查
+cur.execute(&quot;SELECT * FROM products&quot;)
+print(cur.fetchall())
+
+# 2) WHERE：条件过滤
+cur.execute(&quot;SELECT name, price FROM products WHERE price &gt; 100&quot;)
+
+# 3) JOIN：两表关联——每笔订单买的是哪个商品
+cur.execute(&quot;&quot;&quot;
+    SELECT o.id, p.name, o.quantity, o.amount
+    FROM orders o JOIN products p ON o.product_id = p.id
+&quot;&quot;&quot;)
+
+# 4) GROUP BY：分组聚合——各品类总销售额
+cur.execute(&quot;&quot;&quot;
+    SELECT p.category, SUM(o.amount) AS gmv
+    FROM orders o JOIN products p ON o.product_id = p.id
+    WHERE o.status = &#x27;已完成&#x27;
+    GROUP BY p.category
+&quot;&quot;&quot;)
+
+# 5) 参数化查询（防 SQL 注入，Demo 2 会用到）
+cur.execute(&quot;SELECT * FROM orders WHERE status = ?&quot;, (&quot;已完成&quot;,))
+rows = cur.fetchall()
+print(f&quot;已完成订单 {len(rows)} 条&quot;)
+conn.close()
+</code></pre>
+<p><strong>三条要点</strong>：<code>?</code> 占位符传参永远比 f-string 拼 SQL 安全；<code>JOIN ... ON</code> 是把两张表&quot;按外键对齐&quot;；<code>GROUP BY</code> 配合 <code>SUM/COUNT</code> 就是经营分析的日常。Demo 2 的 <code>query_orders</code> 工具就是这套东西。</p>
+<hr>
+<h2 id="5-三个递进-demo-核心章节">5. 三个递进 Demo（核心章节）</h2>
+<p>三个 Demo 共用同一个 OpenAI 兼容客户端配置。<strong>以 DeepSeek 为例</strong>（任何 OpenAI 兼容服务——如 Moonshot、通义、本地 vLLM——都只是改 <code>BASE_URL</code> 和模型名）。</p>
+<p>先在终端设置环境变量（<strong>密钥绝不写进代码</strong>）：</p>
+<pre><code class="language-bash">export DEEPSEEK_API_KEY=&quot;sk-你的真实密钥&quot;        # Windows PowerShell: $env:DEEPSEEK_API_KEY=&quot;sk-...&quot;
+export DEEPSEEK_BASE_URL=&quot;https://api.deepseek.com&quot;   # 默认值，可省略
+</code></pre>
+<p>公共的客户端初始化（三个 Demo 文件开头都一样）：</p>
+<pre><code class="language-python">import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ[&quot;DEEPSEEK_API_KEY&quot;],   # 从环境变量读，不硬编码
+    base_url=os.getenv(&quot;DEEPSEEK_BASE_URL&quot;, &quot;https://api.deepseek.com&quot;),
+)
+MODEL = &quot;deepseek-chat&quot;     # 换成你的服务支持的模型名
+</code></pre>
+<h3 id="5-1-demo-1-命令行聊天机器人">5.1 Demo 1：命令行聊天机器人</h3>
+<p><strong>目标</strong>：跑通一次真实的模型调用，理解 messages 数组与多轮对话的本质。</p>
+<p><strong>前置知识</strong>：3.2（dict/list）、3.4（f-string）、环境变量。</p>
+<p><strong>完整代码</strong>（存为 <code>demo1_chat.py</code>）：</p>
+<pre><code class="language-python">import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ[&quot;DEEPSEEK_API_KEY&quot;],
+    base_url=os.getenv(&quot;DEEPSEEK_BASE_URL&quot;, &quot;https://api.deepseek.com&quot;),
+)
+MODEL = &quot;deepseek-chat&quot;
+
+# messages 是整个对话的&quot;全部记忆&quot;：模型本身不记事，
+# 每轮都要把历史完整发过去。
+messages = [{&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: &quot;你是一个简洁的中文助手。&quot;}]
+
+while True:
+    user_input = input(&quot;你: &quot;).strip()
+    if user_input in (&quot;exit&quot;, &quot;quit&quot;):
+        break
+    messages.append({&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: user_input})
+    resp = client.chat.completions.create(model=MODEL, messages=messages)
+    reply = resp.choices[0].message.content
+    messages.append({&quot;role&quot;: &quot;assistant&quot;, &quot;content&quot;: reply})  # 关键：回填
+    print(f&quot;AI: {reply}\n&quot;)
+</code></pre>
+<p><strong>运行方式</strong>：</p>
+<pre><code class="language-bash">python demo1_chat.py
+</code></pre>
+<p><strong>预期输出示例</strong>：</p>
+<pre><code class="language-text">你: 你好，我叫小明
+AI: 你好小明！有什么可以帮你的？
+
+你: 我叫什么名字？
+AI: 你叫小明。
+</code></pre>
+<p><strong>为什么它能&quot;记住&quot;名字？</strong> 不是模型有记忆，而是你的 <code>messages</code> 列表越来越长，每次请求都把全部历史发过去了——这就是篇01 会讲的&quot;上下文即状态&quot;，也是篇06「上下文治理」要管理的对象。</p>
+<p><strong>流式输出（可选进阶）</strong>：把 <code>create(...)</code> 改成 <code>create(..., stream=True)</code>，返回值变成迭代器，逐块打印：</p>
+<pre><code class="language-python">stream = client.chat.completions.create(model=MODEL, messages=messages, stream=True)
+for chunk in stream:
+    delta = chunk.choices[0].delta.content or &quot;&quot;
+    print(delta, end=&quot;&quot;, flush=True)
+</code></pre>
+<p><strong>常见报错对照表</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>报错</th>
+<th>含义</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>401 AuthenticationError</code></td>
+<td>API key 错或没读到</td>
+<td><code>echo $DEEPSEEK_API_KEY</code> 确认环境变量已设置；检查 key 是否复制完整</td>
+</tr>
+<tr>
+<td><code>APITimeoutError</code> / 连接超时</td>
+<td>网络不通或 base_url 错</td>
+<td>检查 base_url 拼写；排查代理；<code>create(..., timeout=60)</code> 放宽超时</td>
+</tr>
+<tr>
+<td><code>RateLimitError</code> (429)</td>
+<td>触发限流</td>
+<td>降频重试；检查账户余额</td>
+</tr>
+<tr>
+<td><code>BadRequestError: model not found</code></td>
+<td>模型名不对</td>
+<td>对照服务商文档改 <code>MODEL</code></td>
+</tr>
+<tr>
+<td><code>KeyError: 'DEEPSEEK_API_KEY'</code></td>
+<td>环境变量根本没设</td>
+<td>在当前终端窗口重新 <code>export</code>，再运行</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>还没配好环境？先在浏览器里跑一遍。</strong> 下面这个在线 Python 环境内置了 Demo 1 的<strong>纯模拟版</strong>——用 mock 数据完整演示&quot;发请求 → 拿响应 → 回填 messages&quot;的流程，不需要任何 API key。第一次点&quot;启动 Python 环境&quot;会从 CDN 下载约 10MB+ 的 Pyodide 运行时（仅首次，之后浏览器缓存秒开）；加载完成后代码可随意编辑再运行。建议改一改问题列表（比如多问几轮）、或者在最后 <code>print(messages)</code> 看看对话历史长什么样——亲眼确认&quot;记忆&quot;就是越滚越长的 messages 数组：</p>
+<div class="demo-embed" data-demo="python-runner"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>先什么都不改，点&quot;运行&quot;完整跑一遍，观察输出区里 messages 数组如何一轮轮变长——确认&quot;记忆&quot;是数组在变长，不是模型在记事。</li>
+<li>找到代码里的问题列表，加一句你自己的问题（比如&quot;我们刚才聊了几轮？&quot;），重新运行，看模拟模型如何基于历史回答。</li>
+<li>在代码末尾加一行 <code>print(messages)</code>，数一数最终数组里有几个元素、各有几种 role，对照第 3.2 节&quot;一叠登记表&quot;的类比。</li>
+<li>把 <code>system</code> 消息的内容改成&quot;你是一个只回答三个字的助手&quot;，重新运行，体会 system role 对后续每一轮的持续约束——这是篇01&quot;Prompt 是唯一编程接口&quot;的第一次体感。</li>
+</ol>
+<h3 id="5-2-demo-2-function-calling-小-agent-本篇的最高潮">5.2 Demo 2：Function Calling 小 Agent（本篇的最高潮）</h3>
+<p><strong>目标</strong>：手写&quot;模型请求工具 → 你的代码执行 → 把结果回填给模型 → 模型再生成&quot;的完整循环。<strong>这就是一切 Agent 框架（LangChain、AutoGen 等）内部在做的事，也是篇05「Agent Harness 与 Runtime」里 Harness 执行循环的最小雏形</strong>——篇05 会在这个循环上加 Task Contract、重试、事件流、分布式执行，但骨架就是下面这 50 行。</p>
+<p><strong>前置知识</strong>：第 3 节全部 + 第 4 节 SQL（先运行过 <code>init_db.py</code> 生成 <code>shop.db</code>）。</p>
+<p><strong>Function Calling 循环图</strong>：</p>
+<pre class="mermaid">flowchart LR
+    A[&quot;用户提问&quot;] --&gt; B[&quot;把 messages + 工具定义&lt;br/&gt;发给模型&quot;]
+    B --&gt; C{&quot;模型决定:&lt;br/&gt;直接答 or 调工具?&quot;}
+    C -- &quot;调工具&quot; --&gt; D[&quot;解析工具名与参数 JSON&quot;]
+    D --&gt; E[&quot;执行本地 Python 函数&lt;br/&gt;calculator / query_orders&quot;]
+    E --&gt; F[&quot;把函数结果作为 tool 消息&lt;br/&gt;回填 messages&quot;]
+    F --&gt; B
+    C -- &quot;直接答&quot; --&gt; G[&quot;输出最终回答&quot;]
+</pre>
+<p><strong>完整代码</strong>（存为 <code>demo2_tools.py</code>，两段：工具定义 + 主循环）：</p>
+<pre><code class="language-python">import json, os, sqlite3
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ[&quot;DEEPSEEK_API_KEY&quot;],
+    base_url=os.getenv(&quot;DEEPSEEK_BASE_URL&quot;, &quot;https://api.deepseek.com&quot;),
+)
+MODEL = &quot;deepseek-chat&quot;
+
+# ---- 工具 1：计算器（精确计算永远交给代码，不让模型口算）----
+def calculator(expr: str) -&gt; str:
+    allowed = set(&quot;0123456789+-*/.() &quot;)
+    if not set(expr) &lt;= allowed:
+        return &quot;错误：表达式含非法字符&quot;
+    return str(eval(expr))   # 教学简化；生产环境请用 ast 白名单解析
+
+# ---- 工具 2：查订单（查第 4 节建的 SQLite 库）----
+def query_orders(status: str = &quot;已完成&quot;) -&gt; str:
+    conn = sqlite3.connect(&quot;shop.db&quot;)
+    cur = conn.cursor()
+    cur.execute(&quot;&quot;&quot;
+        SELECT o.id, p.name, o.quantity, o.amount, o.created_at
+        FROM orders o JOIN products p ON o.product_id = p.id
+        WHERE o.status = ?&quot;&quot;&quot;, (status,))
+    rows = cur.fetchall()
+    conn.close()
+    return json.dumps(rows, ensure_ascii=False) if rows else &quot;无匹配订单&quot;
+
+TOOLS = {&quot;calculator&quot;: calculator, &quot;query_orders&quot;: query_orders}
+
+# 工具 Schema：模型靠这段描述决定&quot;何时调、传什么参&quot;
+TOOL_SCHEMAS = [
+    {&quot;type&quot;: &quot;function&quot;, &quot;function&quot;: {
+        &quot;name&quot;: &quot;calculator&quot;,
+        &quot;description&quot;: &quot;计算数学表达式，如 &#x27;399*2+89&#x27;&quot;,
+        &quot;parameters&quot;: {&quot;type&quot;: &quot;object&quot;, &quot;properties&quot;: {
+            &quot;expr&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;description&quot;: &quot;数学表达式&quot;}},
+            &quot;required&quot;: [&quot;expr&quot;]}}},
+    {&quot;type&quot;: &quot;function&quot;, &quot;function&quot;: {
+        &quot;name&quot;: &quot;query_orders&quot;,
+        &quot;description&quot;: &quot;按状态查询订单，返回订单号、商品名、数量、金额、日期&quot;,
+        &quot;parameters&quot;: {&quot;type&quot;: &quot;object&quot;, &quot;properties&quot;: {
+            &quot;status&quot;: {&quot;type&quot;: &quot;string&quot;, &quot;enum&quot;: [&quot;已完成&quot;, &quot;已退款&quot;],
+                       &quot;description&quot;: &quot;订单状态&quot;}}}}},
+]
+</code></pre>
+<p>主循环（接在上面的代码后面，同一个文件）：</p>
+<pre><code class="language-python">def run(question: str):
+    messages = [
+        {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: &quot;你是零售数据助手，需要数据时调用工具，回答要引用工具返回的真实数字。&quot;},
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: question},
+    ]
+    for step in range(6):                       # 最多 6 轮，防死循环
+        resp = client.chat.completions.create(
+            model=MODEL, messages=messages, tools=TOOL_SCHEMAS)
+        msg = resp.choices[0].message
+        if not msg.tool_calls:                  # 模型不再要工具 → 最终答案
+            print(f&quot;[step {step}] 最终回答: {msg.content}&quot;)
+            return msg.content
+        messages.append(msg)                    # 回填模型的工具请求
+        for call in msg.tool_calls:
+            name = call.function.name
+            args = json.loads(call.function.arguments or &quot;{}&quot;)
+            print(f&quot;[step {step}] 模型请求工具: {name}({args})&quot;)
+            try:
+                result = TOOLS[name](**args)    # 真正执行你的 Python 函数
+            except Exception as e:
+                result = f&quot;工具执行失败: {e}&quot;
+            print(f&quot;[step {step}] 工具返回: {result[:80]}&quot;)
+            messages.append({                   # 回填工具结果
+                &quot;role&quot;: &quot;tool&quot;,
+                &quot;tool_call_id&quot;: call.id,
+                &quot;content&quot;: str(result),
+            })
+    print(&quot;达到最大步数，强制停止&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    run(&quot;已完成的订单一共卖了多少钱？把每个品类的金额也算一下，再算总和。&quot;)
+</code></pre>
+<p><strong>运行方式</strong>：</p>
+<pre><code class="language-bash">python init_db.py     # 如果还没生成 shop.db
+python demo2_tools.py
+</code></pre>
+<p><strong>预期输出示例</strong>（每步日志清晰可见）：</p>
+<pre><code class="language-text">[step 0] 模型请求工具: query_orders({&#x27;status&#x27;: &#x27;已完成&#x27;})
+[step 0] 工具返回: [[1, &quot;机械键盘&quot;, 2, 798.0, &quot;2025-01-05&quot;], [2, &quot;保温杯&quot;, 5, 445.0, ...
+[step 1] 模型请求工具: calculator({&#x27;expr&#x27;: &#x27;798.0+445.0+399.0+267.0&#x27;})
+[step 1] 工具返回: 1909.0
+[step 2] 最终回答: 已完成订单共 4 笔，总销售额 1909.0 元。其中数码品类（机械键盘）1197.0 元，家居品类（保温杯）712.0 元……
+</code></pre>
+<p><strong>要点拆解</strong>：</p>
+<ol>
+<li><strong>模型只输出&quot;想调什么工具&quot;的 JSON，真正执行的是你的代码</strong>。工具是&quot;训练出来的格式&quot;（篇01 1.2 节），所以必须校验参数、捕获异常——上面的 <code>try/except</code> 就是 Harness 可靠执行的最小版。</li>
+<li><strong><code>messages.append(msg)</code> 与 <code>role=&quot;tool&quot;</code> 回填缺一不可</strong>。少了任何一步，模型就不知道工具返回了什么。</li>
+<li><strong><code>for step in range(6)</code> 是最原始的&quot;预算控制&quot;</strong>。篇05 会把这类控制升级为 Deadline、最大步数、Token 预算等正式机制。</li>
+<li>你已经无意中造出了 DataAgent 的第一个工具 <code>query_orders</code>——后面篇03 立项时它会长大成完整的查数能力。</li>
+</ol>
+<p><strong>常见报错对照表</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>报错</th>
+<th>含义</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>JSONDecodeError</code></td>
+<td>模型返回的 arguments 不是合法 JSON</td>
+<td><code>try/except json.JSONDecodeError</code> 兜底，把错误回填让模型重试</td>
+</tr>
+<tr>
+<td><code>KeyError: '工具名'</code></td>
+<td>模型幻觉出不存在的工具名</td>
+<td><code>TOOLS.get(name)</code> 判空，未知名称返回错误信息给模型</td>
+</tr>
+<tr>
+<td><code>sqlite3.OperationalError: no such table</code></td>
+<td>没跑 <code>init_db.py</code></td>
+<td>先运行 <code>python init_db.py</code> 并确认 <code>shop.db</code> 在当前目录</td>
+</tr>
+<tr>
+<td>context 超长 / <code>context_length_exceeded</code></td>
+<td>循环太多轮、历史太长</td>
+<td>减少最大步数；精简工具返回（如只返回前 20 行）</td>
+</tr>
+<tr>
+<td>模型死活不调工具</td>
+<td>Schema 描述不清</td>
+<td>把 <code>description</code> 写得更具体，在 system prompt 里明确要求用工具</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="5-3-demo-3-最小-rag">5.3 Demo 3：最小 RAG</h3>
+<p><strong>目标</strong>：理解&quot;检索增强生成&quot;——先从本地文档里查出相关内容、拼进 Prompt，再让模型基于查到的内容回答。<strong>为什么需要它？</strong> 模型的知识有截止日期、且会&quot;自信地错&quot;（幻觉）；把检索到的真实文档塞进上下文，模型的回答就有了依据。篇06 会把这里的&quot;分块 + 检索&quot;升级为完整的上下文装配管线。</p>
+<p><strong>前置知识</strong>：3.1–3.5 + Demo 1。不依赖外部 Embedding API，用纯 Python 的 TF-IDF 降级方案（零额外服务，直接能跑）。</p>
+<p><strong>先准备 3 个本地文档</strong>（在 <code>docs/</code> 目录下各存一个 <code>.md</code> 文件，内容随意，例如）：</p>
+<pre><code class="language-bash">mkdir -p docs
+echo &quot;退货政策：支持 7 天无理由退货，定制商品除外。退款在 3 个工作日内原路退回。&quot; &gt; docs/退货政策.md
+echo &quot;发货说明：工作日 16 点前的订单当天发货，默认顺丰，新疆西藏发邮政。&quot; &gt; docs/发货说明.md
+echo &quot;会员权益：银卡会员 95 折，金卡会员 9 折且免运费，积分可抵现。&quot; &gt; docs/会员权益.md
+</code></pre>
+<p><strong>完整代码</strong>（存为 <code>demo3_rag.py</code>，分两段：检索器 + 问答）：</p>
+<pre><code class="language-python">import math, os, re
+from collections import Counter
+from pathlib import Path
+
+def tokenize(text: str) -&gt; list:
+    # 极简分词：英文按词、中文按单字（教学用，够用）
+    return re.findall(r&quot;[a-zA-Z]+|[一-鿿]&quot;, text.lower())
+
+def chunk_text(text: str, size: int = 80) -&gt; list:
+    # 按固定长度滑窗分块，步长一半保留上下文重叠
+    return [text[i:i + size] for i in range(0, len(text), size // 2)]
+
+class TfidfRetriever:
+    def __init__(self, docs_dir: str):
+        self.chunks = []          # [(来源文件, 块文本), ...]
+        for p in Path(docs_dir).glob(&quot;*.md&quot;):
+            for c in chunk_text(p.read_text(encoding=&quot;utf-8&quot;)):
+                self.chunks.append((p.name, c))
+        self.df = Counter()       # 每个词出现在多少个块中
+        self.vecs = []
+        for _, c in self.chunks:
+            tf = Counter(tokenize(c))
+            self.vecs.append(tf)
+            for w in tf:
+                self.df[w] += 1
+
+    def _score(self, q_tf: Counter, tf: Counter) -&gt; float:
+        n = len(self.chunks)
+        score = 0.0
+        for w, qv in q_tf.items():
+            if w in tf:
+                idf = math.log(1 + n / (1 + self.df[w]))
+                score += qv * tf[w] * idf
+        return score
+
+    def search(self, query: str, top_k: int = 3) -&gt; list:
+        q_tf = Counter(tokenize(query))
+        scored = [(self._score(q_tf, tf), src, c)
+                  for (src, c), tf in zip(self.chunks, self.vecs)]
+        scored.sort(reverse=True)
+        return [(src, c) for s, src, c in scored[:top_k] if s &gt; 0]
+</code></pre>
+<p>问答部分（接在同一文件后面）：</p>
+<pre><code class="language-python">from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ[&quot;DEEPSEEK_API_KEY&quot;],
+    base_url=os.getenv(&quot;DEEPSEEK_BASE_URL&quot;, &quot;https://api.deepseek.com&quot;),
+)
+
+def ask(question: str):
+    hits = TfidfRetriever(&quot;docs&quot;).search(question, top_k=3)
+    if not hits:
+        return &quot;知识库中没有相关内容，我无法回答。&quot;
+    context = &quot;\n\n&quot;.join(f&quot;【来源:{src}】{c}&quot; for src, c in hits)
+    print(f&quot;检索到 {len(hits)} 个相关块：{[s for s, _ in hits]}&quot;)
+    messages = [
+        {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;:
+         &quot;你只能依据给定资料回答；资料里没有就明确说不知道，并标注来源。&quot;},
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: f&quot;资料：\n{context}\n\n问题：{question}&quot;},
+    ]
+    resp = client.chat.completions.create(model=&quot;deepseek-chat&quot;, messages=messages)
+    return resp.choices[0].message.content
+
+if __name__ == &quot;__main__&quot;:
+    print(ask(&quot;金卡会员买东西多少钱运费？退货几天内可以退？&quot;))
+</code></pre>
+<p><strong>运行方式</strong>：</p>
+<pre><code class="language-bash">python demo3_rag.py
+</code></pre>
+<p><strong>预期输出示例</strong>：</p>
+<pre><code class="language-text">检索到 3 个相关块：[&#x27;会员权益.md&#x27;, &#x27;退货政策.md&#x27;, &#x27;会员权益.md&#x27;]
+根据资料【来源:会员权益.md】，金卡会员享受免运费权益。退货方面【来源:退货政策.md】支持 7 天无理由退货（定制商品除外）……
+</code></pre>
+<p><strong>为什么 RAG 能缓解幻觉？</strong> 三个机制：第一，回答依据从&quot;模型的参数记忆&quot;换成&quot;上下文中白纸黑字的资料&quot;，模型更倾向复述资料；第二，system prompt 明确约束&quot;资料里没有就说不知道&quot;，抑制了 RLHF 带来的讨好式编造（篇01 1.2 节）；第三，标注来源让答案可核查——这正是贯穿项目 DataAgent&quot;每个数字都要有证据链&quot;的最小实践。如果未来有 Embedding API 可用，把 <code>_score</code> 换成向量余弦相似度即可，检索语义会更准（比如&quot;退钱&quot;也能命中&quot;退款&quot;）。</p>
+<p><strong>常见报错对照表</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>报错</th>
+<th>含义</th>
+<th>解法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FileNotFoundError: docs</code></td>
+<td>文档目录不存在</td>
+<td>确认在脚本同级目录建了 <code>docs/</code> 且里面有 <code>.md</code> 文件</td>
+</tr>
+<tr>
+<td>检索结果为空</td>
+<td>分词不匹配</td>
+<td>检查查询词与文档用词；中文字面完全不同时 TF-IDF 确实无能为力（上 Embedding 可解）</td>
+</tr>
+<tr>
+<td>模型无视资料自由发挥</td>
+<td>system prompt 约束不够</td>
+<td>加强约束措辞；把 <code>temperature</code> 调低到 0~0.3</td>
+</tr>
+<tr>
+<td>context 超长</td>
+<td>文档太大、top_k 太高</td>
+<td>减小块大小或 top_k；正式方案见篇06 Token 预算</td>
+</tr>
+</tbody>
+</table></div>
+<hr>
+<h2 id="6-常见误区-新手六连坑">6. 常见误区（新手六连坑）</h2>
+<ol>
+<li><strong>把 API key 写进代码并提交 git</strong>。后果是密钥泄露被人盗刷。正确做法：环境变量或 <code>.env</code> 文件（<code>.env</code> 要加进 <code>.gitignore</code>），代码里只 <code>os.environ[...]</code>。已经提交过的密钥立即去服务商后台作废重发。</li>
+<li><strong>以为模型记得上次对话</strong>。模型是无状态的，每次请求都是&quot;第一次见面&quot;。&quot;记得&quot;是因为你把历史 messages 全发过去了。换进程、换机器，记忆就没了——除非你持久化。</li>
+<li><strong>以为上下文无限长</strong>。每个模型都有上下文上限（如 64K/128K Token）。长对话不裁剪迟早报 <code>context_length_exceeded</code>，而且上下文越长越贵越慢——这是篇06 存在的理由。</li>
+<li><strong>让模型口算精确数字</strong>。模型对数字的&quot;计算&quot;是概率续写，多位数加减乘除必错。精确计算永远写成工具（如 Demo 2 的 <code>calculator</code>）交给代码执行。</li>
+<li><strong>把模型的输出当事实直接落库/展示</strong>。工具参数可能幻觉、JSON 可能不合法、数字可能编造。所有模型输出都要经过校验（Schema、类型、范围）才可用——这是篇09 评测与质量契约的出发点。</li>
+<li><strong>一上来就套重型框架</strong>。不手写一遍 Demo 2 的循环，直接用 LangChain 出问题时完全不知道框架替你做了什么。先手写最小循环，再看框架，你会读出完全不同的东西。</li>
+</ol>
+<hr>
+<h2 id="7-本篇实战-六个递进小任务-每步都有验收标准">7. 本篇实战：六个递进小任务（每步都有验收标准）</h2>
+<p>按顺序做，每完成一步就达到了下一步的起点。全部完成后，自测清单（第 8 节）应该能全部打勾。</p>
+<p><strong>任务 1：给 Demo 2 加第三个工具</strong></p>
+<ul>
+<li><strong>目标</strong>：独立走完&quot;写函数 → 写 Schema → 注册 → 验证&quot;的工具开发全流程。</li>
+<li><strong>操作</strong>：新增 <code>query_products(category)</code> 按品类查商品表；为它写一段工具 Schema（<code>description</code> 写清楚&quot;何时用、传什么&quot;）；加进 <code>TOOLS</code> 字典；运行 <code>run(&quot;数码品类有哪些商品？&quot;)</code>。</li>
+<li><strong>验收标准</strong>：运行日志中出现 <code>模型请求工具: query_products(...)</code> 且最终回答列出了商品名；故意传一个数据库里没有的品类，模型能据&quot;无匹配&quot;如实回答而非编造。</li>
+</ul>
+<p><strong>任务 2：错误回填实验</strong></p>
+<ul>
+<li><strong>目标</strong>：亲手验证&quot;错误信息也是上下文&quot;，理解 Harness 为什么要把异常兜住喂回模型（篇05 的伏笔）。</li>
+<li><strong>操作</strong>：把 <code>query_orders</code> 里的 SQL 表名故意写错（如 <code>order</code>），运行观察模型收到&quot;工具执行失败&quot;后的反应；再把 <code>try/except</code> 删掉运行一次，对比程序直接崩溃的差异。</li>
+<li><strong>验收标准</strong>：能说出两种处理方式的差别——有兜底时对话继续（模型通常会道歉并换路子），无兜底时进程死亡；把报错那一步的 messages 内容看一遍。</li>
+</ul>
+<p><strong>任务 3：Demo 3 分块大小对比实验</strong></p>
+<ul>
+<li><strong>目标</strong>：获得&quot;分块大小影响检索质量&quot;的第一手体感，为篇06 的上下文治理打底。</li>
+<li><strong>操作</strong>：把 <code>chunk_text</code> 的 <code>size</code> 分别设为 30 / 80 / 200，用同一个问题（如&quot;退货和运费政策&quot;）各跑 3 次，记录每次命中的来源文件与回答质量。</li>
+<li><strong>验收标准</strong>：写出 5 行结论，必须包含：块太小会怎样（语义被切碎）、块太大会怎样（噪声淹没信号+费 Token）、你选哪个值及理由。</li>
+</ul>
+<p><strong>任务 4：Demo 1 多轮记忆实验</strong></p>
+<ul>
+<li><strong>目标</strong>：亲手制造一次&quot;上下文丢失&quot;，理解篇06 为什么存在。</li>
+<li><strong>操作</strong>：连聊 10 轮后问&quot;我们第一轮聊了什么&quot;；然后在代码里只保留最近 4 轮 messages 再问一次。</li>
+<li><strong>验收标准</strong>：观察到两次回答的差异，并能用&quot;上下文即状态&quot;一句话解释原因。</li>
+</ul>
+<p><strong>任务 5：SQL 进阶——把新查询包装成工具</strong></p>
+<ul>
+<li><strong>目标</strong>：打通&quot;SQL → Python 函数 → Agent 工具&quot;的完整链路，这正是 DataAgent 工具开发的日常。</li>
+<li><strong>操作</strong>：写出查询&quot;每个品类已完成订单的客单价（SUM(amount)/SUM(quantity)）&quot;；先在 <code>sqlite3</code> 里直接验证结果正确；再包装成 Demo 2 的新工具。</li>
+<li><strong>验收标准</strong>：向 Agent 提问&quot;各品类客单价多少&quot;，回答中的数字与你手工计算的一致。</li>
+</ul>
+<p><strong>任务 6：安全练习——消灭 <code>eval</code></strong></p>
+<ul>
+<li><strong>目标</strong>：体会&quot;工具也要做输入校验&quot;，这是篇07 工具治理的最小实践。</li>
+<li><strong>操作</strong>：把 <code>calculator</code> 从 <code>eval</code> 改成用 <code>ast.parse</code> 白名单解析（只允许数字与 <code>+ - * / ()</code>）；先让 AI 帮你写一版，再按下面的评审清单逐条检查。</li>
+<li><strong>验收标准</strong>：<code>calculator(&quot;__import__('os').system('ls')&quot;)</code> 返回拒绝信息而不是真的执行；正常表达式 <code>399*2+89</code> 结果正确。</li>
+</ul>
+<h3 id="ai-coding-实操模式-让-ai-当你的-本篇陪练">AI Coding 实操模式：让 AI 当你的&quot;本篇陪练&quot;</h3>
+<p>本篇你是初学者，AI 的角色是<strong>陪练而非代写</strong>——它帮你解释概念、排查报错，但代码必须你亲手敲（或至少亲手运行）。以下模板与清单在后面各篇会反复用到，这里是第一次登场。</p>
+<p><strong>① 可复制提示词模板</strong></p>
+<p>报错求助（最常用）：</p>
+<pre><code class="language-text">我在学 Python/LLM 入门，运行下面代码时报错。请：(1) 用新手能懂的话解释错误原因；
+(2) 指出我概念上的误解（如果有）；(3) 给出修复后的代码并逐行注释；
+(4) 给一个让我自查理解的小练习。不要直接给我一大段新功能代码。
+
+【代码】
+&lt;粘贴你的代码&gt;
+
+【完整报错】
+&lt;粘贴从 Traceback 到最后一行的全部内容&gt;
+</code></pre>
+<p>概念追问：</p>
+<pre><code class="language-text">请用&quot;为什么 → 是什么 → 一个生活类比 → 一个最小代码例子&quot;的顺序，
+给我解释【概念名，如：虚拟环境】，假设我完全零基础。
+最后指出新手对这个概念最常见的 2 个误解。
+</code></pre>
+<p><strong>② AI 初版人工评审清单</strong></p>
+<p>AI 帮你写的代码（如任务 6 的 <code>ast</code> 版 calculator），提交前逐条过：</p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 每一行我都能说出它在干什么（说不出的行就是没学会，去追问）</li>
+<li class="task-item"><input type="checkbox" disabled> 它没有引入教程之外的新第三方库（初学阶段控制变量）</li>
+<li class="task-item"><input type="checkbox" disabled> 边界输入我亲手测过：空字符串、超长输入、恶意字符串</li>
+<li class="task-item"><input type="checkbox" disabled> 报错信息我读得懂，而不是被 AI 包成了 <code>except: pass</code> 式的静默吞错</li>
+<li class="task-item"><input type="checkbox" disabled> 密钥、路径等敏感信息没有被硬编码进去</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<ul>
+<li>六个任务全部通过各自的验收标准；</li>
+<li>第 8 节自测清单 10 项全部打勾；</li>
+<li>你能向另一个人（或对 AI）讲清楚 Function Calling 循环的每一步——讲得出来，才算会了。</li>
+</ul>
+<hr>
+<h2 id="8-自测清单-进入篇01-的门槛">8. 自测清单（进入篇01 的门槛）</h2>
+<p>全部打勾后，你就可以开始篇01 了：</p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 1. <code>python3 --version</code> 输出 3.11+，且能在项目目录激活虚拟环境</li>
+<li class="task-item"><input type="checkbox" disabled> 2. 激活虚拟环境后 <code>python -c &quot;import openai, httpx&quot;</code> 不报错</li>
+<li class="task-item"><input type="checkbox" disabled> 3. 能用环境变量（而非硬编码）向 OpenAI 兼容接口发一次请求并拿到回复</li>
+<li class="task-item"><input type="checkbox" disabled> 4. 能解释 messages 数组里 <code>system/user/assistant/tool</code> 四种 role 各是什么</li>
+<li class="task-item"><input type="checkbox" disabled> 5. 能说明白&quot;模型为什么能记住多轮对话&quot;（提示：它其实记不住）</li>
+<li class="task-item"><input type="checkbox" disabled> 6. 跑通 Demo 2，看过模型请求工具 → 执行 → 回填 → 再生成 的完整日志</li>
+<li class="task-item"><input type="checkbox" disabled> 7. 能给 Demo 2 独立添加一个新工具并跑通</li>
+<li class="task-item"><input type="checkbox" disabled> 8. 会用 SQLite 写出带 WHERE/JOIN/GROUP BY 的查询，并用 <code>?</code> 参数化</li>
+<li class="task-item"><input type="checkbox" disabled> 9. 跑通 Demo 3，能向他人解释&quot;检索增强为什么能缓解幻觉&quot;</li>
+<li class="task-item"><input type="checkbox" disabled> 10. 能说出至少 4 条本篇第 6 节的常见误区及正确做法</li>
+</ul>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+<hr>
+<blockquote>
+<p><strong>下一步</strong>：进入 <a href="chapter-01.html">篇01-AI核心认知</a>。你会发现篇01 开头讲的&quot;工具调用是训练出来的格式&quot;&quot;ReAct 是外置的循环&quot;，都是你已经在 Demo 2 里亲手写过的东西——认知篇会给你这些手感背后的&quot;为什么&quot;。</p>
+</blockquote>
+
+<section class="footnotes">
+<ol>
+<li id="fn-course">极客时间专栏《企业级 Agent 工程化》——本教程「篇00–篇10」这条线的重构蓝本，贯穿项目 DataAgent 的里程碑划分与治理机制均源自该课程的方法论体系。 <a class="fn-back" href="#ref-course" aria-label="回到正文">↩</a></li>
+<li id="fn-venv">Python 官方文档，《venv — 创建虚拟环境》：&quot;每个虚拟环境都有自己的 Python 二进制文件和独立的 site-packages 目录&quot;，<a href="https://docs.python.org/zh-cn/3/library/venv.html">https://docs.python.org/zh-cn/3/library/venv.html</a> 。 <a class="fn-back" href="#ref-venv" aria-label="回到正文">↩</a></li>
+<li id="fn-git">Scott Chacon, Ben Straub《Pro Git（第二版）》，第 1–3 章（起步、Git 基础、分支），官方免费中译本，<a href="https://git-scm.com/book/zh/v2">https://git-scm.com/book/zh/v2</a> 。 <a class="fn-back" href="#ref-git" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-08.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷08 · SRE 与可靠性工程</span></a>
+      <a class="next" href="chapter-01.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇01 · AI 核心认知</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-学习地图与时间安排">1. 学习地图与时间安排</a>
+    <a class="toc-h2" href="#2-环境搭建-macos-为主-兼顾-windows">2. 环境搭建（macOS 为主，兼顾 Windows）</a>
+    <a class="toc-h3" href="#2-0-先讲-为什么-开发环境到底是什么">2.0 先讲"为什么"：开发环境到底是什么</a>
+    <a class="toc-h3" href="#2-1-安装-python-3-11">2.1 安装 Python 3.11+</a>
+    <a class="toc-h3" href="#2-2-安装-vs-code">2.2 安装 VS Code</a>
+    <a class="toc-h3" href="#2-3-创建项目与虚拟环境-uv-或-venv-pip">2.3 创建项目与虚拟环境（uv 或 venv+pip）</a>
+    <a class="toc-h3" href="#2-4-常见坑对照">2.4 常见坑对照</a>
+    <a class="toc-h3" href="#2-5-git-最小必要知识-代码的-时间机器">2.5 Git 最小必要知识：代码的"时间机器"</a>
+    <a class="toc-h3" href="#2-6-命令行生存指南-附录式速查">2.6 命令行生存指南（附录式速查）</a>
+    <a class="toc-h2" href="#3-python-最小必要知识">3. Python 最小必要知识</a>
+    <a class="toc-h3" href="#3-1-函数">3.1 函数</a>
+    <a class="toc-h3" href="#3-2-dict-与-list">3.2 dict 与 list</a>
+    <a class="toc-h3" href="#3-3-异常处理">3.3 异常处理</a>
+    <a class="toc-h3" href="#3-4-f-string">3.4 f-string</a>
+    <a class="toc-h3" href="#3-5-json-模块">3.5 json 模块</a>
+    <a class="toc-h3" href="#3-6-requests-httpx-http-请求库">3.6 requests / httpx（HTTP 请求库）</a>
+    <a class="toc-h3" href="#3-7-虚拟环境装包">3.7 虚拟环境装包</a>
+    <a class="toc-h2" href="#4-sql-最小必要知识-sqlite-版">4. SQL 最小必要知识（SQLite 版）</a>
+    <a class="toc-h3" href="#4-1-建表-造数-电商订单小数据集">4.1 建表 + 造数（电商订单小数据集）</a>
+    <a class="toc-h3" href="#4-2-五个必会查询">4.2 五个必会查询</a>
+    <a class="toc-h2" href="#5-三个递进-demo-核心章节">5. 三个递进 Demo（核心章节）</a>
+    <a class="toc-h3" href="#5-1-demo-1-命令行聊天机器人">5.1 Demo 1：命令行聊天机器人</a>
+    <a class="toc-h3" href="#5-2-demo-2-function-calling-小-agent-本篇的最高潮">5.2 Demo 2：Function Calling 小 Agent（本篇的最高潮）</a>
+    <a class="toc-h3" href="#5-3-demo-3-最小-rag">5.3 Demo 3：最小 RAG</a>
+    <a class="toc-h2" href="#6-常见误区-新手六连坑">6. 常见误区（新手六连坑）</a>
+    <a class="toc-h2" href="#7-本篇实战-六个递进小任务-每步都有验收标准">7. 本篇实战：六个递进小任务（每步都有验收标准）</a>
+    <a class="toc-h3" href="#ai-coding-实操模式-让-ai-当你的-本篇陪练">AI Coding 实操模式：让 AI 当你的"本篇陪练"</a>
+    <a class="toc-h2" href="#8-自测清单-进入篇01-的门槛">8. 自测清单（进入篇01 的门槛）</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
