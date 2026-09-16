@@ -199,6 +199,12 @@ body {
   margin-right: .5em;
   accent-color: var(--accent);
   transform: translateY(1px);
+  cursor: pointer;
+}
+.content li.task-item.done {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: rgba(111, 106, 95, .45);
 }
 
 .content blockquote {
