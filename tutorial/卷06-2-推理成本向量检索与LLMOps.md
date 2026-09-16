@@ -325,4 +325,4 @@ flowchart TB
 [^hnsw]: Yury Malkov, Dmitry Yashunin, "Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs"（IEEE TPAMI, 2020），https://arxiv.org/abs/1603.09320 。本卷 5.2 节 HNSW 的分层小世界图结构、贪心导航与 M/ef 参数语义出自该论文。
 [^phoenix]: 周志明，《凤凰架构：构建可靠的大型分布式系统》，在线公开版：https://icyfenix.cn 。本卷索引选型与卷03 DDIA 视角的衔接、服务化治理部分可与该书互相印证，可作延伸阅读。
 
-➡️ 下一页：卷07-AIFDE交付实战.md
+➡️ 下一页：[卷07 · AI FDE 交付实战](卷07-AIFDE交付实战.md)

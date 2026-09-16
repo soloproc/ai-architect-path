@@ -357,4 +357,4 @@ FastAPI + K8s + PostgreSQL 主从 + Redis + MQ + vLLM 推理服务，Prometheus 
 
 ---
 
-➡️ 下一页：篇03-实战立项.md（阶段九 · Agent 工程化入口：在可靠的地基上盖 DataAgent 主楼）
+➡️ 下一页：[篇03 · 实战立项](篇03-实战立项.md)（阶段九 · Agent 工程化入口：在可靠的地基上盖 DataAgent 主楼）
