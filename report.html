@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>《企业级 Agent 工程架构实战营》课程深度分析报告 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html" class="active">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="企业级-agent-工程架构实战营-课程深度分析报告">《企业级 Agent 工程架构实战营》课程深度分析报告</h1>
+<blockquote>
+<p>分析对象：极客时间《企业级 Agent 工程架构实战营》课程大纲（PDF 共 29 页，全文已提取至 <code>课程大纲原文.txt</code>）
+报告日期：基于大纲文本撰写，不涉及课程实际交付质量的判断</p>
+</blockquote>
+<hr>
+<h2 id="一-课程一句话概览与定位判断">一、课程一句话概览与定位判断</h2>
+<p><strong>一句话概览</strong>：这是一门面向已具备大模型应用与基础 Agent 开发经验的工程师的架构进阶课，目标是把学员从&quot;能实现一个 Agent Demo&quot;提升到&quot;能设计、评审、建设并持续演进企业级 Agent 系统&quot;，即完成从 Agent Developer 到 Agent Architect 的能力跃迁。</p>
+<p><strong>面向人群（课程自我声明）</strong>：已经做过 LLM 应用或 Agent Demo、但尚未独立承担过企业级 Agent 系统设计的工程师。大纲在定位部分明确排除了一类受众——&quot;不以重复讲解 LLM API、Prompt Engineering、基础 Tool Calling、基础 RAG 或某个 Agent 框架的使用为主要目标&quot;。</p>
+<p><strong>解决的核心问题</strong>：市面上多数 Agent 教程回答的是&quot;怎么把 Demo 跑起来&quot;，而本课程聚焦的是 Demo 与生产系统之间的断层——多租户、长任务、故障恢复、状态持久化、分布式执行、副作用控制、上下文/工具/记忆治理、可观测与可评测、发布门禁与受控进化。这些正是&quot;能跑&quot;与&quot;敢上生产&quot;之间真实存在的鸿沟。</p>
+<p><strong>与普通 Agent 教程的差异</strong>，可以归纳为三点：</p>
+<ol>
+<li><strong>抽象层级不同</strong>：普通教程教框架 API（LangChain/LlamaIndex/某 SDK 怎么用），本课程教的是 Runtime、Context Contract、Capability Architecture、Failure Taxonomy 这类与具体框架解耦的&quot;稳定工程对象&quot;。大纲明确提出&quot;理解最新实践背后的稳定工程对象，而不是把课程绑定在某个框架或版本上&quot;。</li>
+<li><strong>交付物不同</strong>：普通教程的产出是一个能运行的项目，本课程要求的产出物还包括架构图、状态机、时序图、ADR（架构决策记录）、Failure Matrix、Eval Contract、Regression Gate 等架构师工作产物。</li>
+<li><strong>评判标准不同</strong>：课程把&quot;评测验证&quot;设为与&quot;架构选型&quot;并列的贯穿主线，要求每个设计决策都用 Baseline、Badcase、Benchmark 给出证据，而不是&quot;能跑就行&quot;。</li>
+</ol>
+<hr>
+<h2 id="二-课程结构分析">二、课程结构分析</h2>
+<h3 id="2-1-十篇的逻辑主线">2.1 十篇的逻辑主线</h3>
+<p>课程共十篇，可以划分为五个逻辑阶段，呈明显的&quot;认知 → 方法论 → 底座 → 治理 → 进化&quot;递进结构：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>篇目</th>
+<th>主题</th>
+<th>在整体中的角色</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>认知层</td>
+<td>第一篇</td>
+<td>AI 核心认知（LLM 训推机理、Agent 范式、能力模型、AI Native、PE/CE/HE/LE/GE）</td>
+<td>统一术语与心智模型，是全课程的&quot;世界观&quot;</td>
+</tr>
+<tr>
+<td>方法论层</td>
+<td>第二篇</td>
+<td>AI Coding 道法术器</td>
+<td>建立&quot;人机协同研发&quot;的工作方式，是后续所有实战的生产方式基础</td>
+</tr>
+<tr>
+<td>立项层</td>
+<td>第三篇</td>
+<td>贯穿实战立项（DataAgent 项目启动、M0 基线）</td>
+<td>把抽象认知锚定到一个具体、可验证的项目上</td>
+</tr>
+<tr>
+<td>底座层</td>
+<td>第四、五篇</td>
+<td>LLM Runtime、Agent Harness/Runtime</td>
+<td>构建系统的&quot;执行骨架&quot;：模型执行底座 + 分布式 Agent 运行时</td>
+</tr>
+<tr>
+<td>治理层</td>
+<td>第六、七、八篇</td>
+<td>Context 治理、Tool/Skill 治理、Memory 治理</td>
+<td>在骨架上构建三大核心能力的治理体系</td>
+</tr>
+<tr>
+<td>进化层</td>
+<td>第九、十篇</td>
+<td>评测与受控进化、完结篇/未来判断/DSH 拆解</td>
+<td>建立 EvalOps 闭环，并收束为面向未来的架构判断力</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="2-2-篇间依赖关系">2.2 篇间依赖关系</h3>
+<p>大纲对依赖关系有较清晰的显式设计：</p>
+<ul>
+<li><strong>第一篇 → 所有后续篇</strong>：第一篇建立的 Agent 范式（Autonomous vs Workflow）、L1-L4 能力分级、PE/CE/HE/LE/GE 技术谱系，是后面所有篇章共用的语言体系。</li>
+<li><strong>第二篇 → 第三篇及之后所有实战环节</strong>：AI Coding 的&quot;道法术器&quot;是学员完成实战项目的生产方式；第二篇末尾的&quot;最小可用 AI Coding Harness&quot;实战与后续 DataAgent 建设是&quot;用 AI 的方式构建 AI 系统&quot;的递归关系。</li>
+<li><strong>第三篇 → 第四至九篇</strong>：立项篇定义了项目、质量契约和 M0 评测基线，后续每一篇都在这个基线上做一次里程碑式演进。</li>
+<li><strong>第四篇 → 第五篇</strong>：大纲明确标注&quot;基于第四篇已经完成的 LLM Runtime&quot;，第五篇在其上构建 Agent Harness/Runtime。</li>
+<li><strong>第五篇 → 第六/七/八篇</strong>：三大治理篇建立在统一执行模型（Run/Step/Attempt/Event/Checkpoint）之上——上下文装配、工具调用、记忆读写都是 Runtime 中的受控环节。</li>
+<li><strong>第六/七/八篇 → 第九篇</strong>：评测篇为三大治理体系建立回归门禁；值得注意的是评测概念并非第九篇才出现，而是从第三篇 M0 基线起就贯穿，第九篇是收束与体系化。</li>
+<li><strong>前十篇 → 第十篇</strong>：完结篇用 DataAgent 全量成果做总结，并通过 DSH（DeepSeek Harness）拆解把课程对象与业界最前沿的 Harness 设计对照，完成&quot;从课程走向持续判断&quot;的闭环。</li>
+</ul>
+<h3 id="2-3-贯穿项目-dataagent-的教学价值">2.3 贯穿项目 DataAgent 的教学价值</h3>
+<p>贯穿项目&quot;企业级多租户零售经营分析与决策 DataAgent&quot;是本课程结构设计的支点，其价值在于：</p>
+<ol>
+<li><strong>问题复杂度足够真实</strong>：多租户、行列级数据权限、指标口径治理、只读 Query Gateway、Python Sandbox 隔离、副作用审批——这些问题几乎覆盖了企业级 Agent 的全部典型难点，且彼此耦合，无法在玩具项目中复现。</li>
+<li><strong>支持演进式教学</strong>：项目按&quot;模块化单体 → 拆出 LLM Runtime → 拆出 Agent API/Scheduler/Worker/Sandbox → 增加治理模块 → 补齐 Trace/Eval/安全/发布治理&quot;五步演进，每一步都有明确的架构动因，避免了&quot;一上来就是完美分布式架构&quot;的失真教学。</li>
+<li><strong>提供统一的决策训练场</strong>：每个里程碑都要求&quot;候选方案 → Decision Matrix → Benchmark/Badcase → ADR&quot;，学员在同一业务上下文中反复练习架构决策，方法论得以内化为习惯。</li>
+<li><strong>业务可验证</strong>：零售经营分析（GMV、毛利、转化率、退款率等指标）有客观可校验的答案，天然适合作为 Eval 的教学载体——这也是选择 DataAgent 而非开放式 C 端 Agent 的聪明之处。</li>
+</ol>
+<hr>
+<h2 id="三-课程设计亮点">三、课程设计亮点</h2>
+<ol>
+<li>
+<p><strong>演进式架构教学（模块化单体 → 分布式 Runtime）</strong>。课程不直接给出终态架构，而是让系统随业务压力逐步演进，每一步拆分都有动因（为什么不能在业务代码里直接调 SDK、为什么不能同步执行、为什么开放分析必须放进 Workflow Shell）。这符合真实架构演进的规律，也让学员理解每个组件&quot;为何存在&quot;而非&quot;存在即合理&quot;。</p>
+</li>
+<li>
+<p><strong>以证据驱动架构决策（Badcase / Baseline / Benchmark / ADR 四件套）</strong>。课程把 ADR 和评测基线提升为与代码同等重要的交付物，要求&quot;每个里程碑提出候选方案，通过 Decision Matrix、Benchmark、Badcase 与 ADR 记录和验证关键取舍&quot;。这实质上是在训练架构评审能力，而不只是编码能力——这正是 L3/L4 与 L1/L2 的分水岭。</p>
+</li>
+<li>
+<p><strong>Outcome / Trajectory / System 三层 Eval 体系</strong>。评测设计不止看最终答案对不对（Outcome），还看执行过程是否合理（Trajectory）、系统代价是否可接受（System 层的成本、时延、安全）。配合&quot;软评分与硬门槛&quot;的区分（总分提升不能掩盖跨租户泄漏等严重风险），这是目前公开课程中少见的完整 Eval 方法论。</p>
+</li>
+<li>
+<p><strong>Failure Taxonomy 与故障驱动验证</strong>。第五篇第 6 课&quot;以故障为教材&quot;明确提出&quot;通过主动注入故障，验证 Runtime 的可靠性，而不是证明它能正常运行&quot;，并区分 Retry/Resume/Replay/Fork 四种恢复机制、定义 Runtime Invariant。这种&quot;证伪式&quot;工程文化是企业级系统与 Demo 的本质区别。</p>
+</li>
+<li>
+<p><strong>&quot;道法术器&quot;四层框架组织 AI Coding 方法论</strong>。第二篇用道（生产观/角色观/责任观）、法（SDD、Contract-First、Eval-Driven Development、Progressive Delivery）、术（八个控制变量、Loop Engineering 技巧）、器（AI Coding Harness 基础设施）四层把零散的 AI Coding 经验组织成体系，尤其&quot;器的本质是把经验、流程和制度外置为基础设施&quot;这一点，把 AI Coding 从个人技巧提升到了组织能力建设的高度。</p>
+</li>
+<li>
+<p><strong>PE/CE/HE/LE/GE 技术谱系与&quot;模型内化&quot;判断</strong>。第一篇第 5 课用五层技术（Prompt / Context / Harness / Loop / Graph Engineering）建立统一的调优认知框架，并讨论&quot;模型能内化什么、不能内化什么&quot;&quot;该学什么、不该学什么&quot;。这种&quot;区分稳定工程对象与易过时技巧&quot;的元认知训练，是课程对抗技术快速折旧的关键设计。</p>
+</li>
+<li>
+<p><strong>Harness 不是 Agent Loop：概念澄清贯穿始终</strong>。课程多处刻意纠偏行业流行误解——&quot;Harness 为什么不是 Agent Loop&quot;&quot;上下文不等于 Prompt&quot;&quot;Memory 与 Chat History/Context/State 的边界&quot;&quot;MCP 的正确定位&quot;&quot;Skill 不是把 Prompt/Tool 随便包装&quot;。每个概念都有清晰的职责边界定义，这对构建可治理系统至关重要。</p>
+</li>
+<li>
+<p><strong>与业界前沿对象对照（DSH / Claude Code）</strong>。完结篇拆解 DeepSeek Harness 并与 Claude Code、课程自有 DataAgent 架构做三方对照（通用 Harness vs 企业级业务 Agent Runtime 的边界）。第七篇也以 DSH 的 &quot;Everything is a Plugin&quot; 对照 MCP 远程协议讨论 Capability Seam。这种设计让课程保持与前沿的同步性，同时训练学员的独立架构判断力。</p>
+</li>
+<li>
+<p><strong>Context/Tool/Memory 三大治理篇的问题驱动写法</strong>。每一课都以&quot;解决什么问题&quot;句式展开（如&quot;解决 Agent 不知道什么算完成的问题&quot;&quot;解决无限循环、无限花钱、无限调用的问题&quot;），问题清单本身就是一份企业级 Agent 的故障与风险目录，即使脱离课程也有参考价值。</p>
+</li>
+<li>
+<p><strong>人机关系的哲学收束</strong>。完结篇&quot;人与 AI 的四种关系&quot;（工具/依附/导学/内观）把技术课程收束到工程师的角色与责任上，与第二篇的&quot;三观&quot;（角色观、生产观、责任观）首尾呼应，避免了纯技术课程的&quot;只见系统不见人&quot;。</p>
+</li>
+</ol>
+<hr>
+<h2 id="四-潜在不足与风险">四、潜在不足与风险</h2>
+<p>以下判断仅基于大纲文本，实际交付可能缓解其中部分问题：</p>
+<ol>
+<li>
+<p><strong>大纲颗粒度仍偏&quot;问题清单&quot;式，深度承诺难以验证</strong>。大量条目是&quot;解决 XX 问题&quot;的一句话描述，看不出每个问题的讲解深度——是给出可落地的设计模式与代码，还是停留在概念辨析。例如&quot;Lease 与 Heartbeat&quot;&quot;副作用幂等&quot;这类分布式系统硬问题，讲透需要相当课时，大纲未给出任何深度信号。</p>
+</li>
+<li>
+<p><strong>对企业数据基础设施的前置要求未明说</strong>。DataAgent 项目依赖指标平台、Data Catalog、数据血缘、行列级权限、只读 Query Gateway 等数据基础设施概念。对没有数仓/BI 背景的纯后端或算法工程师，第六篇（经营语义上下文、Metric Registry）可能存在隐性知识门槛，大纲未说明这部分是先修要求还是课内补齐。</p>
+</li>
+<li>
+<p><strong>DSH 等前沿对照对象存在时效性风险</strong>。DeepSeek Harness 是极新的开源对象，其架构设计、社区活跃度、甚至项目存续都在快速变化中。以它为完结篇的对照样本，既有前沿性红利，也有&quot;课程内容随对象过时而贬值&quot;的风险；同样，PE/CE/HE/LE/GE 这类自定义谱系能否成为行业共识术语，尚待观察。</p>
+</li>
+<li>
+<p><strong>学习曲线陡峭，十篇内容密度极高</strong>。从训推机理到分布式 Runtime 再到 EvalOps，任何一篇单独展开都足以成为一门课。十篇全覆盖意味着每篇大概率只能达到&quot;建立框架 + 完成项目中最小实现&quot;的深度，学员若期望在每一主题上都达到生产专家水平，可能落空。课程更现实的产出是&quot;知道全部版图 + 在一条主线上做过完整实践&quot;。</p>
+</li>
+<li>
+<p><strong>缺少明确的课时安排与先修技能清单</strong>。大纲未标注总课时、各篇时长分配、先修要求（如 Python/Go 熟练度、分布式系统基础、SQL 能力、是否需要 GPU 或云环境）。&quot;面向有基础 Agent 开发经验的工程师&quot;这一描述过于模糊——写过一个 LangChain Demo 和独立交付过 LLM 功能的人，都属于这个范围，但听课体验会截然不同。</p>
+</li>
+<li>
+<p><strong>配套工程环境的成本与可复现性未知</strong>。云端 Python Sandbox、多租户隔离、故障注入、红队测试等实战环节依赖较重的工程环境。大纲提到&quot;项目脚手架和准备资源&quot;，但未说明环境是托管提供还是本地搭建，以及课后是否可持续使用。对企业级课程而言，这直接影响学习效果的落地率。</p>
+</li>
+<li>
+<p><strong>&quot;AI Native&quot;叙事存在一定的概念包装成分</strong>。第一篇与完结篇中&quot;超级个体&quot;&quot;一个人的 OPC&quot;&quot;四种关系&quot;等内容，思辨性强于工程性，其价值依赖讲师的案例质量，存在沦为正确废话的风险。</p>
+</li>
+</ol>
+<hr>
+<h2 id="五-适合人群与不适合人群">五、适合人群与不适合人群</h2>
+<h3 id="适合人群">适合人群</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>画像</th>
+<th>匹配点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2 年以上后端/全栈工程师，做过 LLM Demo 或参与过 LLM 功能开发，正面临&quot;Demo 如何上生产&quot;的困境</td>
+<td>课程定位的直接靶心，断层感最强、收益最大</td>
+</tr>
+<tr>
+<td>正在或即将负责企业内部 Agent 平台/中台建设的技术负责人、架构师</td>
+<td>第四至九篇的 Runtime 与三大治理体系几乎就是 Agent 平台的建设清单</td>
+</tr>
+<tr>
+<td>数据平台/BI 方向工程师，希望向 Agent 化数据产品（ChatBI/DataAgent）转型</td>
+<td>贯穿项目就是完整参照系</td>
+</tr>
+<tr>
+<td>希望系统梳理 Agent 工程知识版图、建立面试/评审话语体系的资深工程师</td>
+<td>L1-L4 能力模型 + ADR/Eval 方法论提供完整的表达框架</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="不适合人群">不适合人群</h3>
+<ul>
+<li><strong>纯零基础或编程经验不足者</strong>：课程默认软件工程、分布式系统、数据库等基本功，入门者会被密度压垮。</li>
+<li><strong>只想学某个框架 API（如 LangGraph/CrewAI 怎么用）的人</strong>：课程刻意与具体框架解耦，期望&quot;照着敲出项目&quot;的学习者会失望。</li>
+<li><strong>只做 C 端轻量 Agent 或一次性自动化脚本的开发者</strong>：多租户、审批流、Regression Gate 等企业级议题与其场景不匹配，投入产出不划算。</li>
+<li><strong>期望学 Prompt 技巧速成的人</strong>：课程明确把 Prompt Engineering 降级为五层技术中的最浅一层，且不以此为目标。</li>
+</ul>
+<hr>
+<h2 id="六-自学路径建议-配合本目录十篇自学教程">六、自学路径建议（配合本目录十篇自学教程）</h2>
+<p>大纲只有主题没有正文，自学者应按以下四阶段路线推进，并使用本目录下配套的十篇自学教程（篇01-篇10，与大纲十篇一一对应）作为正文材料。</p>
+<h3 id="阶段一-认知与方法论打底-建议-1-2-周">阶段一：认知与方法论打底（建议 1-2 周）</h3>
+<ul>
+<li><strong>目标</strong>：建立统一术语体系和心智模型，能讲清 Autonomous 与 Workflow 的取舍、PE/CE/HE/LE/GE 的分层关系。</li>
+<li><strong>重点篇目</strong>：篇01（AI 核心认知）、篇02（AI Coding 道法术器）。</li>
+<li><strong>建议产出物</strong>：
+<ul>
+<li>一张自己的&quot;Agent 范式选型决策表&quot;（什么业务用 Workflow、什么用 Autonomous、什么用混合）；</li>
+<li>为自己日常项目搭建一个最小 AI Coding Harness（仓库规则 + Skill + 验证脚本）；</li>
+<li>一篇学习笔记：用 PE/CE/HE/LE/GE 重新分类自己过去用过的所有&quot;调优技巧&quot;。</li>
+</ul>
+</li>
+</ul>
+<h3 id="阶段二-runtime-底座攻坚-建议-3-4-周-全程最重">阶段二：Runtime 底座攻坚（建议 3-4 周，全程最重）</h3>
+<ul>
+<li><strong>目标</strong>：亲手实现从模块化单体到分布式 Runtime 的演进，理解每一步拆分的动因。</li>
+<li><strong>重点篇目</strong>：篇03（立项）、篇04（LLM Runtime）、篇05（Agent Harness/Runtime）。</li>
+<li><strong>建议产出物</strong>：
+<ul>
+<li>一个可运行的最小 DataAgent 骨架：统一模型调用入口（Registry/Routing/Retry/Fallback）+ Run/Step/Attempt 执行模型 + Checkpoint/Resume；</li>
+<li>至少 2 份 ADR（如&quot;为什么从单体起步&quot;&quot;为什么引入 Queue/Worker&quot;），每份附 Badcase 或 Benchmark 证据；</li>
+<li>一次故障注入实验记录（如 Worker 宕机后任务能否被接管）。</li>
+</ul>
+</li>
+</ul>
+<h3 id="阶段三-三大治理体系-建议-3-4-周">阶段三：三大治理体系（建议 3-4 周）</h3>
+<ul>
+<li><strong>目标</strong>：在 Runtime 骨架上建立 Context、Tool/Skill、Memory 三套治理机制，每套都做到&quot;有契约、有策略、有评测&quot;。</li>
+<li><strong>重点篇目</strong>：篇06（Context 治理）、篇07（Tool/Skill 治理）、篇08（Memory 治理）。</li>
+<li><strong>建议产出物</strong>：
+<ul>
+<li>四套 Decision Context Contract（规划/查询/验证/生成各一）+ 一个最小 Metric Registry；</li>
+<li>三层 Tool Contract 的落地代码 + 一次&quot;万能工具 vs 业务语义工具&quot;的调用成功率对照实验；</li>
+<li>Memory Policy 文档（写什么/不写什么/谁可用/保存多久）+ Memory Off / Blind Top-K / Governed Memory 三组对照实验结果。</li>
+</ul>
+</li>
+</ul>
+<h3 id="阶段四-评测闭环与视野收束-建议-1-2-周">阶段四：评测闭环与视野收束（建议 1-2 周）</h3>
+<ul>
+<li><strong>目标</strong>：为前述系统补齐 EvalOps 闭环，并形成自己的技术判断框架。</li>
+<li><strong>重点篇目</strong>：篇09（评测与受控进化）、篇10（完结篇/DSH 拆解）。</li>
+<li><strong>建议产出物</strong>：
+<ul>
+<li>一份 Eval Contract（Outcome/Trajectory/System 三层 + 硬门槛清单）；</li>
+<li>一个可批量运行的 Eval Runner + 至少 20 条覆盖长尾场景的 Case（含跨租户、工具故障、审批拒绝）；</li>
+<li>一篇对比分析：DSH（或任一主流 Harness）与自己 DataAgent 架构的取舍对照，回答&quot;如果重新设计，我会改什么&quot;。</li>
+</ul>
+</li>
+</ul>
+<p><strong>学习方法提示</strong>：阶段二、三务必&quot;代码先行，概念殿后&quot;——先按教程把最小实现写出来，再回头理解概念边界；每个里程碑强制自己写 ADR，这是本课程方法论的内化关键。</p>
+<hr>
+<h2 id="七-能力对标">七、能力对标</h2>
+<p>大纲第一篇给出的 L1-L4 分级可作为结课对标的标尺：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>等级</th>
+<th>定义（大纲原文）</th>
+<th>结课后可达性评估</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1 功能开发</td>
+<td>在既有架构下完成 Agent 功能与基础验证</td>
+<td>课前应已具备；不满足此水平者跟不上课程</td>
+</tr>
+<tr>
+<td>L2 业务交付</td>
+<td>独立负责一条包含 Context、Tool、State 和 Eval 的业务链路</td>
+<td><strong>认真完成阶段二、三即可稳定达到</strong>，这是课程承诺的下限</td>
+</tr>
+<tr>
+<td>L3 系统设计</td>
+<td>统筹 Runtime、可靠性、安全、成本与可观测性</td>
+<td><strong>课程主体目标</strong>。完成全部四阶段、且能独立写出 ADR/Failure Matrix/Eval Contract 者，可认为具备 L3 的设计能力；但 L3 要求的&quot;统筹&quot;还包括真实生产流量下的决策经验，课程只能提供方法论与模拟环境</td>
+</tr>
+<tr>
+<td>L4 平台演进</td>
+<td>建设共享基础设施、工程标准和持续评测体系</td>
+<td>课程提供完整的知识地图和参照系（第二篇的 Harness 资产平台、第九篇的 EvalOps），但 L4 本质是组织级能力，需要在真实多团队环境中历练，<strong>不宜作为结课承诺</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>总体判断</strong>：本课程的合理预期是把学员从 L1/L2 推到&quot;具备 L3 设计能力与 L4 视野&quot;的位置。它对求职市场上&quot;Agent 架构师&quot;&quot;AI 平台工程师&quot;类岗位的能力要求覆盖度较高，但 L3 到 L4 的最后一公里（真实规模、真实组织约束下的演进决策）只能在工作中完成，任何课程都无法替代。</p>
+<hr>
+<p><em>本报告基于课程大纲文本分析撰写，课程实际交付质量（讲师水平、代码完成度、答疑服务）不在可评估范围内。</em></p>
+
+    <nav class="prevnext">
+      <a class="prev" href="chapter-10.html"><span class="pn-label">← 上一篇</span><span class="pn-title">篇10 · 面向未来的工程判断</span></a>
+      <span></span>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#一-课程一句话概览与定位判断">一、课程一句话概览与定位判断</a>
+    <a class="toc-h2" href="#二-课程结构分析">二、课程结构分析</a>
+    <a class="toc-h3" href="#2-1-十篇的逻辑主线">2.1 十篇的逻辑主线</a>
+    <a class="toc-h3" href="#2-2-篇间依赖关系">2.2 篇间依赖关系</a>
+    <a class="toc-h3" href="#2-3-贯穿项目-dataagent-的教学价值">2.3 贯穿项目 DataAgent 的教学价值</a>
+    <a class="toc-h2" href="#三-课程设计亮点">三、课程设计亮点</a>
+    <a class="toc-h2" href="#四-潜在不足与风险">四、潜在不足与风险</a>
+    <a class="toc-h2" href="#五-适合人群与不适合人群">五、适合人群与不适合人群</a>
+    <a class="toc-h3" href="#适合人群">适合人群</a>
+    <a class="toc-h3" href="#不适合人群">不适合人群</a>
+    <a class="toc-h2" href="#六-自学路径建议-配合本目录十篇自学教程">六、自学路径建议（配合本目录十篇自学教程）</a>
+    <a class="toc-h3" href="#阶段一-认知与方法论打底-建议-1-2-周">阶段一：认知与方法论打底（建议 1-2 周）</a>
+    <a class="toc-h3" href="#阶段二-runtime-底座攻坚-建议-3-4-周-全程最重">阶段二：Runtime 底座攻坚（建议 3-4 周，全程最重）</a>
+    <a class="toc-h3" href="#阶段三-三大治理体系-建议-3-4-周">阶段三：三大治理体系（建议 3-4 周）</a>
+    <a class="toc-h3" href="#阶段四-评测闭环与视野收束-建议-1-2-周">阶段四：评测闭环与视野收束（建议 1-2 周）</a>
+    <a class="toc-h2" href="#七-能力对标">七、能力对标</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

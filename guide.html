@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>总纲：AI 全栈架构师之路——一条连贯的实战学习路径 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html" class="active">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="总纲-ai-全栈架构师之路-一条连贯的实战学习路径">总纲：AI 全栈架构师之路——一条连贯的实战学习路径</h1>
+<blockquote>
+<p>这份总纲解决一个问题：<strong>市面上的资料都很好，但它们彼此之间不认识</strong>。你学了 DDIA 不知道怎么用在项目里，考了软考不知道怎么落地，跟完 Agent 课程又发现自己连&quot;读写分离&quot;都讲不清楚。这条路径把八组经典知识与一套现有 Agent 教程串成一根线：十个阶段、一个贯穿项目（RetailHub → DataAgent）、每卷都有可验收的实战产出。它的核心主张只有一句——<strong>架构师不是读出来的，是在同一个项目上反复&quot;拆掉重来&quot;练出来的</strong>。 RetailHub 这个项目会被你亲手拆掉至少四次（单体→服务化→存储重做→微服务化），每一次重建，你都在用更高的抽象层级理解同一个业务。</p>
+</blockquote>
+<hr>
+<h2 id="1-这条路径为谁设计">1. 这条路径为谁设计</h2>
+<p>适合：</p>
+<ul>
+<li>会一点 Python（能写函数、会用 pip、跑过脚本），但没有系统做过服务端开发的人；</li>
+<li>目标是成为&quot;懂 AI、也懂架构&quot;的工程师，而不是只会调 Prompt 的使用者；</li>
+<li>认同&quot;慢就是快&quot;——愿意花 12–18 个月打地基，而不是 3 周速成。</li>
+</ul>
+<p>不适合：</p>
+<ul>
+<li>只想快速做出一个 Agent Demo 的人（直接读本目录的篇00–篇02 即可）；</li>
+<li>已经有 3 年以上后端经验的人（可以从阶段三 DDIA 切入，跳过卷01–02）。</li>
+</ul>
+<p><strong>入口判据</strong>：如果你连 Python 都不会，先去读本目录 <code>篇00-小白前置篇.md</code> 的 Python/SQL 部分（第 1–3 节），通过它的自测清单后再回到这里。篇00 的 Demo 部分（LLM 调用）可以留到阶段六再看。</p>
+<p><strong>总周期与投入</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>投入档位</th>
+<th>每周时间</th>
+<th>预计总周期</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>脱产/高强度</td>
+<td>20+ 小时</td>
+<td>约 12 个月</td>
+<td>学做比 4:6 严格执行</td>
+</tr>
+<tr>
+<td>在职/标准</td>
+<td>8–10 小时</td>
+<td>约 15 个月</td>
+<td>工作日每天 1 小时 + 周末一个半天实战</td>
+</tr>
+<tr>
+<td>在职/低强度</td>
+<td>5 小时</td>
+<td>约 18 个月</td>
+<td>实战不能砍，只能拉长周期</td>
+</tr>
+</tbody>
+</table></div>
+<p>每周时间必须拆成两类：<strong>&quot;学&quot;（读书、看文档、画笔记）和&quot;做&quot;（写代码、跑命令、写 ADR）</strong>。建议比例 4:6，且每周至少有一次连续 2 小时以上的&quot;做&quot;的时间段——碎片时间只能学，做不了。</p>
+<hr>
+<h2 id="2-十阶段学习地图总表">2. 十阶段学习地图总表</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>卷</th>
+<th>核心知识</th>
+<th>融合来源</th>
+<th>项目状态（RetailHub）</th>
+<th>里程碑产出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一 服务端筑基</td>
+<td>卷01</td>
+<td>HTTP 本质、REST、FastAPI、SQLite/MySQL、日志监控、Git、Linux 部署最小集</td>
+<td>服务端工程通识</td>
+<td>FastAPI + SQLite 单体，订单/商品查询 3 个端点</td>
+<td>一个能用 curl 验收的查询服务</td>
+</tr>
+<tr>
+<td>二 服务端架构演进</td>
+<td>卷02</td>
+<td>缓存、消息队列、读写分离、服务拆分、接口契约</td>
+<td>小白服务端架构演进实践</td>
+<td>加 Redis/MQ，拆出订单服务与商品服务</td>
+<td>一份&quot;演进决策记录&quot;（为什么拆、怎么拆）</td>
+</tr>
+<tr>
+<td>三 数据密集型系统</td>
+<td>卷03</td>
+<td>存储引擎、复制、分区、事务、一致性、流批处理</td>
+<td>DDIA（全书主线）<sup class="fn-ref"><a href="#fn-ddia" id="ref-ddia">[1]</a></sup></td>
+<td>重做存储与一致性设计，回答&quot;数据为什么会错&quot;</td>
+<td>存储设计文档 + 一致性故障演练记录</td>
+</tr>
+<tr>
+<td>四 分布式架构与平台工程</td>
+<td>卷04</td>
+<td>微服务治理、可观测性、容器化、CI/CD、平台工程初体验</td>
+<td>凤凰架构（周志明）<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>；PI 按 Platform/Infra 平台工程理解</td>
+<td>容器化部署，微服务治理，自建最小&quot;内部平台&quot;</td>
+<td>可一键启动的容器化系统 + 流水线</td>
+</tr>
+<tr>
+<td>五 架构师方法论与软考</td>
+<td>卷05</td>
+<td>架构建模（4+1/C4）、质量属性权衡、架构评估、软考知识体系</td>
+<td>软考系统架构设计师大纲；ATAM 等评估方法</td>
+<td>产出 RetailHub 正式架构文档（达到可答辩水平）</td>
+<td>完整架构文档 + 模拟答辩记录</td>
+</tr>
+<tr>
+<td>六 AI 开发基础</td>
+<td>现有篇00/01/02</td>
+<td>LLM 训推机理、提示工程、AI Coding 方法论、Function Calling/RAG</td>
+<td>现有篇00–篇02</td>
+<td>在 RetailHub 旁跑通 LLM 调用与最小 RAG</td>
+<td>三个 AI Demo + AI Coding 工作流</td>
+</tr>
+<tr>
+<td>七 AI Infra</td>
+<td>卷06</td>
+<td>模型推理服务、GPU 资源管理、推理网关、模型评测基建</td>
+<td>AI Infra 工程实践</td>
+<td>接入模型推理服务（vLLM 类），建推理网关</td>
+<td>可调用的内部模型服务 + 延迟/成本报表</td>
+</tr>
+<tr>
+<td>八 SRE 与可靠性工程</td>
+<td>卷08</td>
+<td>SLI/SLO 与错误预算、监控告警、事故管理与复盘、发布工程与容量规划、AI 服务 SRE</td>
+<td>Google《Site Reliability Engineering》；金山办公 KAE 与 WPS 可靠性案例</td>
+<td>为 RetailHub 立下 SLO，建告警规则集，完成复盘演练与混沌实验</td>
+<td>SLO 文档 + 告警规则集 + 复盘/混沌实验报告</td>
+</tr>
+<tr>
+<td>九 AI Agent 企业工程化</td>
+<td>现有篇03–篇10 + 分析报告</td>
+<td>立项、LLM 底座、Harness、上下文/工具/记忆治理、评测进化</td>
+<td>现有篇03–10（极客时间大纲扩展）<sup class="fn-ref"><a href="#fn-gktime" id="ref-gktime">[3]</a></sup></td>
+<td>在 RetailHub 之上建成多租户 DataAgent</td>
+<td>通过质量契约的企业级 Agent 系统</td>
+</tr>
+<tr>
+<td>十 AI FDE 交付实战</td>
+<td>卷07</td>
+<td>交付工程、需求澄清、环境适配、POC 到验收、客户沟通</td>
+<td>AI FDE（Forward Deployed Engineer）方法论</td>
+<td>模拟客户交付：把 DataAgent &quot;部署到客户现场&quot;</td>
+<td>交付包 + 验收报告 + 复盘</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>读表要点</strong>：每一阶段的&quot;项目状态&quot;列就是上一阶段的&quot;里程碑产出&quot;的下一形态。如果你发现自己在某个阶段做不出里程碑产出，说明上一阶段的最低通过标准没有真正达到——回炉，不要硬推。</p>
+<hr>
+<h2 id="3-融合逻辑详解-为什么是这个顺序">3. 融合逻辑详解：为什么是这个顺序</h2>
+<h3 id="3-1-为什么-ddia-放在架构演进-卷02-之后-而不是开头">3.1 为什么 DDIA 放在架构演进（卷02）之后，而不是开头</h3>
+<p>DDIA 是这条路线上信息密度最高的一本书，但它的前提是<strong>你见过真实的系统问题</strong>。一个没写过服务端代码的人读&quot;复制延迟导致读到自己写之前的数据&quot;，只会当成一句话背下来；而在卷02 里亲手给 RetailHub 加过读写分离、被&quot;刚下的订单查不到&quot;咬过一口的人，读到 DDIA 第五章（复制）<sup class="fn-ref"><a href="#fn-ddia" id="ref-ddia">[1]</a></sup>会有生理性共鸣。所以顺序是：</p>
+<ol>
+<li>卷01：先会用——能把数据存进去、查出来；</li>
+<li>卷02：先踩坑——缓存不一致、主从延迟、服务拆分的分布式事务之痛；</li>
+<li>卷03：再悟道——用 DDIA 的系统化框架解释你踩过的每一个坑，并把你&quot;土法&quot;解决的坑换成有理论支撑的方案。</li>
+</ol>
+<p>这叫&quot;问题先行，理论殿后&quot;。DDIA 在你手里是答案之书，不是天书。</p>
+<h3 id="3-2-凤凰架构与软考如何互补">3.2 凤凰架构与软考如何互补</h3>
+<p>这两份材料经常被对立看待，其实它们解决的是架构师能力的两个不同侧面：</p>
+<ul>
+<li><strong>凤凰架构（周志明）讲&quot;机制的深度&quot;</strong><sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>：微服务、容器、服务网格、可观测性为什么这样设计、演进的历史必然性是什么。它回答&quot;这个东西到底是什么、为什么存在&quot;。卷04 的主力材料。</li>
+<li><strong>软考（系统架构设计师）讲&quot;知识的体系与表达&quot;</strong>：它用考试大纲的形式逼你把架构知识组织成完整体系（质量属性、建模方法、评估方法、架构风格），并且——同样重要——训练你<strong>用正式文档表达架构决策</strong>。软考论文题本质上是架构答辩的书面化训练。</li>
+</ul>
+<p>一个人只读凤凰架构，容易&quot;懂得多但说不清&quot;；只准备软考，容易&quot;说得出但都是名词&quot;。卷04 用凤凰架构建深度，卷05 用软考建体系与表达，两者拼起来才是完整的架构师能力。</p>
+<h3 id="3-3-pi-平台工程思想如何逐层体现">3.3 PI / 平台工程思想如何逐层体现</h3>
+<p>这里的 PI 按 Platform / Infra（平台工程）理解，它不是某一卷的专题，而是一条<strong>贯穿三段的暗线</strong>：</p>
+<ul>
+<li><strong>卷04（平台工程初体验）</strong>：你在微服务化过程中会发现，每个服务都要重复做日志、配置、健康检查、部署脚本——这些重复劳动抽象出来就是&quot;内部开发者平台&quot;的最小雏形。这一层建立认知：平台 = 把共性工程能力沉淀成自助服务。</li>
+<li><strong>卷06（AI Infra 层）</strong>：模型推理服务是平台工程在 AI 时代的核心场景。推理网关、模型路由、GPU 配额、延迟与成本监控——这些就是 AI 平台的底盘。这一层你会发现卷04 的微服务治理经验几乎全部可以平移。</li>
+<li><strong>阶段九（Agent 平台层）</strong>：现有篇04–篇09 的 LLM Runtime、Harness、ToolOps、MemoryOps、EvalOps，本质上是在 AI Infra 之上再建一层&quot;Agent 平台&quot;。读完卷04/卷06 再读这些篇目，你会看出它们不是新发明，而是平台工程思想在 Agent 领域的第三次应用。</li>
+</ul>
+<p>三次见到同一件事，你才算真正懂了平台工程。</p>
+<h3 id="3-4-为什么-sre-插在-ai-infra-与-agent-工程化之间">3.4 为什么 SRE 插在 AI Infra 与 Agent 工程化之间</h3>
+<p>卷06 让你拥有了私有化推理服务，篇03–篇10 要你在其上构建企业级 Agent 系统——中间为什么插一整卷 SRE（卷08）？因为<strong>Agent 系统的一切可靠性承诺，都建立在底座的 SRE 方法之上</strong>。传统服务挂了，用户看到错误页；Agent 系统的&quot;挂&quot;更隐蔽：模型质量回归、TTFT 漂移、推理成本失控——没有 SLI/SLO、错误预算、告警与复盘这套机制，你连&quot;系统现在是否健康&quot;都无法回答，更谈不上向客户承诺。另一方面，阶段九篇09 的 EvalOps（评测与受控进化）本质上是 SRE 思想在模型质量维度的延伸：质量 SLI、受控发布、回归门禁，机制同源。先学会给传统服务立承诺（卷08），才配给智能体立承诺（阶段九）。这一卷还首次引入本土工业级样板——金山办公 KAE 与 WPS 混合云的可靠性工程，让你看到卷04 平台工程在 13600+ 微服务规模下的真实样子。</p>
+<h3 id="3-5-为什么-ai-fde-放在最后">3.5 为什么 AI FDE 放在最后</h3>
+<p>AI FDE（Forward Deployed Engineer，前置部署工程师）是&quot;带着产品去客户现场把它真正跑起来&quot;的角色。它要求的不是某一项新技术，而是<strong>前面所有阶段的叠加</strong>：你要能读懂客户的存量系统（卷01–04）、能跟客户架构师对话（卷05）、能判断 Agent 在客户场景的可行性边界（阶段六/九）、能现场处理推理服务的性能与成本问题（卷06）、能拿出可靠性承诺并守住它（卷08）。把它放在最后不是因为它最难，而是因为它<strong>没有新知识点，全是综合运用</strong>——它是这条路径的&quot;毕业设计&quot;。</p>
+<hr>
+<h2 id="4-贯穿项目时间线-retailhub-dataagent">4. 贯穿项目时间线：RetailHub → DataAgent</h2>
+<pre class="mermaid">flowchart TD
+    S1[&quot;阶段一·卷01&lt;br/&gt;RetailHub v0.1 单体&lt;br/&gt;FastAPI + SQLite&lt;br/&gt;订单/商品查询 3 端点&quot;]
+    S2[&quot;阶段二·卷02&lt;br/&gt;RetailHub v0.2 演进&lt;br/&gt;Redis 缓存 + MQ&lt;br/&gt;读写分离 + 服务拆分&quot;]
+    S3[&quot;阶段三·卷03&lt;br/&gt;RetailHub v0.3 数据重做&lt;br/&gt;复制/分区/事务设计&lt;br/&gt;一致性故障演练&quot;]
+    S4[&quot;阶段四·卷04&lt;br/&gt;RetailHub v0.4 微服务化&lt;br/&gt;容器化 + 治理 + 可观测&lt;br/&gt;最小内部平台&quot;]
+    S5[&quot;阶段五·卷05&lt;br/&gt;RetailHub 架构文档&lt;br/&gt;4+1/C4 视图 + 质量属性&lt;br/&gt;模拟答辩&quot;]
+    S6[&quot;阶段六·篇00-02&lt;br/&gt;AI 开发基础&lt;br/&gt;LLM 调用 / FC / RAG&lt;br/&gt;AI Coding 工作流&quot;]
+    S7[&quot;阶段七·卷06&lt;br/&gt;RetailHub + AI Infra&lt;br/&gt;推理服务 + 推理网关&lt;br/&gt;延迟/成本监控&quot;]
+    S8[&quot;阶段八·卷08&lt;br/&gt;RetailHub + SRE&lt;br/&gt;SLO/错误预算/告警&lt;br/&gt;复盘 + 混沌实验（演进第8步）&quot;]
+    S9[&quot;阶段九·篇03-10&lt;br/&gt;DataAgent 建设&lt;br/&gt;立项→底座→Harness&lt;br/&gt;上下文/工具/记忆/评测&quot;]
+    S10[&quot;阶段十·卷07&lt;br/&gt;DataAgent 交付实战&lt;br/&gt;客户现场适配&lt;br/&gt;POC→验收→复盘&quot;]
+    S1 --&gt; S2 --&gt; S3 --&gt; S4 --&gt; S5 --&gt; S6 --&gt; S7 --&gt; S8 --&gt; S9 --&gt; S10
+</pre>
+<p>注意阶段五在图上的位置：架构文档不是&quot;补写&quot;的，而是项目演进到 v0.4 后<strong>第一次正式回头看</strong>——这正是真实架构师的工作节奏：先让系统活下来，再让系统说得清。</p>
+<hr>
+<h2 id="5-与现有篇00-篇10-的衔接说明">5. 与现有篇00–篇10 的衔接说明</h2>
+<p>本目录已有的教程（README、00-课程分析报告、篇00–篇10）<strong>不需要任何修改</strong>，它们在这条路径中有明确位置：</p>
+<ul>
+<li><strong>篇00（小白前置篇）</strong>：双重身份——完全零基础者的&quot;入口桥梁&quot;（用其 Python/SQL 部分）；同时也是**阶段六&quot;AI 开发基础&quot;**的第一块（其 Demo 部分）。</li>
+<li><strong>篇01–篇02</strong>：即阶段六的主体，讲 AI 认知与 AI Coding 方法论。放在卷05 之后，是因为此时你已经会写服务端、会读架构文档，学 AI 时能立刻分清&quot;哪些是工程问题、哪些是模型问题&quot;。</li>
+<li><strong>篇03–篇10 + 00-课程分析报告</strong>：即阶段九&quot;AI Agent 企业工程化&quot;的全部内容。篇03 立项时假设的&quot;零售数据平台底座&quot;，将由卷01–卷06 演进而来的 RetailHub 真实提供——你不再是&quot;脑补&quot;一个底座，而是真的拥有一个。</li>
+<li>阶段七（卷06 AI Infra）插在篇02 与篇03 之间，衔接极其自然：篇04 的&quot;LLM 执行底座&quot;讲如何使用推理能力，卷06 讲这些推理能力从何而来、如何运维。阶段八（卷08 SRE 与可靠性工程）紧随其后——推理能力就位之后、Agent 系统开工之前，先为底座立下 SLO 与告警体系；篇09 的 EvalOps 届时会被你看作&quot;SRE 方法在模型质量上的应用&quot;，而不是孤立的新概念。</li>
+</ul>
+<hr>
+<h2 id="6-学习方法论">6. 学习方法论</h2>
+<h3 id="6-1-学做比-4-6-且-做-优先排期">6.1 学做比 4:6，且&quot;做&quot;优先排期</h3>
+<p>每周计划先排&quot;做&quot;的时间段（至少一段连续 2 小时），剩下的缝隙填&quot;学&quot;。反过来排的结果一定是只剩学、没有做。</p>
+<h3 id="6-2-笔记与-adr">6.2 笔记与 ADR</h3>
+<ul>
+<li><strong>读书笔记用自己的话写</strong>，格式推荐&quot;一句话主张 + 一个 RetailHub 中的例子 + 一个我的疑问&quot;。抄书 = 没读。</li>
+<li><strong>每个架构决策写一条 ADR</strong>（Architecture Decision Record）：背景 → 选项 → 决定 → 后果。卷02 起每次项目演进至少产出 1 条。ADR 不需要长，200 字即可，但必须真实记录&quot;当时为什么这样选&quot;——三个月后你review 自己的 ADR，就是架构判断力长出来的声音。</li>
+</ul>
+<h3 id="6-3-能否讲给别人听-自验法">6.3 &quot;能否讲给别人听&quot;自验法</h3>
+<p>每卷学完，给自己出一个费曼测试：<strong>假装向一个比你低一阶段的人讲解本卷核心概念</strong>（可以真的找朋友，可以写下来，也可以讲给 AI 听然后让 AI 挑刺）。讲不清楚的地方就是没懂的地方，回炉重学那一节，不要带病前进。</p>
+<hr>
+<h2 id="7-掉队与补救-每阶段的最低通过标准">7. 掉队与补救：每阶段的最低通过标准</h2>
+<p>最低通过标准是&quot;可以带病前进&quot;的底线——低于此线，强行进入下一阶段会让债务复利。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>最低通过标准（全部满足才可进入下一阶段）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一</td>
+<td>不看教程能重写 3 个端点中的任意 2 个；能解释 404/422/500 的区别；服务能用 systemd 拉起来</td>
+</tr>
+<tr>
+<td>二</td>
+<td>能讲清&quot;缓存击穿/穿透/雪崩&quot;并在项目里防住至少一个；能画出拆分后服务间的调用图</td>
+</tr>
+<tr>
+<td>三</td>
+<td>能用自己的话解释&quot;主从延迟导致的读己之写不一致&quot;及至少两种解法；完成一次一致性故障演练</td>
+</tr>
+<tr>
+<td>四</td>
+<td><code>docker compose up</code> 一条命令拉起整个系统；能定位一次跨服务调用的完整链路日志</td>
+</tr>
+<tr>
+<td>五</td>
+<td>架构文档能让一个不了解项目的人在 30 分钟内看懂系统全貌；模拟答辩中质量属性权衡题不卡壳</td>
+</tr>
+<tr>
+<td>六</td>
+<td>通过篇00 自测清单；能用 Function Calling 让模型查一次 RetailHub 的订单</td>
+</tr>
+<tr>
+<td>七</td>
+<td>推理网关能限流并记录每次调用的延迟与 token 成本；能讲清吞吐与延迟的权衡</td>
+</tr>
+<tr>
+<td>八</td>
+<td>写出 3 个带口径与错误预算的 SLO；告警规则覆盖四个黄金信号且每条可行动；完成 1 次复盘演练与 1 次混沌实验</td>
+</tr>
+<tr>
+<td>九</td>
+<td>完成篇03–09 的动手练习；DataAgent 通过自己定义的质量契约基线</td>
+</tr>
+<tr>
+<td>十</td>
+<td>交付包在&quot;全新环境&quot;（干净的机器/容器）中按文档独立完成部署并通过验收</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>掉队信号</strong>：连续两周没有代码产出；笔记变成抄书；遇到坑跳过不记录。出现任一信号，停一周，只做一件事——把当前阶段的实战部分重做一遍。</p>
+<hr>
+<h2 id="8-下一步">8. 下一步</h2>
+<p>读 <a href="vol-01.html">卷01-服务端筑基</a>，开始 RetailHub 的第一步。</p>
+<blockquote>
+<p>说明：本总纲及配套各卷为原创自学材料；DDIA、凤凰架构、软考大纲等均为公开出版物/公开考纲的引用与融合，建议配合原书阅读。</p>
+</blockquote>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-ddia">Martin Kleppmann《数据密集型应用系统设计》（Designing Data-Intensive Applications，DDIA）——阶段三主线读物；本文提到的&quot;复制延迟与读己之写&quot;见第 5 章&quot;复制&quot;，存储引擎见第 3 章，事务与一致性见第 7、9 章。 <a class="fn-back" href="#ref-ddia" aria-label="回到正文">↩</a></li>
+<li id="fn-phoenix">周志明《凤凰架构：构建可靠的大型分布式系统》——卷02 演进史观与卷04 服务治理的主力材料，全文公开于 <a href="https://icyfenix.cn">https://icyfenix.cn</a> 。 <a class="fn-back" href="#ref-phoenix" aria-label="回到正文">↩</a></li>
+<li id="fn-gktime">极客时间《企业级 Agent 工程化》课程（原名《企业级 Agent 工程架构实战营》）——阶段九（篇03–篇10）的大纲来源，本教程在其公开大纲基础上扩展改写，非官方课程正文。 <a class="fn-back" href="#ref-gktime" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="index.html"><span class="pn-label">← 上一篇</span><span class="pn-title">首页</span></a>
+      <a class="next" href="vol-01.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷01 · 服务端筑基</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-这条路径为谁设计">1. 这条路径为谁设计</a>
+    <a class="toc-h2" href="#2-十阶段学习地图总表">2. 十阶段学习地图总表</a>
+    <a class="toc-h2" href="#3-融合逻辑详解-为什么是这个顺序">3. 融合逻辑详解：为什么是这个顺序</a>
+    <a class="toc-h3" href="#3-1-为什么-ddia-放在架构演进-卷02-之后-而不是开头">3.1 为什么 DDIA 放在架构演进（卷02）之后，而不是开头</a>
+    <a class="toc-h3" href="#3-2-凤凰架构与软考如何互补">3.2 凤凰架构与软考如何互补</a>
+    <a class="toc-h3" href="#3-3-pi-平台工程思想如何逐层体现">3.3 PI / 平台工程思想如何逐层体现</a>
+    <a class="toc-h3" href="#3-4-为什么-sre-插在-ai-infra-与-agent-工程化之间">3.4 为什么 SRE 插在 AI Infra 与 Agent 工程化之间</a>
+    <a class="toc-h3" href="#3-5-为什么-ai-fde-放在最后">3.5 为什么 AI FDE 放在最后</a>
+    <a class="toc-h2" href="#4-贯穿项目时间线-retailhub-dataagent">4. 贯穿项目时间线：RetailHub → DataAgent</a>
+    <a class="toc-h2" href="#5-与现有篇00-篇10-的衔接说明">5. 与现有篇00–篇10 的衔接说明</a>
+    <a class="toc-h2" href="#6-学习方法论">6. 学习方法论</a>
+    <a class="toc-h3" href="#6-1-学做比-4-6-且-做-优先排期">6.1 学做比 4:6，且"做"优先排期</a>
+    <a class="toc-h3" href="#6-2-笔记与-adr">6.2 笔记与 ADR</a>
+    <a class="toc-h3" href="#6-3-能否讲给别人听-自验法">6.3 "能否讲给别人听"自验法</a>
+    <a class="toc-h2" href="#7-掉队与补救-每阶段的最低通过标准">7. 掉队与补救：每阶段的最低通过标准</a>
+    <a class="toc-h2" href="#8-下一步">8. 下一步</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>

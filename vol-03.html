@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卷03：数据密集型系统——DDIA 核心思想精炼与 RetailHub 实战化 · AI 全栈架构师之路 · 自学教程</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html">总纲 · 从小白到 AI 架构师</a>
+    <div class="nav-group">阶段一~五 · 服务端与分布式架构</div>
+    <a href="vol-01.html">卷01 · 服务端筑基</a>
+    <a href="vol-02.html">卷02 · 架构演进实践</a>
+    <a href="vol-03.html" class="active">卷03 · 数据密集型系统 DDIA</a>
+    <a href="vol-04.html">卷04 · 分布式与平台工程</a>
+    <a href="vol-05.html">卷05 · 架构师方法论与软考</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <a href="vol-06.html">卷06 · AI 基础设施 Infra</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <a href="vol-08.html">卷08 · SRE 与可靠性工程</a>
+    <div class="nav-group">阶段六/九 · Agent 工程化实战</div>
+    <a href="chapter-00.html">篇00 · 小白前置篇</a>
+    <a href="chapter-01.html">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <a href="chapter-04.html">篇04 · LLM 执行底座</a>
+    <a href="chapter-05.html">篇05 · Harness 与 Runtime</a>
+    <a href="chapter-06.html">篇06 · 上下文治理</a>
+    <a href="chapter-07.html">篇07 · 工具与技能治理</a>
+    <a href="chapter-08.html">篇08 · 记忆治理</a>
+    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">附录</div>
+    <a href="report.html">课程分析报告</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="卷03-数据密集型系统-ddia-核心思想精炼与-retailhub-实战化">卷03：数据密集型系统——DDIA 核心思想精炼与 RetailHub 实战化</h1>
+<blockquote>
+<p>导语：卷02 我们把 RetailHub 拆成了&quot;订单服务 + 报表服务&quot;，配上 MySQL 主从、Redis、RocketMQ。架构图变好看了，但一批更深的问题浮上来了：订单库要扩容，单主复制还撑得住吗？商品数据 schema 三天两头变，关系表还合适吗？行为日志每天几千万条，往哪存、怎么算？下单防超卖，数据库默认隔离级别到底防不防得住？这些问题不是&quot;哪个中间件好用&quot;的问题，而是<strong>数据系统底层权衡</strong>的问题。《Designing Data-Intensive Applications》（DDIA）正是讲这套权衡的教科书。本卷逐章精炼其核心思想（标注对应章节，不抄书），每一节都落回 RetailHub 的具体决策，并在实战中产出两件东西：一份《数据架构设计文档》和一个可运行的&quot;防超卖隔离级别对比实验&quot;。卷02 末状态是本卷起点；卷03 末状态是：你为 RetailHub 数据规模增长重做了一套有论证、有取舍的存储/复制/分区/一致性设计。</p>
+</blockquote>
+<hr>
+<h2 id="1-可靠-可扩展-可维护-数据系统的三大目标">1. 可靠、可扩展、可维护：数据系统的三大目标<sup class="fn-ref"><a href="#fn-1" id="ref-1">[1]</a></sup></h2>
+<p>DDIA 开篇把纷繁的技术名词收敛到三个评价维度：</p>
+<ul>
+<li><strong>可靠性（Reliability）</strong>：出了故障（硬件宕机、软件 bug、人为误操作）系统仍能正确工作。注意&quot;容错&quot;≠&quot;不出错&quot;，是&quot;错了也不瘫、不丢、不撒谎&quot;。</li>
+<li><strong>可扩展性（Scalability）</strong>：负载增长时有合理的应对办法。关键动作是<strong>先定量描述负载</strong>（用 QPS、读写比、数据量、热点分布），再定量描述性能（延迟看分位数 P99，不看平均值——平均值会把被拖死的用户藏进大多数）。</li>
+<li><strong>可维护性（Maintainability）</strong>：后来的人能愉快地在系统上工作——可操作性、简单性、可演进性。</li>
+</ul>
+<p><strong>落到 RetailHub</strong>：卷02 的每次演进其实都能映射到这三个目标——缓存与读写分离是可扩展性，MQ 重试与死信是可靠性，拆分服务是可维护性。本卷的设计文档将用这三个维度做评审框架：每个决策都必须回答&quot;它增进了哪个目标、牺牲了哪个目标&quot;。</p>
+<hr>
+<h2 id="2-数据模型与查询语言-关系-文档-图">2. 数据模型与查询语言：关系、文档、图<sup class="fn-ref"><a href="#fn-2" id="ref-2">[2]</a></sup></h2>
+<p>数据模型决定你怎么&quot;想&quot;数据。三种主流模型的取舍：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模型</th>
+<th>擅长</th>
+<th>短板</th>
+<th>RetailHub 候选场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关系模型</td>
+<td>多对多、JOIN、强 schema、事务</td>
+<td>schema 变更重，嵌套数据要拆表</td>
+<td>订单、库存、账务（结构化、要事务）</td>
+</tr>
+<tr>
+<td>文档模型（JSON）</td>
+<td>schema 灵活、局部性好（一次取整棵）</td>
+<td>JOIN 弱、多对多尴尬</td>
+<td>商品（SKU 属性随品类千变万化）</td>
+</tr>
+<tr>
+<td>图模型</td>
+<td>关系本身是一等公民、多跳查询</td>
+<td>通用查询与运维生态弱</td>
+<td>未来：&quot;用户-商品-店铺&quot;推荐关系</td>
+</tr>
+</tbody>
+</table></div>
+<p>RetailHub 的决策很典型：<strong>订单进 MySQL</strong>（事务和 JOIN 是刚需）；<strong>商品用 JSON 列</strong>（MySQL 8 的 <code>JSON</code> 类型）或独立文档库，因为 3C 商品的属性（内存、尺寸）和生鲜商品的属性（产地、保质期）根本无法共用一个宽表；图模型暂不上，但埋点数据里保留实体关系，留门。</p>
+<blockquote>
+<p>核心心法：<strong>没有最好的模型，只有与访问模式最匹配的模型</strong>。选型时先列出你的 Top-5 查询，再看哪个模型让它们最自然。</p>
+</blockquote>
+<hr>
+<h2 id="3-存储与检索-lsm-tree-vs-b-tree">3. 存储与检索：LSM-Tree vs B-Tree<sup class="fn-ref"><a href="#fn-3" id="ref-3">[3]</a></sup></h2>
+<p>数据库怎么把数据落到磁盘，直接决定读写特性。两大流派：</p>
+<ul>
+<li><strong>B-Tree</strong>（InnoDB 采用）：原地更新的页结构。读快而稳（每次读走固定层数），写入随机 IO 多、有写放大。适合<strong>读密集、延迟敏感</strong>的场景。</li>
+<li><strong>LSM-Tree</strong>（RocksDB、Cassandra、ClickHouse 的底层思想）：先写内存 MemTable + 追加式日志（WAL），攒够一批顺序刷成磁盘上的不可变段（SSTable），后台合并压缩。写吞吐极高（全顺序 IO），读要查多层、靠布隆过滤器加速。适合<strong>写密集、日志型</strong>场景。</li>
+</ul>
+<p><strong>再往下挖一层：两种引擎各自的&quot;代价账单&quot;。</strong> 新手只背&quot;B 树读快、LSM 写快&quot;，架构师要算清三笔放大账——<strong>写放大</strong>（写 1 字节实际搬动多少字节）、<strong>读放大</strong>（读 1 条记录实际查多少处）、<strong>空间放大</strong>（存 1 份数据实际占几份磁盘）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>维度</th>
+<th>B-Tree（InnoDB）</th>
+<th>LSM-Tree（RocksDB）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>写路径</td>
+<td>沿树定位到目标页 → 原地改页；先写 redo log 再刷脏页</td>
+<td>追加 WAL → 写 MemTable（内存有序结构）→ 攒满顺序 Flush 成 SSTable</td>
+</tr>
+<tr>
+<td>写放大</td>
+<td>改 1 行可能整页（16KB）重写；页分裂时更糟</td>
+<td>一条数据在多层 Compaction 中被反复重写（常达 10 倍级）</td>
+</tr>
+<tr>
+<td>读放大</td>
+<td>低且稳：B+ 树 3~4 层，一次查询固定几次 IO</td>
+<td>高且抖动：查 MemTable + 多层 SSTable，靠布隆过滤器挡掉大部分空查</td>
+</tr>
+<tr>
+<td>空间放大</td>
+<td>页分裂留下半满页，长期碎片化</td>
+<td>Compaction 期间新旧段并存，瞬时占用可达 2 倍</td>
+</tr>
+<tr>
+<td>最怕什么</td>
+<td>随机写洪峰：缓冲池刷脏页跟不上</td>
+<td>Compaction 被写入压垮：触发写停滞（write stall），写入被强行刹车</td>
+</tr>
+</tbody>
+</table></div>
+<p>三个关键机理，讲给未来的自己：</p>
+<ul>
+<li><strong>B 树原地更新为什么不怕崩</strong>：InnoDB 先写 redo log（顺序追加）再刷数据页（随机写），崩溃后用 redo 重放——&quot;先记小账，再改大账&quot;。WAL 这个思想两大流派是共用的，区别只在<strong>主数据结构</strong>是原地改页还是追加不可变段。</li>
+<li><strong>LSM 的读为什么不会真的查几十个文件</strong>：每个 SSTable 内部有序且带稀疏索引，再加<strong>布隆过滤器</strong>（一个&quot;说没有就一定没有、说有可能有&quot;的概率结构，用几个哈希位换来跳过整层文件），绝大多数层一次内存判断就跳过。读放大的真实数值取决于层数控制，而不是文件个数。</li>
+<li><strong>Compaction 是&quot;代价推迟器&quot;，不是&quot;代价消除器&quot;</strong>：写入时的爽快是借来的，后台合并要连本带息地还。Leveled 策略（RocksDB 默认）层数少、读放大低，但每层反复重写、写放大高；Tiered 策略（Cassandra 常用）段攒多了才合，写放大低、读放大高。<strong>没有免费午餐，只有代价在读写之间的再分配</strong>——所以问&quot;哪个引擎好&quot;之前，先答&quot;我的读写比是多少&quot;。</li>
+</ul>
+<p><strong>落到 RetailHub</strong>：订单库用 InnoDB（B-Tree）——读多写少、延迟敏感；行为日志（每天几千万条点击事件）若用 MySQL 直存会被随机写拖死，这正是 LSM 系存储（或列存 ClickHouse，卷06 还会深挖）的主场。一个实操洞察：<strong>先想清楚读写比和写入模式，存储引擎的争论往往自动结束</strong>。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：LSM-Tree vs B-Tree 写入路径。</strong> 点&quot;写入一条数据&quot;：左侧看 B-Tree 如何沿树定位到目标页、原地更新（红色=随机 IO），右侧看 LSM 如何先追加 WAL 与 MemTable、攒满 4 条 Flush 成不可变 SSTable、段数 ≥3 时触发 Compaction 合并。连点 20 次（或点&quot;自动写入 20 条&quot;）后对比两侧 IO 计数器——B-Tree 每条都是随机 IO，LSM 几乎全是顺序 IO，代价被推迟到了后台 Compaction 和&quot;读要查多层&quot;。</p>
+</blockquote>
+<div class="demo-embed" data-demo="lsm-btree"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>连点 5 次&quot;写入一条数据&quot;，记录两侧 IO 计数器：B-Tree 侧的随机 IO 次数与 LSM 侧的顺序 IO 次数各是多少？比例说明了什么？</li>
+<li>写到第 4、8、12 条时暂停，观察 LSM 侧 SSTable 段数的变化，用自己的话回答：Flush（刷段）的触发条件是什么？</li>
+<li>等段数 ≥3 触发 Compaction 后，对比合并前后 LSM 侧&quot;读一条数据要查的层数&quot;——Compaction 偿还的是哪笔债？</li>
+<li>点&quot;自动写入 20 条&quot;后看总账：LSM 把 B-Tree 的随机 IO 变成了什么？代价被推迟到了哪两个地方（提示：后台与读路径）？</li>
+<li>合上课文回答：如果 RetailHub 把订单表也迁到 LSM 引擎，哪类查询会第一个出来抗议？为什么？</li>
+</ol>
+<hr>
+<h2 id="4-编码与演进-schema-在变-数据是永恒的">4. 编码与演进：schema 在变，数据是永恒的<sup class="fn-ref"><a href="#fn-4" id="ref-4">[4]</a></sup></h2>
+<p>代码可以随时发布，但<strong>旧数据会和新代码共存很久</strong>（滚动升级时新旧版本同时在跑）。因此数据编码格式必须满足：</p>
+<ul>
+<li><strong>向后兼容</strong>：新代码能读旧数据（必选项）。</li>
+<li><strong>向前兼容</strong>：旧代码能读新数据（滚动升级期必需）。</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>格式</th>
+<th>兼容性</th>
+<th>体积/性能</th>
+<th>RetailHub 用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>JSON</td>
+<td>弱（无 schema 约束，靠自律）</td>
+<td>大、解析慢</td>
+<td>对外 API、配置</td>
+</tr>
+<tr>
+<td>Protobuf / Avro</td>
+<td>强（schema 演进规则内建）</td>
+<td>小、快</td>
+<td>服务间通信、MQ 消息体</td>
+</tr>
+<tr>
+<td>数据库 DDL</td>
+<td>居中（在线变更工具辅助）</td>
+<td>——</td>
+<td>表结构</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>落到 RetailHub</strong>：卷02 的 <code>order_created</code> 消息体是 JSON——当报表服务要给消息加个 <code>channel</code> 字段而订单服务还没升级时，JSON 靠&quot;忽略未知字段&quot;的自律勉强兼容；但字段改名、类型变更就是事故。设计文档中将规定：<strong>MQ 消息体改用 Protobuf 并建 schema 登记（Schema Registry 的朴素版：仓库里的 proto 文件 + 评审）</strong>，新增字段只加不改。</p>
+<p><strong>Protobuf 凭什么敢承诺兼容？关键在字段编号。</strong> Protobuf 序列化时不存字段名，只存&quot;字段编号 + 类型 + 值&quot;。于是兼容规则变成了几条可机械执行的纪律：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>操作</th>
+<th>兼容性</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>新增字段（用新编号）</td>
+<td>✅ 双向兼容</td>
+<td>旧代码读到未知编号直接跳过；新代码读旧数据时新字段取默认值</td>
+</tr>
+<tr>
+<td>字段改为 <code>optional</code>/<code>repeated</code> 语义内微调</td>
+<td>⚠️ 看情况</td>
+<td>要查编解码规则表，别想当然</td>
+</tr>
+<tr>
+<td>字段改名</td>
+<td>✅ 兼容</td>
+<td>线上字节流里没有名字，名字只是给人看的</td>
+</tr>
+<tr>
+<td>删除字段</td>
+<td>❌ 危险</td>
+<td>除非先把该编号 <code>reserved</code> 封存，否则后人复用编号会解读出灵异数据</td>
+</tr>
+<tr>
+<td>复用旧编号给新字段</td>
+<td>❌ 事故</td>
+<td>旧代码会把新数据按旧字段解读——&quot;安静的错误&quot;最难查</td>
+</tr>
+<tr>
+<td>改字段类型（如 int32→string）</td>
+<td>❌ 事故</td>
+<td>类型变了，解码直接错位</td>
+</tr>
+</tbody>
+</table></div>
+<p>一句话：<strong>schema 演进自由的边界，是&quot;编号和类型的稳定性&quot;</strong>。JSON 没有这层契约，全靠团队自律；而自律在大促前夜是最容易崩的东西。</p>
+<hr>
+<h2 id="5-复制-单主-多主-无主">5. 复制：单主、多主、无主<sup class="fn-ref"><a href="#fn-5" id="ref-5">[5]</a></sup></h2>
+<p>复制的目的：就近读（降低延迟）、读扩容、容灾。三种拓扑：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>拓扑</th>
+<th>一致性</th>
+<th>写可用性</th>
+<th>冲突</th>
+<th>典型产品</th>
+<th>RetailHub 适配</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单主</td>
+<td>主强、从最终一致</td>
+<td>主挂了写中断（需切换）</td>
+<td>无</td>
+<td>MySQL 主从、PG 流复制</td>
+<td>✅ 订单库：单地域、要强写一致</td>
+</tr>
+<tr>
+<td>多主</td>
+<td>最终一致</td>
+<td>多机房均可写</td>
+<td>需要冲突解决</td>
+<td>跨地域部署</td>
+<td>❌ 冲突解决成本远超收益</td>
+</tr>
+<tr>
+<td>无主（Dynamo 风）</td>
+<td>可调（quorum）</td>
+<td>极高，节点挂了照写</td>
+<td>读修复/版本向量</td>
+<td>Cassandra、DynamoDB</td>
+<td>候选：行为日志（可丢可补、写量极大）</td>
+</tr>
+</tbody>
+</table></div>
+<p>把两种极端拓扑画在一张图上对比，&quot;写入口的数量&quot;一眼可见：</p>
+<pre class="mermaid">flowchart TB
+    subgraph SM[&quot;单主复制：写只有一个入口&quot;]
+        W1[客户端写入] --&gt; M[(主库 唯一可写)]
+        M --&gt;|复制日志| S1[(从库 1)]
+        M --&gt;|复制日志| S2[(从库 2)]
+        R1[客户端读] --&gt; S1
+        R1 --&gt; S2
+    end
+    subgraph NM[&quot;无主复制：每个节点都能接单&quot;]
+        W2[客户端写入 W=2] --&gt; N1[(节点 A)]
+        W2 --&gt; N2[(节点 B)]
+        R2[客户端读 R=2] --&gt; N2
+        R2 --&gt; N3[(节点 C)]
+        N1 &lt;-.异步互传 读修复.-&gt; N2
+        N2 &lt;-.异步互传.-&gt; N3
+    end
+</pre>
+<p>无主拓扑里&quot;可调一致性&quot;的数学基础是 quorum：<strong>当 W + R &gt; N 时（如 N=3、W=2、R=2），一次读总能碰到至少一个持有最新值的节点</strong>。代价是写入口多了，并发写冲突要靠版本向量/读修复事后和解。</p>
+<p><strong>复制的数据是怎么流过去的？三种日志形态，决定从库看到什么。</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>复制日志形态</th>
+<th>原理</th>
+<th>优点</th>
+<th>坑</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>语句复制（statement）</td>
+<td>把执行的 SQL 原样发给从库重放</td>
+<td>日志小</td>
+<td>非确定性函数（<code>NOW()</code>、自增、无 ORDER BY 的 LIMIT）在主从两边结果可能不同</td>
+</tr>
+<tr>
+<td>行复制（row-based）</td>
+<td>记录&quot;哪一行从什么值改成什么值&quot;</td>
+<td>确定性强，主从一致</td>
+<td>日志大（一条 UPDATE 改百万行就是百万条日志）</td>
+</tr>
+<tr>
+<td>逻辑日志（WAL 级）</td>
+<td>存储引擎层的物理/逻辑混合日志</td>
+<td>与引擎深度耦合、高效</td>
+<td>版本绑定紧，跨版本复制受限</td>
+</tr>
+</tbody>
+</table></div>
+<p>MySQL 默认用行复制（binlog），PostgreSQL 用 WAL 流复制——名字不同，问题相同：<strong>主库提交和从库应用之间有一段永远不为零的时间差，而你的业务代码必须决定&quot;忍不忍&quot;这段差</strong>。</p>
+<p><strong>同步级别是三档旋钮，不是开关。</strong> 同样一笔&quot;写入成功&quot;，三种复制模式下的含义完全不同：</p>
+<pre class="mermaid">sequenceDiagram
+    participant C as 客户端
+    participant M as 主库
+    participant S as 从库
+    Note over C,S: 异步复制：返回最快，丢数据窗口最大
+    C-&gt;&gt;M: 写入订单
+    M--&gt;&gt;C: 成功（从库还没收到）
+    M-&gt;&gt;S: 后台追赶复制日志
+    Note over C,S: 半同步复制：多等一跳，换&quot;宕机不丢单&quot;
+    C-&gt;&gt;M: 写入订单
+    M-&gt;&gt;S: 复制日志
+    S--&gt;&gt;M: 收到（ACK）
+    M--&gt;&gt;C: 成功
+    Note over C,S: 全同步复制：从库应用完才返回，吞吐骤降
+    C-&gt;&gt;M: 写入订单
+    M-&gt;&gt;S: 复制日志并应用
+    S--&gt;&gt;M: 已应用
+    M--&gt;&gt;C: 成功
+</pre>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>模式</th>
+<th>&quot;写入成功&quot;的含义</th>
+<th>主库宕机丢数据？</th>
+<th>写延迟</th>
+<th>适用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>异步</td>
+<td>只写进主库</td>
+<td>可能丢最后一批</td>
+<td>最低</td>
+<td>行为日志等可丢可补数据</td>
+</tr>
+<tr>
+<td>半同步</td>
+<td>至少一个从库<strong>收到</strong>日志</td>
+<td>不丢（日志已在从库）</td>
+<td>+1 跳网络</td>
+<td>订单、账务（MySQL 生产标配）</td>
+</tr>
+<tr>
+<td>全同步</td>
+<td>全部从库<strong>应用完</strong></td>
+<td>不丢</td>
+<td>最慢的从库说了算</td>
+<td>极少用，除非监管要求</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>多主复制的冲突长什么样，为什么 RetailHub 躲着走？</strong> 两个机房各有一个主库，北京用户把商品库存改为 5，同一毫秒上海用户改为 6——两个主库各自提交成功，互相同步时发现&quot;同一行两个值&quot;。解决策略无非三种：后写胜出（LWW，依赖时钟，卷08 会讲为什么危险）、应用层合并（购物车可以并集，库存怎么并？）、人工解决（不敢想）。<strong>冲突不是异常而是多主的常态</strong>，这就是&quot;冲突解决成本远超收益&quot;的定量含义。</p>
+<p>复制延迟带来的读怪象（第 5 章的精髓之一），零售场景全都遇得到：</p>
+<ul>
+<li><strong>读己之写（read-your-writes）</strong>：用户下单后立刻刷新看不到订单——卷02 已用&quot;写后读主&quot;解决。</li>
+<li><strong>单调读</strong>：用户两次刷新，第二次看到的数据反而更旧（打到了落后的从库）——按用户粘住同一个从库可解。</li>
+<li><strong>一致前缀读</strong>：跨分区的因果顺序被打乱——卷03 分区之后才需要面对。</li>
+</ul>
+<blockquote>
+<p><strong>🎮 动手模拟：主从复制延迟与&quot;读己之写&quot;。</strong> 选&quot;异步复制&quot;点&quot;写入一笔订单&quot;——主库立即 +1，两个从库沿时间轴慢慢追赶。写入后<strong>立刻</strong>点&quot;从从库读我的最新订单&quot;：大概率看到&quot;订单不见了&quot;的红色警告，这就是用户视角的&quot;付完款刷新列表是空的&quot;。再勾选&quot;写后读主&quot;重放，体会卷02 那条修复原则；最后趁从库未追平时点&quot;主库宕机&quot;——异步模式下已提交却未传走的写入永久丢失，这就是订单库必须开半同步的理由。</p>
+</blockquote>
+<div class="demo-embed" data-demo="replication-lag"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>异步模式下写入一笔订单，<strong>1 秒内</strong>点&quot;从从库读我的最新订单&quot;，记录结果；隔 3 秒再读一次，结果变了吗？中间的窗口期对应课文哪个概念？</li>
+<li>连写 5 笔后立刻读，&quot;读到旧值&quot;出现的概率和单笔写入后立刻读相比如何？解释&quot;复制延迟窗口&quot;与写入速率的关系。</li>
+<li>勾选&quot;写后读主&quot;后再读：为什么永远能读到最新值？这个修复方案让哪部分读流量失去了&quot;从库扩容&quot;的好处？</li>
+<li>切换到半同步模式，比较&quot;本次写入客户端等待&quot;的毫秒数与异步模式——多等的这一跳换来了什么承诺？</li>
+<li>重置后选异步模式，连写 5 笔，<strong>趁从库未追平</strong>点&quot;主库宕机&quot;：丢失了几笔？换半同步重放同样的操作，对比结果并解释零售订单库的选择。</li>
+</ol>
+<p><strong>落到 RetailHub 的论证</strong>：订单是交易数据，错一单就是钱——选单主，接受主库故障时分钟级写中断，用半同步复制缩小丢数据窗口；行为日志是&quot;算错了重跑一遍就行&quot;的数据——选无主/高写可用存储，换写吞吐。</p>
+<hr>
+<h2 id="6-分区-数据大了之后的横向拆分">6. 分区：数据大了之后的横向拆分<sup class="fn-ref"><a href="#fn-6" id="ref-6">[6]</a></sup></h2>
+<p>分区的动机：单机装不下、单机扛不住。两个核心难题：</p>
+<p><strong>难题一：怎么分。</strong></p>
+<ul>
+<li><strong>按键范围分区</strong>：区间查询友好，但热点集中（按时间分区，所有写都打最新分区）。</li>
+<li><strong>按键哈希分区</strong>：负载均匀，但牺牲区间查询（要广播到所有分区）。</li>
+</ul>
+<p><strong>难题二：再均衡与热点。</strong> 数据涨了要加节点，分区要搬动——策略上选&quot;固定数量分区，节点间整组迁移&quot;（Riak/ES 的思路），避免按节点数取模导致的全量重洗。热点则需要识别&quot;明星 key&quot;（比如某爆款商品），用加随机前缀打散等手段。</p>
+<pre class="mermaid">flowchart LR
+    subgraph BEFORE[&quot;再均衡前：3 节点 12 分区&quot;]
+        A1[&quot;节点 1：P0 P1 P2 P3&quot;]
+        A2[&quot;节点 2：P4 P5 P6 P7&quot;]
+        A3[&quot;节点 3：P8 P9 P10 P11&quot;]
+    end
+    subgraph AFTER[&quot;再均衡后：分区总数不变 只整组迁移 3 个&quot;]
+        B1[&quot;节点 1：P0 P1 P2&quot;]
+        B2[&quot;节点 2：P4 P5 P6&quot;]
+        B3[&quot;节点 3：P8 P9 P10&quot;]
+        B4[&quot;新节点 4：P3 P7 P11&quot;]
+    end
+    BEFORE --&gt;|加 1 个节点| AFTER
+    B3 -.迁移 P3 P7 P11.-&gt; B4
+</pre>
+<p>关键数字感受一下：12 个分区、加 1 个节点，只搬 3 个分区（25%）；若按&quot;节点数取模&quot;，4 节点变 5 节点意味着约 80% 的 key 要换分区——这就是&quot;固定分区数&quot;策略的价值。</p>
+<p><strong>还有两个新手想不到、上线就踩的坑，一并讲透：</strong></p>
+<ul>
+<li><strong>跨分区查询（scatter-gather）</strong>：哈希分区后，&quot;查订单 #12345&quot;很快（分区键路由），但&quot;查用户 U 最近 30 天的全部订单&quot;如果分区键不是 user_id，就要把查询<strong>广播到所有分区</strong>再合并——N 个分区就是 N 倍扇出，任何一个分区慢，整体延迟就被拖到它的水平（尾延迟放大）。<strong>分区键的选择本质上是&quot;你最常按什么维度查&quot;的承诺</strong>，选了就不能轻易反悔。</li>
+<li><strong>二级索引的两种活法</strong>：分区键以外的查询条件需要二级索引。<strong>本地索引</strong>（每个分区各存自己的索引）写入便宜，但按索引查询要 scatter-gather 全部分区；<strong>全局索引</strong>（索引本身也分区，按索引词路由）查询快，但写一行数据可能要跨分区更新索引项——写放大加分布式事务问题。读多写多不可兼得，又是那笔熟悉的账。</li>
+</ul>
+<p><strong>落到 RetailHub</strong>：订单表按 <code>tenant_id</code> 哈希分区（多租户 SaaS 的天然分区键，查询必带租户条件）；但要警惕大租户热点——头部租户单量占 40%，哈希均匀不等于负载均匀，方案是大租户单独占分区（&quot;VIP 租户隔离&quot;），这既是技术决策也是商业决策。</p>
+<pre class="mermaid">flowchart TD
+    Q[查询必带 tenant_id] --&gt; H{哈希路由}
+    H --&gt;|普通租户| P1[(分区 0-15&lt;br/&gt;小租户共享)]
+    H --&gt;|大租户A| P2[(专属分区 16)]
+    H --&gt;|大租户B| P3[(专属分区 17)]
+    P1 -.加节点时整组迁移.-&gt; P4[(新节点)]
+</pre>
+<blockquote>
+<p><strong>🎮 动手模拟：分区热点与打散策略。</strong> 默认&quot;纯哈希 + 大租户占 40% 流量&quot;，点&quot;自动持续注入&quot;：看分区 3 被大租户恒定命中、率先冲过红色容量线开始拒绝请求，而旁边 7 个分区大量闲置——<strong>哈希均匀 ≠ 负载均匀</strong>。然后<strong>不清零</strong>直接切换&quot;随机前缀打散&quot;或&quot;VIP 专属分区&quot;继续注入，对比倾斜比如何回落，再回头读课文的&quot;VIP 租户隔离&quot;方案。</p>
+</blockquote>
+<div class="demo-embed" data-demo="partition-hotspot"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>纯哈希策略下注入到分区 3 打红：记录&quot;负载倾斜比&quot;（最热/平均）峰值。大租户 40% 的流量去了哪里？同节点的另一个分区为什么也被拖累？</li>
+<li>切到&quot;哈希 + 随机前缀打散&quot;继续注入：大租户流量被拆到了几个分区？倾斜比降到多少？课文说这种策略的代价在哪个操作上？</li>
+<li>切到&quot;VIP 专属分区&quot;：普通租户的分区水位有什么变化？为什么说这&quot;既是技术决策也是商业决策&quot;？</li>
+<li>取消勾选&quot;大租户&quot;重放：三种策略还有区别吗？由此总结：热点问题的前提是流量的什么特征？</li>
+<li>结合 §6 课文的&quot;再均衡&quot;回答：如果直接给过热节点&quot;再加一台机器&quot;，不做策略调整，能解决大租户热点吗？为什么？</li>
+</ol>
+<hr>
+<h2 id="7-事务与隔离级别-用-下单超卖-讲透">7. 事务与隔离级别：用&quot;下单超卖&quot;讲透<sup class="fn-ref"><a href="#fn-7" id="ref-7">[7]</a></sup></h2>
+<p>事务是数据库给你的&quot;把多个读写打包成一个可靠单元&quot;的承诺。但完全的串行化太贵，于是有了隔离级别的妥协阶梯：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>隔离级别</th>
+<th>防住的异常</th>
+<th>防不住的</th>
+<th>MySQL(InnoDB)</th>
+<th>PG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>读已提交 RC</td>
+<td>脏读、脏写</td>
+<td>不可重复读、丢失更新</td>
+<td>可选</td>
+<td>默认</td>
+</tr>
+<tr>
+<td>可重复读 RR</td>
+<td>+ 不可重复读（快照）</td>
+<td>写倾斜（write skew）</td>
+<td><strong>默认</strong></td>
+<td>可选</td>
+</tr>
+<tr>
+<td>可串行化</td>
+<td>全部</td>
+<td>——（性能代价）</td>
+<td>可选</td>
+<td>SSI 实现</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>先把&quot;异常图鉴&quot;认全，再谈防法。</strong> 隔离级别防的是下面这些&quot;并发事故类型&quot;，每种都有明确的案发现场：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>异常</th>
+<th>一句话案发现场</th>
+<th>零售版举例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>脏读</td>
+<td>读到别人<strong>还没提交</strong>的数据</td>
+<td>看到对方事务中&quot;已取消的订单&quot;并据此发货</td>
+</tr>
+<tr>
+<td>脏写</td>
+<td>覆盖别人还没提交的写入</td>
+<td>两个事务同改库存行，前一个的扣减被直接抹掉</td>
+</tr>
+<tr>
+<td>不可重复读</td>
+<td>同一事务内两次读同一行，值变了</td>
+<td>下单事务里先读库存 10，复核时变 3，前后口径对不上</td>
+</tr>
+<tr>
+<td>幻读</td>
+<td>同一事务内两次范围查询，<strong>行数</strong>变了</td>
+<td>&quot;统计今日订单数&quot;两次结果不同，因为别的事务刚插了新单</td>
+</tr>
+<tr>
+<td>丢失更新</td>
+<td>两个事务&quot;读-改-写&quot;同一行，后写覆盖先写</td>
+<td>本节主角：超卖</td>
+</tr>
+<tr>
+<td>写倾斜</td>
+<td>各自读取的数据决定写入合法性，读都合法、合起来违规</td>
+<td>两个客服同时&quot;关掉最后一个营业门店&quot;（见本节末）</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>RR 是怎么做到&quot;不加锁还能重复读&quot;的？答案：MVCC（多版本并发控制）。</strong> InnoDB 给每行数据挂着一条版本链（配合 undo log），事务开启时拿到一个&quot;快照点&quot;：之后所有读都只看得见<strong>快照点之前已提交</strong>的版本，别的事务随后怎么改都与你无关。写操作则走当前最新版本并加行锁。这套&quot;读走快照、写走加锁&quot;的分离，让普通 SELECT 完全不阻塞写——这是 MySQL 高并发读性能的根基。代价也写在设计里：<strong>快照读解决的是&quot;看到的口径一致&quot;，解决不了&quot;写的时候撞上别人也在写&quot;</strong>——所以丢失更新、写倾斜在 RR 下照样发生，必须靠原子操作、显式锁或串行化补位。PG 的可串行化（SSI）更聪明：不是真串行执行，而是让事务跑在快照上、<strong>检测读写依赖形成的危险环</strong>再回滚其中一个，用&quot;乐观检测&quot;逼近串行的正确性。</p>
+<p><strong>零售超卖场景</strong>：下单扣库存是&quot;读库存 → 判断 → 写回&quot;三步。两个并发事务各读到 stock=1，都判断通过，都写回——卖出 2 件，库存只剩 1。这是<strong>丢失更新</strong>异常。用时序图把&quot;灾难发生的瞬间&quot;定格：</p>
+<pre class="mermaid">sequenceDiagram
+    participant T1 as 事务 A（买家甲）
+    participant DB as 库存行 stock=1
+    participant T2 as 事务 B（买家乙）
+    T1-&gt;&gt;DB: SELECT stock → 读到 1
+    T2-&gt;&gt;DB: SELECT stock → 读到 1
+    Note over T1,T2: 两个事务都判断 stock ≥ 1 通过
+    T1-&gt;&gt;DB: UPDATE stock = stock - 1 → 0
+    T2-&gt;&gt;DB: UPDATE stock = stock - 1 → -1
+    Note over DB: 卖出 2 件，实际只有 1 件：丢失更新（超卖）
+</pre>
+<p>防法有三：</p>
+<ol>
+<li><strong>原子操作</strong>（首选，最简单）：<code>UPDATE sku SET stock = stock - ? WHERE id = ? AND stock &gt;= ?</code>，影响行数为 0 即失败。让数据库的单行锁帮你串行化，甚至不依赖隔离级别。</li>
+<li><strong>显式锁</strong>：<code>SELECT ... FOR UPDATE</code> 锁住库存行再走逻辑。灵活但锁持有时间长，吞吐差。</li>
+<li><strong>可串行化隔离</strong>：数据库兜底检测冲突并回滚一个事务。正确但要处理重试，且吞吐最低。</li>
+</ol>
+<p>工程排序：<strong>能用原子操作就不用锁，能用锁就不上串行化</strong>。本卷实战会用一个可运行实验亲眼看这三种写法在并发下的差别——读十遍&quot;丢失更新&quot;的定义，不如亲手让它发生一次再消灭它。</p>
+<blockquote>
+<p><strong>🎮 动手模拟：隔离级别与超卖。</strong> 库存=1，两个并发事务同时抢。先用&quot;Read Committed · 先读后写&quot;模式<strong>单步执行</strong>，亲眼看两个事务都读到 stock=1、都通过判断、库存被扣成 -1（超卖发生）；再切到&quot;原子 UPDATE&quot;模式重放——第二个事务的 UPDATE 被行锁挡住，等锁释放后条件 <code>stock &gt;= 1</code> 不再成立，影响 0 行、安全失败。注意结论：防住超卖的是<strong>原子操作带来的单行互斥</strong>，与数据库默认隔离级别无关。</p>
+</blockquote>
+<div class="demo-embed" data-demo="isolation-oversell"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>Demo 导学单</strong></p>
+<ol>
+<li>选&quot;Read Committed · 先读后写&quot;模式，用&quot;单步执行&quot;逐步走：在第几步时两个事务都读到了 stock=1？灾难在哪一步变得不可挽回？</li>
+<li>继续单步到结束：库存最终是几？<code>order_log</code> 里有几条订单？这正是哪种并发异常（对照上文异常图鉴）？</li>
+<li>点&quot;重置&quot;，切到&quot;原子 UPDATE · 串行化效果&quot;模式再单步走：第二个事务的 UPDATE 卡在哪一步？等锁释放后 <code>stock &gt;= 1</code> 条件还成立吗？</li>
+<li>对比两种模式的最终库存与成功订单数，回答：防住超卖的是&quot;更高的隔离级别&quot;还是别的什么机制？</li>
+<li>思考题：如果把 naive 模式的 SELECT 改成 <code>SELECT ... FOR UPDATE</code>（课文 §7 防法二），Demo 里哪个环节会发生变化？吞吐会怎样？</li>
+</ol>
+<blockquote>
+<p>另一个零售经典异常是<strong>写倾斜</strong>：两个客服同时给同一店铺&quot;关闭最后一个营业中的门店&quot;，各自检查&quot;还有其他门店营业中&quot;都通过——这不是单行问题，是&quot;读取的数据决定写入的合法性&quot;问题，串行化或物化冲突（锁一张汇总行）才能解。设计文档中要为这类场景列出清单。</p>
+</blockquote>
+<p>把写倾斜也用时序图定格，对比它和丢失更新的差别——<strong>丢失更新撞的是同一行，写倾斜撞的是&quot;同一个前提&quot;</strong>：</p>
+<pre class="mermaid">sequenceDiagram
+    participant T1 as 事务 A（客服甲）
+    participant DB as 门店表（营业中：店1、店2）
+    participant T2 as 事务 B（客服乙）
+    T1-&gt;&gt;DB: SELECT COUNT(*) WHERE 状态=营业中 → 2
+    T2-&gt;&gt;DB: SELECT COUNT(*) WHERE 状态=营业中 → 2
+    Note over T1,T2: 各自判断&quot;关掉一家还剩一家&quot;&lt;br/&gt;前提都成立
+    T1-&gt;&gt;DB: UPDATE 店1 状态=已关闭
+    T2-&gt;&gt;DB: UPDATE 店2 状态=已关闭
+    Note over DB: 两家全关了，店铺停业——&lt;br/&gt;任何单一行都没被两人同时写&lt;br/&gt;行锁防不住，这就是写倾斜
+</pre>
+<p>防写倾斜的本质手段只有两个：让前提也被锁住（物化冲突——额外维护一张&quot;营业中门店计数&quot;汇总行，更新前先锁它），或交给可串行化隔离去检测&quot;读写依赖成环&quot;后回滚一方。</p>
+<hr>
+<h2 id="8-分布式系统的麻烦-时钟-网络与故障检测">8. 分布式系统的麻烦：时钟、网络与故障检测<sup class="fn-ref"><a href="#fn-8" id="ref-8">[8]</a></sup></h2>
+<p>一旦数据跨机器，三个坏消息等着：</p>
+<ul>
+<li><strong>网络是不可靠的</strong>：请求丢了、响应丢了、只是慢了，调用方<strong>无法区分</strong>。超时不是答案，只是赌注。</li>
+<li><strong>时钟是不可信的</strong>：机器时钟会跳变（NTP 校正）、会漂移。用墙上时钟给跨机器事件排序（&quot;后写胜出&quot;last-write-wins），时钟一歪，数据就&quot;安静地被覆盖&quot;。单调时钟只能测间隔，不能跨机器比先后。</li>
+<li><strong>故障检测是猜的</strong>：节点是死了还是只是 GC 停顿了 30 秒？心跳超时永远存在误判，于是有了&quot;脑裂&quot;——两个节点都以为自己是主。</li>
+</ul>
+<p><strong>落到 RetailHub</strong>：主从切换（failover）就是故障检测的实战场——<code>Seconds_Behind_Source</code> 监控 + 哨兵/MHA 自动切换，必须配置防脑裂（旧主降级为只读，fencing）；所有&quot;按时间戳取最新&quot;的逻辑（如商品价格版本）改用单调递增的版本号而非依赖机器时钟。</p>
+<hr>
+<h2 id="9-一致性与共识-线性一致与-cap-的真实含义">9. 一致性与共识：线性一致与 CAP 的真实含义<sup class="fn-ref"><a href="#fn-9" id="ref-9">[9]</a></sup></h2>
+<ul>
+<li><strong>线性一致性（Linearizability）</strong>：让系统表现得像只有一份数据、所有操作原子生效。它是最强的&quot;好用&quot;保证，但代价是协调与延迟；多数系统提供的是更弱的&quot;最终一致 + 若干会话级保证&quot;（读己之写、单调读——第 5 章那些补丁）。</li>
+<li><strong>CAP 的真实含义</strong>：常被误读为&quot;三选二&quot;。准确说法是——<strong>网络分区（P）无法避免，所以真正的选择只发生在分区发生时：保可用（A，继续服务但可能读到旧值）还是保一致（C，拒绝服务直到恢复）</strong>。没有分区时 CA 兼得，日常架构争论里拿 CAP 当&quot;不用追求一致性&quot;的挡箭牌是误用。</li>
+</ul>
+<p>把&quot;选择只在分区时发生&quot;画成决策图，贴在工位上比背定义有用：</p>
+<pre class="mermaid">flowchart TD
+    W[一次读写请求] --&gt; P{网络分区&lt;br/&gt;正在发生？}
+    P --&gt;|否 99.x% 的时间| CA[&quot;C 和 A 兼得&lt;br/&gt;正常追求强一致&quot;]
+    P --&gt;|是 故障窗口| CH{这个数据的取舍}
+    CH --&gt;|选 A：继续服务| AP[&quot;可能返回旧值&lt;br/&gt;事后修复/对账&lt;br/&gt;例：库存展示 行为日志&quot;]
+    CH --&gt;|选 C：拒绝/阻塞| CP[&quot;报错或等待恢复&lt;br/&gt;绝不出错&lt;br/&gt;例：支付状态 账务&quot;]
+    AP -.恢复后.-&gt; REC[对账与补偿机制兜底]
+    CP -.恢复后.-&gt; REC
+</pre>
+<p>注意图里没有一个分支叫&quot;放弃 P&quot;——分区不是你的选择，只是你的处境。</p>
+<ul>
+<li><strong>共识与全序广播</strong>：让一群节点对&quot;值的顺序&quot;达成一致（Raft/Paxos），它是主选举、分布式锁、事务提交的公共内核。</li>
+</ul>
+<p><strong>落到 RetailHub</strong>：订单支付状态要求线性一致语义（用户看到&quot;已支付&quot;就必须是真的已支付）——走主库强读；库存展示页可以是最终一致（&quot;仅剩 3 件&quot;晚几秒没关系）；RocketMQ 本身的 NameServer 与主从复制，正好是观察&quot;共识在真实产品里怎么落地&quot;的案例。</p>
+<hr>
+<h2 id="10-批处理与流处理-gmv-报表的两条路">10. 批处理与流处理：GMV 报表的两条路<sup class="fn-ref"><a href="#fn-10" id="ref-10">[10]</a></sup></h2>
+<ul>
+<li><strong>批处理（第 10 章）</strong>：有界输入，全量计算。MapReduce 的思想内核只有一句话：<strong>把&quot;移动计算到数据&quot;替代&quot;移动数据到计算&quot;，用分治换取对任意大数据量的线性扩展能力</strong>。优点：可重跑、结果确定、错误可重放——算错了，改代码重跑一遍即可。</li>
+<li><strong>流处理（第 11 章）</strong>：无界输入，持续计算。事件流（broker 做日志存储）+ 消费者持续物化出结果。优点：低延迟；难点：Exactly-once 语义要靠幂等 + 事务性写出拼出来，窗口与乱序要显式处理。</li>
+</ul>
+<p><strong>落到 RetailHub 的&quot;批还是流&quot;决策</strong>：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>报表</th>
+<th>决策</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>日报/周报（T+1）</td>
+<td>批：每日凌晨重算全量</td>
+<td>口径改了就重跑，天然自愈</td>
+</tr>
+<tr>
+<td>实时大屏（分钟级 GMV）</td>
+<td>流：消费 order_created 持续聚合</td>
+<td>延迟是卖点，允许小误差</td>
+</tr>
+<tr>
+<td>口径验收</td>
+<td>批结果为准绳，校准流结果</td>
+<td>Lambda 思想的简化版</td>
+</tr>
+</tbody>
+</table></div>
+<p>这就是著名的&quot;批流一体&quot;争论在中小团队的务实答案：<strong>批做基准、流做预览，别一开始就追两套结果完全一致的乌托邦</strong>。</p>
+<pre class="mermaid">flowchart LR
+    O[订单服务] --&gt; MQ[RocketMQ 事件流]
+    MQ --&gt; S[流消费者&lt;br/&gt;分钟级GMV大屏]
+    DB[(订单库)] --&gt;|每日凌晨全量| B[批处理&lt;br/&gt;T+1日报表]
+    S --&gt; C{对账}
+    B --&gt; C
+    C --&gt;|流偏差&gt;阈值| AL[告警+以批为准修正]
+</pre>
+<hr>
+<h2 id="11-本卷实战-retailhub-演进第-3-步">11. 本卷实战：RetailHub 演进第 3 步</h2>
+<h3 id="11-1-背景">11.1 背景</h3>
+<p>卷02 末状态的 RetailHub 跑得不错，但三个增长信号出现了：订单表预计一年内过 5000 万行；商品属性随品类扩张频繁变更 schema；行为日志（埋点）每天 3000 万条无处安放。本步不写新功能，产出两件东西：<strong>一份《数据架构设计文档》<strong>和</strong>一个防超卖隔离级别实验</strong>。</p>
+<h3 id="11-2-任务一-数据架构设计文档">11.2 任务一：《数据架构设计文档》</h3>
+<p>按下面的论证框架，为<strong>订单、商品、行为日志</strong>三类数据各写一节（每节 1-2 页）。写作也分三步递进：<strong>先填画像（第 1 节）→ 再做选型论证（第 2-7 节，每节必须写&quot;被淘汰方案+理由&quot;）→ 最后过三目标评审（第 8 节）</strong>。不要跳步——画像没定量，后面的论证全是空话。文档模板：</p>
+<pre><code class="language-markdown"># 数据类别：&lt;订单 / 商品 / 行为日志&gt;
+## 1. 访问模式画像
+- 数据量与增速：____ ；读写比：____ ；Top-5 查询：____
+## 2. 数据模型选择（DDIA 第2章）
+- 选择：____ ；被淘汰的方案与理由：____
+## 3. 存储引擎取向（DDIA 第3章）
+- B-Tree / LSM-Tree / 列存：____ ；依据（读写模式）：____
+## 4. 复制方案（DDIA 第5章）
+- 单主 / 多主 / 无主：____
+- 一致性承诺（读己之写? 单调读? 线性一致?）：____
+- 故障时的取舍（CAP 的 P 发生时选 A 还是 C）：____
+## 5. 分区方案（DDIA 第6章）
+- 分区键：____ ；哈希/范围：____ ；再均衡策略：____
+- 已知热点风险与对策：____
+## 6. 一致性与事务要求（DDIA 第7/9章）
+- 关键事务场景：____ ；需要的隔离级别：____ ；异常清单：____
+## 7. 批/流处理定位（DDIA 第10/11章）
+- 该数据进批 / 流 / 两者：____ ；以谁为准绳：____
+## 8. 三目标评审（DDIA 第1章）
+- 可靠性增进/牺牲：____ ；可扩展性：____ ；可维护性：____
+</code></pre>
+<p>参考结论方向（文档中要自行论证，不许照抄）：订单——关系模型、InnoDB、单主半同步、按 tenant_id 分区预留、原子扣减防超卖；商品——JSON 文档取向、读缓存扛流量；行为日志——LSM/列存、无主高写可用、按天范围分区、批流两用。</p>
+<h3 id="11-3-任务二-防超卖隔离级别对比实验-可运行">11.3 任务二：防超卖隔离级别对比实验（可运行）</h3>
+<p>准备一张库存表和两种扣减写法，用并发脚本亲眼看超卖发生与消失：</p>
+<pre><code class="language-sql">-- setup.sql：准备实验数据
+CREATE TABLE IF NOT EXISTS sku (
+  id INT PRIMARY KEY,
+  name VARCHAR(64),
+  stock INT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS order_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  sku_id INT,
+  qty INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO sku (id, name, stock) VALUES (1, &#x27;爆款卫衣&#x27;, 1)
+  ON DUPLICATE KEY UPDATE stock = 1;
+TRUNCATE TABLE order_log;
+</code></pre>
+<pre><code class="language-python"># oversell_lab.py —— 并发下单实验，亲眼看超卖
+# 用法: python oversell_lab.py naive   （先读后写，会超卖）
+#       python oversell_lab.py atomic  （原子扣减，不超卖）
+import sys
+import threading
+import pymysql
+
+DB = dict(host=&quot;127.0.0.1&quot;, port=3306, user=&quot;root&quot;, password=&quot;root&quot;, database=&quot;retailhub&quot;)
+
+def naive_buy(sku_id: int) -&gt; bool:
+    &quot;&quot;&quot;危险写法：先 SELECT 判断，再 UPDATE 写回（丢失更新）。&quot;&quot;&quot;
+    conn = pymysql.connect(**DB, autocommit=True)
+    cur = conn.cursor()
+    cur.execute(&quot;SELECT stock FROM sku WHERE id = %s&quot;, (sku_id,))
+    stock = cur.fetchone()[0]
+    if stock &gt;= 1:
+        cur.execute(&quot;UPDATE sku SET stock = stock - 1 WHERE id = %s&quot;, (sku_id,))
+        cur.execute(&quot;INSERT INTO order_log (sku_id, qty) VALUES (%s, 1)&quot;, (sku_id,))
+        conn.close()
+        return True
+    conn.close()
+    return False
+
+def atomic_buy(sku_id: int) -&gt; bool:
+    &quot;&quot;&quot;正确写法：原子扣减，让影响行数告诉你成败。&quot;&quot;&quot;
+    conn = pymysql.connect(**DB, autocommit=True)
+    cur = conn.cursor()
+    cur.execute(
+        &quot;UPDATE sku SET stock = stock - 1 WHERE id = %s AND stock &gt;= 1&quot;,
+        (sku_id,),
+    )
+    ok = cur.rowcount == 1
+    if ok:
+        cur.execute(&quot;INSERT INTO order_log (sku_id, qty) VALUES (%s, 1)&quot;, (sku_id,))
+    conn.close()
+    return ok
+
+def run(mode: str, workers: int = 20) -&gt; None:
+    buy = naive_buy if mode == &quot;naive&quot; else atomic_buy
+    results = []
+    def worker():
+        results.append(buy(1))
+    threads = [threading.Thread(target=worker) for _ in range(workers)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    sold = sum(results)
+    print(f&quot;模式={mode} 并发={workers} 成功下单={sold} （库存只有1，sold&gt;1 即超卖）&quot;)
+
+if __name__ == &quot;__main__&quot;:
+    run(sys.argv[1] if len(sys.argv) &gt; 1 else &quot;naive&quot;)
+</code></pre>
+<p>实验按三步递进，<strong>每步验收通过再进下一步</strong>：</p>
+<p><strong>第 1 步：复现超卖（让灾难发生一次）</strong></p>
+<ul>
+<li>目标：亲眼看到丢失更新，而不是背定义。</li>
+<li>操作：执行 <code>setup.sql</code> 复位库存为 1，跑 <code>python oversell_lab.py naive</code>（20 并发）。</li>
+<li>验收：输出 <code>成功下单 &gt; 1</code>，且数据库里 <code>stock = -1</code> 或更小；截图保存运行输出。</li>
+</ul>
+<p><strong>第 2 步：原子扣减修复（消灭灾难）</strong></p>
+<ul>
+<li>目标：理解&quot;原子操作带来的单行互斥&quot;与隔离级别无关。</li>
+<li>操作：复位库存，跑 <code>python oversell_lab.py atomic</code>，分别用 20 和 100 并发各跑 3 次。</li>
+<li>验收：6 次运行 <code>成功下单</code> 恒等于 1，<code>stock</code> 恒等于 0。</li>
+</ul>
+<p><strong>第 3 步：显式锁进阶（对比第三种防法）</strong></p>
+<ul>
+<li>目标：体会&quot;能用原子操作就不用锁&quot;的代价差异。</li>
+<li>操作：把 naive 版的 SELECT 改成 <code>SELECT ... FOR UPDATE</code> 并包在显式事务里（<code>BEGIN ... COMMIT</code>），复位后同压对比。</li>
+<li>验收：超卖消失（sold=1），但 100 并发下总耗时显著高于 atomic 版；在实验报告中用&quot;锁持有时间&quot;解释差距来源。</li>
+</ul>
+<h3 id="11-4-ai-coding-实操模式">11.4 AI Coding 实操模式</h3>
+<p>本任务的 SQL 与并发脚本结构简单，但<strong>并发正确性</strong>恰恰是 AI 最容易&quot;看起来对、实际错&quot;的领域，适合练&quot;AI 生成 + 人评审&quot;的完整闭环。</p>
+<p><strong>① 可直接复制的提示词模板</strong></p>
+<pre><code class="language-text">背景：MySQL 8，库存表 sku(id, name, stock)，Python 3.12 + pymysql。
+任务：写一个并发下单实验脚本，对比三种扣库存写法在 20 线程并发下的正确性：
+1) naive：先 SELECT 判断 stock&gt;=1 再 UPDATE（应复现超卖）
+2) atomic：UPDATE ... SET stock=stock-1 WHERE id=? AND stock&gt;=1，按 rowcount 判成败
+3) locked：显式事务内 SELECT ... FOR UPDATE 再扣减
+约束：每轮实验前自动复位 stock=1 并清空订单日志表；输出三种模式的成功下单数与总耗时；
+线程安全收集结果；代码 100 行内。
+交付：完整脚本 + 每种模式预期的运行结果与原因解释。
+</code></pre>
+<p><strong>② AI 生成初版后的人工评审清单</strong>：</p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> <strong>连接管理</strong>：是否每个线程独立建连接？AI 常图省事共享一个连接——pymysql 连接非线程安全，实验结论会失真</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>复位正确性</strong>：<code>stock</code> 复位与 <code>order_log</code> 清空是否在同一轮实验前原子完成？多线程残留会导致假超卖</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>事务边界</strong>：locked 版是否忘记 <code>COMMIT</code>（或 autocommit 误开导致 FOR UPDATE 锁立即释放）？这是 AI 写锁代码的高发错误</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>结果统计</strong>：<code>results.append</code> 的线程安全性（本例 OK，因为 list.append 原子），以及耗时统计是否含线程启动开销</li>
+<li class="task-item"><input type="checkbox" disabled> <strong>语义对齐</strong>：AI 若&quot;贴心地&quot;给 naive 版也加了事务或锁，实验就废了——naive 版必须保持天真</li>
+</ul>
+<p><strong>③ 验收标准</strong></p>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> AI 生成脚本<strong>不加人工修改</strong>即可完成第 1、2 步验收</li>
+<li class="task-item"><input type="checkbox" disabled> 评审清单中发现的每一处问题都记录&quot;AI 犯了什么错、错因是什么、如何修复&quot;——写进实验报告，这是本任务最有价值的产出</li>
+</ul>
+<h3 id="11-5-验收标准">11.5 验收标准</h3>
+<ul>
+<li class="task-item"><input type="checkbox" disabled> 设计文档覆盖订单/商品/行为日志三类数据，每类都完整走一遍 8 节论证框架</li>
+<li class="task-item"><input type="checkbox" disabled> 每个选型都写出&quot;被淘汰方案 + 淘汰理由&quot;，无一拍脑袋结论</li>
+<li class="task-item"><input type="checkbox" disabled> 文档显式声明各数据类别在分区故障时的 A/C 取舍</li>
+<li class="task-item"><input type="checkbox" disabled> <code>oversell_lab.py naive</code> 在 20 并发下复现 sold &gt; 1（附运行输出）</li>
+<li class="task-item"><input type="checkbox" disabled> 复位后 <code>oversell_lab.py atomic</code> 在 20/100 并发下 sold 恒等于 1</li>
+<li class="task-item"><input type="checkbox" disabled> 提交实验报告：解释 naive 版超卖对应哪种并发异常（丢失更新），以及 atomic 版为何与隔离级别无关也能防住</li>
+<li class="task-item"><input type="checkbox" disabled> 文档中订单分区键选择附带&quot;大租户热点&quot;对策一节</li>
+<li class="task-item"><input type="checkbox" disabled> GMV 报表的批/流分工与对账机制写入文档第 7 节</li>
+</ul>
+<hr>
+<h2 id="12-常见误区">12. 常见误区</h2>
+<ol>
+<li><strong>用平均延迟看性能</strong> —— P99 才代表真实受害用户；平均值漂亮时可能 1% 的用户正在超时。</li>
+<li><strong>&quot;NoSQL 就是快，关系库过时了&quot;</strong> —— 模型之争是访问模式之争，不是新旧之争；订单这种强事务场景用文档库是自找苦吃。</li>
+<li><strong>拿 CAP 当&quot;放弃一致性&quot;的许可证</strong> —— CAP 只在分区发生时做选择；平时该强一致就强一致。</li>
+<li><strong>以为数据库默认隔离级别能防超卖</strong> —— MySQL 默认 RR 防不住丢失更新；防超卖靠原子操作/锁/串行化，不靠默认。</li>
+<li><strong>用机器时间戳做&quot;后写胜出&quot;</strong> —— 时钟漂移会让旧数据安静覆盖新数据，用版本号。</li>
+<li><strong>消息/接口编码想改就改</strong> —— 滚动升级期新旧代码共存，破坏向前兼容的字段改名就是线上事故。</li>
+<li><strong>分区键随手选自增 ID</strong> —— 多租户 SaaS 不携带租户信息的分区键，等于放弃了租户口径的全部查询与隔离能力。</li>
+<li><strong>流处理结果当唯一真相</strong> —— 流会重复、会乱序、会有窗口边界问题；中小团队务必保留批处理准绳做对账。</li>
+</ol>
+<hr>
+<h2 id="13-自测清单-10-项">13. 自测清单（10 项）</h2>
+<ol>
+<li>数据系统三大目标各是什么？为什么延迟要看 P99 而非平均值？</li>
+<li>订单、商品、行为日志分别匹配哪种数据模型？论据是访问模式里的什么特征？</li>
+<li>B-Tree 与 LSM-Tree 的写路径差异是什么？各适合什么读写比？</li>
+<li>向后兼容与向前兼容的区别？滚动升级期哪个是刚需？</li>
+<li>单主/多主/无主复制各自的一致性承诺与代价？订单库为什么选单主？</li>
+<li>按键哈希分区解决了什么、牺牲了什么？大租户热点怎么破？</li>
+<li>丢失更新与写倾斜的区别？各自的防法？</li>
+<li>为什么&quot;超时&quot;不能告诉你请求到底成功没有？脑裂怎么产生、怎么防？</li>
+<li>CAP 的准确含义是什么？为什么&quot;三选二&quot;是误读？</li>
+<li>GMV 报表&quot;批做准绳、流做预览&quot;的分工理由？流结果为什么不能单独信？</li>
+</ol>
+<hr>
+<h2 id="14-下卷预告">14. 下卷预告</h2>
+<p>至此，RetailHub 有了服务骨架（卷02）和数据骨架（卷03），但它们还跑在你笔记本的 docker-compose 里。卷04 进入分布式与平台工程：容器化与编排、服务发现与配置中心、可观测性三板斧（指标/日志/追踪）、CI/CD 与发布策略——把&quot;能跑&quot;变成&quot;能持续、可运维地跑&quot;，并为后半程的 AI 平台（PI）工程打底。当平台足够稳，我们才会把第一个 AI 能力接进 RetailHub——那就是 DataAgent 故事的真正开场。</p>
+<hr>
+<h2 id="参考与脚注">参考与脚注</h2>
+
+<section class="footnotes">
+<ol>
+<li id="fn-1">Martin Kleppmann《Designing Data-Intensive Applications》（中译《数据密集型应用系统设计》）第 1 章&quot;可靠、可扩展、可维护&quot;。 <a class="fn-back" href="#ref-1" aria-label="回到正文">↩</a></li>
+<li id="fn-2">同上，第 2 章&quot;数据模型与查询语言&quot;。 <a class="fn-back" href="#ref-2" aria-label="回到正文">↩</a></li>
+<li id="fn-3">同上，第 3 章&quot;存储与检索&quot;——B-Tree 与 LSM-Tree 的写路径、三种放大与 Compaction 策略。 <a class="fn-back" href="#ref-3" aria-label="回到正文">↩</a></li>
+<li id="fn-4">同上，第 4 章&quot;编码与演进&quot;——向前/向后兼容与 Protobuf 字段编号规则。 <a class="fn-back" href="#ref-4" aria-label="回到正文">↩</a></li>
+<li id="fn-5">同上，第 5 章&quot;复制&quot;——单主/多主/无主、复制日志形态、同步级别与读己之写等一致性补丁。 <a class="fn-back" href="#ref-5" aria-label="回到正文">↩</a></li>
+<li id="fn-6">同上，第 6 章&quot;分区&quot;——哈希/范围分区、固定分区数再均衡、热点与二级索引。 <a class="fn-back" href="#ref-6" aria-label="回到正文">↩</a></li>
+<li id="fn-7">同上，第 7 章&quot;事务&quot;——隔离级别、MVCC 快照隔离、丢失更新与写倾斜。 <a class="fn-back" href="#ref-7" aria-label="回到正文">↩</a></li>
+<li id="fn-8">同上，第 8 章&quot;分布式系统的麻烦&quot;——不可靠的网络、不可信的时钟与故障检测。 <a class="fn-back" href="#ref-8" aria-label="回到正文">↩</a></li>
+<li id="fn-9">同上，第 9 章&quot;一致性与共识&quot;——线性一致、CAP 的准确含义与全序广播。 <a class="fn-back" href="#ref-9" aria-label="回到正文">↩</a></li>
+<li id="fn-10">同上，第 10 章&quot;批处理&quot;与第 11 章&quot;流处理&quot;——批做准绳、流做预览的分工依据。 <a class="fn-back" href="#ref-10" aria-label="回到正文">↩</a></li>
+</ol>
+</section>
+
+    <nav class="prevnext">
+      <a class="prev" href="vol-02.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷02 · 架构演进实践</span></a>
+      <a class="next" href="vol-04.html"><span class="pn-label">下一篇 →</span><span class="pn-title">卷04 · 分布式与平台工程</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-可靠-可扩展-可维护-数据系统的三大目标">1. 可靠、可扩展、可维护：数据系统的三大目标</a>
+    <a class="toc-h2" href="#2-数据模型与查询语言-关系-文档-图">2. 数据模型与查询语言：关系、文档、图</a>
+    <a class="toc-h2" href="#3-存储与检索-lsm-tree-vs-b-tree">3. 存储与检索：LSM-Tree vs B-Tree</a>
+    <a class="toc-h2" href="#4-编码与演进-schema-在变-数据是永恒的">4. 编码与演进：schema 在变，数据是永恒的</a>
+    <a class="toc-h2" href="#5-复制-单主-多主-无主">5. 复制：单主、多主、无主</a>
+    <a class="toc-h2" href="#6-分区-数据大了之后的横向拆分">6. 分区：数据大了之后的横向拆分</a>
+    <a class="toc-h2" href="#7-事务与隔离级别-用-下单超卖-讲透">7. 事务与隔离级别：用"下单超卖"讲透</a>
+    <a class="toc-h2" href="#8-分布式系统的麻烦-时钟-网络与故障检测">8. 分布式系统的麻烦：时钟、网络与故障检测</a>
+    <a class="toc-h2" href="#9-一致性与共识-线性一致与-cap-的真实含义">9. 一致性与共识：线性一致与 CAP 的真实含义</a>
+    <a class="toc-h2" href="#10-批处理与流处理-gmv-报表的两条路">10. 批处理与流处理：GMV 报表的两条路</a>
+    <a class="toc-h2" href="#11-本卷实战-retailhub-演进第-3-步">11. 本卷实战：RetailHub 演进第 3 步</a>
+    <a class="toc-h3" href="#11-1-背景">11.1 背景</a>
+    <a class="toc-h3" href="#11-2-任务一-数据架构设计文档">11.2 任务一：《数据架构设计文档》</a>
+    <a class="toc-h3" href="#11-3-任务二-防超卖隔离级别对比实验-可运行">11.3 任务二：防超卖隔离级别对比实验（可运行）</a>
+    <a class="toc-h3" href="#11-4-ai-coding-实操模式">11.4 AI Coding 实操模式</a>
+    <a class="toc-h3" href="#11-5-验收标准">11.5 验收标准</a>
+    <a class="toc-h2" href="#12-常见误区">12. 常见误区</a>
+    <a class="toc-h2" href="#13-自测清单-10-项">13. 自测清单（10 项）</a>
+    <a class="toc-h2" href="#14-下卷预告">14. 下卷预告</a>
+    <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
