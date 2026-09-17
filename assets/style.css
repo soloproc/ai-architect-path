@@ -112,6 +112,15 @@ body {
   transition: background .15s, color .15s;
 }
 .site-nav a:hover { color: var(--text); background: rgba(15, 118, 110, .06); }
+.nav-sub {
+  padding: 10px 24px 2px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  user-select: none;
+}
+.site-nav a.nav-child { padding-left: 34px; font-size: 13px; }
+.site-nav a.nav-child.active { padding-left: 34px; }
 .site-nav a.active {
   color: var(--accent-dark);
   background: rgba(15, 118, 110, .09);
