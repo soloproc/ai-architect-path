@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>篇00-1：小白前置篇（上）——基本功：环境、命令行、Git 与 Python/SQL · AI 全栈架构师之路 · 自学教程</title>
-<meta property="og:title" content="篇00-1：小白前置篇（上）——基本功：环境、命令行、Git 与 Python/SQL · AI 全栈架构师之路">
+<title>篇00-1：前置知识（上）——基本功：环境、命令行、Git 与 Python/SQL · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="篇00-1：前置知识（上）——基本功：环境、命令行、Git 与 Python/SQL · AI 全栈架构师之路">
 <meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
@@ -22,64 +22,77 @@
 <aside class="sidebar" id="sidebar">
   <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
   <nav class="site-nav">
-    <a href="index.html">首页</a>
+    <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
-    <a href="guide.html">总纲 · 学习路径</a>
-    <a href="glossary.html">附录 · 术语表（卡壳就查）</a>
+    <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
-    <a href="vol-01-1.html">卷01-1 · HTTP 与网络基础</a>
-    <a href="vol-01-2.html">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-sub">卷01 · 服务端筑基</div>
+    <a href="vol-01-1.html" class=" nav-child">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html" class=" nav-child">卷01-2 · 数据库与部署实战</a>
     <div class="nav-group">阶段二 · 架构演进实践</div>
-    <a href="vol-02-1.html">卷02-1 · 缓存与读写分离</a>
-    <a href="vol-02-2.html">卷02-2 · 消息队列与服务拆分</a>
-    <a href="vol-02-3.html">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-sub">卷02 · 架构演进实践</div>
+    <a href="vol-02-1.html" class=" nav-child">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html" class=" nav-child">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html" class=" nav-child">卷02-3 · 演进案例与大促实战</a>
     <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
-    <a href="vol-03-1.html">卷03-1 · 存储复制与分区</a>
-    <a href="vol-03-2.html">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-sub">卷03 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html" class=" nav-child">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html" class=" nav-child">卷03-2 · 事务一致性与实战</a>
     <div class="nav-group">阶段四 · 分布式与平台工程</div>
-    <a href="vol-04-1.html">卷04-1 · 通信与流量治理</a>
-    <a href="vol-04-2.html">卷04-2 · 分布式事务与共识</a>
-    <a href="vol-04-3.html">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-sub">卷04 · 分布式与平台工程</div>
+    <a href="vol-04-1.html" class=" nav-child">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html" class=" nav-child">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html" class=" nav-child">卷04-3 · 可观测与平台工程</a>
     <div class="nav-group">阶段五 · 架构师方法论</div>
-    <a href="vol-05-1.html">卷05-1 · 架构师方法论</a>
-    <a href="vol-05-2.html">卷05-2 · 软考与文档实战</a>
+    <div class="nav-sub">卷05 · 架构师方法论与软考</div>
+    <a href="vol-05-1.html" class=" nav-child">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html" class=" nav-child">卷05-2 · 软考与文档实战</a>
     <div class="nav-group">阶段六 · Agent 前置与认知</div>
-    <a href="chapter-00-1.html" class="active">篇00-1 · 基本功</a>
-    <a href="chapter-00-2.html">篇00-2 · 三个递进 Demo</a>
-    <a href="chapter-01.html">篇01 · AI 核心认知</a>
-    <a href="chapter-02.html">篇02 · AI Coding 道法术器</a>
-    <a href="chapter-03.html">篇03 · 实战立项</a>
+    <div class="nav-sub">篇00 · 前置知识</div>
+    <a href="chapter-00-1.html" class="active nav-child">篇00-1 · 前置知识（上）基本功</a>
+    <a href="chapter-00-2.html" class=" nav-child">篇00-2 · 前置知识（下）递进 Demo</a>
+    <a href="chapter-01.html" class="">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html" class="">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html" class="">篇03 · 实战立项</a>
     <div class="nav-group">阶段七 · AI Infra</div>
-    <a href="vol-06-1.html">卷06-1 · GPU 与推理服务化</a>
-    <a href="vol-06-2.html">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-sub">卷06 · AI Infra</div>
+    <a href="vol-06-1.html" class=" nav-child">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html" class=" nav-child">卷06-2 · 推理成本、向量检索与 LLMOps</a>
     <div class="nav-group">阶段八 · SRE 可靠性工程</div>
-    <a href="vol-08-1.html">卷08-1 · SLO 与错误预算</a>
-    <a href="vol-08-2.html">卷08-2 · 监控告警与事故管理</a>
-    <a href="vol-08-3.html">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-sub">卷08 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html" class=" nav-child">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html" class=" nav-child">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html" class=" nav-child">卷08-3 · 发布工程与 AI 服务 SRE</a>
     <div class="nav-group">阶段九 · Agent 工程化深入</div>
-    <a href="chapter-04-1.html">篇04-1 · 调用解剖与重试退避</a>
-    <a href="chapter-04-2.html">篇04-2 · 结构化输出与函数调用</a>
-    <a href="chapter-05-1.html">篇05-1 · Harness 与 Run 执行模型</a>
-    <a href="chapter-05-2.html">篇05-2 · Workflow 与分布式 Runtime</a>
-    <a href="chapter-06-1.html">篇06-1 · 上下文契约与装配预算</a>
-    <a href="chapter-06-2.html">篇06-2 · 证据长任务与 ContextOps</a>
-    <a href="chapter-07-1.html">篇07-1 · 能力形态与受控执行</a>
-    <a href="chapter-07-2.html">篇07-2 · Skill 工程与 MCP 治理</a>
-    <a href="chapter-08-1.html">篇08-1 · 记忆契约与可信写入</a>
-    <a href="chapter-08-2.html">篇08-2 · 受控召回与 MemoryOps</a>
-    <a href="chapter-09.html">篇09 · 评测与受控进化</a>
-    <a href="chapter-10.html">篇10 · 面向未来的工程判断</a>
+    <div class="nav-sub">篇04 · LLM 执行底座</div>
+    <a href="chapter-04-1.html" class=" nav-child">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html" class=" nav-child">篇04-2 · 结构化输出与函数调用</a>
+    <div class="nav-sub">篇05 · Agent Harness 与 Runtime</div>
+    <a href="chapter-05-1.html" class=" nav-child">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html" class=" nav-child">篇05-2 · Workflow 与分布式 Runtime</a>
+    <div class="nav-sub">篇06 · Agent 上下文治理</div>
+    <a href="chapter-06-1.html" class=" nav-child">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html" class=" nav-child">篇06-2 · 证据长任务与 ContextOps</a>
+    <div class="nav-sub">篇07 · 工具与技能治理</div>
+    <a href="chapter-07-1.html" class=" nav-child">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html" class=" nav-child">篇07-2 · Skill 工程与 MCP 治理</a>
+    <div class="nav-sub">篇08 · Agent 记忆治理</div>
+    <a href="chapter-08-1.html" class=" nav-child">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html" class=" nav-child">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html" class="">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html" class="">篇10 · 面向未来的工程判断</a>
     <div class="nav-group">阶段十 · AI FDE 交付</div>
-    <a href="vol-07.html">卷07 · AI FDE 交付实战</a>
+    <a href="vol-07.html" class="">卷07 · AI FDE 交付实战</a>
     <div class="nav-group">附录与资料存档</div>
-    <a href="report.html">课程分析报告</a>
-    <a href="ref-01.html">资料01 · 服务端演进 14 次</a>
-    <a href="ref-02.html">资料02 · 淘宝架构变迁</a>
-    <a href="ref-03.html">资料03 · 金山 KAE 规模之道</a>
-    <a href="ref-04.html">资料04 · WPS Comate 落地</a>
-    <a href="ref-05.html">资料05 · AI Docs 知识湖</a>
-    <a href="ref-06.html">资料06 · ADR 原始博客</a>
-    <a href="ref-07.html">资料07 · Building Effective Agents</a>
+    <a href="report.html" class="">课程分析报告</a>
+    <a href="ref-01.html" class="">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html" class="">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html" class="">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html" class="">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html" class="">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html" class="">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html" class="">资料07 · Building Effective Agents</a>
   </nav>
   <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
 </aside>
@@ -87,9 +100,9 @@
 
 <main class="main">
   <article class="content">
-<h1 id="篇00-1-小白前置篇-上-基本功-环境-命令行-git-与-python-sql">篇00-1：小白前置篇（上）——基本功：环境、命令行、Git 与 Python/SQL</h1>
+<h1 id="篇00-1-前置知识-上-基本功-环境-命令行-git-与-python-sql">篇00-1：前置知识（上）——基本功：环境、命令行、Git 与 Python/SQL</h1>
 <blockquote>
-<p>导语：本页是「篇00 小白前置篇」的上半部分，面向真正的零基础读者。<strong>这页学什么</strong>：开发环境三概念（解释器 / 第三方包 / 虚拟环境）、10 条命令行生存命令、Git 最小操作、Python 七件最小知识与 SQLite 五个必会查询。<strong>学完能做什么</strong>：你能在自己电脑上装好隔离的 Python 环境并跑通验证、用 Git 给代码打快照、读懂并亲手运行每一段小脚本，还能建出贯穿项目要用的电商订单库 <code>shop.db</code>——这些都是下一页三个 LLM Demo 的地基，也是进入篇01 的硬门槛。本页与正篇共用同一个贯穿项目语境「多租户零售经营分析 DataAgent」<sup class="fn-ref"><a href="#fn-course" id="ref-course">[1]</a></sup>，第 4 节的订单库就是它的第一块基石，后面篇03 立项时会直接复用。</p>
+<p>导语：本页是「篇00 前置知识」的上半部分，面向真正的零基础读者。<strong>这页学什么</strong>：开发环境三概念（解释器 / 第三方包 / 虚拟环境）、10 条命令行生存命令、Git 最小操作、Python 七件最小知识与 SQLite 五个必会查询。<strong>学完能做什么</strong>：你能在自己电脑上装好隔离的 Python 环境并跑通验证、用 Git 给代码打快照、读懂并亲手运行每一段小脚本，还能建出贯穿项目要用的电商订单库 <code>shop.db</code>——这些都是下一页三个 LLM Demo 的地基，也是进入篇01 的硬门槛。本页与正篇共用同一个贯穿项目语境「多租户零售经营分析 DataAgent」<sup class="fn-ref"><a href="#fn-course" id="ref-course">[1]</a></sup>，第 4 节的订单库就是它的第一块基石，后面篇03 立项时会直接复用。</p>
 <p><strong>使用本页的三个建议</strong>：第一，所有代码都必须亲手敲一遍（或至少亲手复制运行一遍），只看不跑等于没学；第二，遇到报错先把完整报错信息喂给 Kimi 或其他 AI 助手提问——学会用 AI 学 AI，本身就是本教程要培养的能力；第三，不要跳过第 3、4 节直接去玩下一页的 Demo——Demo 2 要用到 dict、json、异常处理和 SQL 查询，前面欠的账会在 Debug 时加倍偿还。</p>
 </blockquote>
 <hr>
@@ -459,7 +472,7 @@ conn.close()
 <hr>
 <h2 id="参考与脚注">参考与脚注</h2>
 <hr>
-<p>➡️ 下一页：篇00-2 · 小白前置篇（下）——三个递进 Demo 与实战（聊天机器人 → Function Calling → 最小 RAG）</p>
+<p>➡️ 下一页：<a href="chapter-00-2.html">篇00-2 · 前置知识（下）——三个递进 Demo 与实战</a>（聊天机器人 → Function Calling → 最小 RAG）</p>
 
 <section class="footnotes">
 <ol>
@@ -471,7 +484,7 @@ conn.close()
 
     <nav class="prevnext">
       <a class="prev" href="vol-05-2.html"><span class="pn-label">← 上一篇</span><span class="pn-title">卷05-2 · 软考与文档实战</span></a>
-      <a class="next" href="chapter-00-2.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇00-2 · 三个递进 Demo</span></a>
+      <a class="next" href="chapter-00-2.html"><span class="pn-label">下一篇 →</span><span class="pn-title">篇00-2 · 前置知识（下）递进 Demo</span></a>
     </nav>
   </article>
 </main>
