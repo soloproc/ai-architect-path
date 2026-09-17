@@ -19,7 +19,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans SC", sans-serif;
+  font-family: "Huiwen-mincho", "汇文明朝体", "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "SimSun", serif;
   font-size: 16px;
   line-height: 1.8;
 }
@@ -232,7 +232,7 @@ body {
 
 /* ---------- code ---------- */
 .content code {
-  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   font-size: .88em;
 }
 .content :not(pre) > code {
