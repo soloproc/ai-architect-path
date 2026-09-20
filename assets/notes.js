@@ -285,6 +285,27 @@
     + '.aap-drawer footer .btnrow{display:flex;gap:8px;}'
     + '.aap-drawer footer .btnrow button{flex:1;border:1px solid #e5e1d8;background:#fff;border-radius:7px;padding:8px;font:inherit;font-size:12.5px;color:#57534e;cursor:pointer;}'
     + '.aap-drawer footer .btnrow button:hover{border-color:#0f766e;color:#0f766e;}'
+    /* 对话面板 */
+    + '.aap-chat{position:fixed;top:0;right:0;bottom:0;width:min(400px,94vw);background:#fffdf9;border-left:1px solid #e5e1d8;box-shadow:-12px 0 40px rgba(60,50,30,.14);z-index:88;display:flex;flex-direction:column;transform:translateX(103%);transition:transform .25s ease;}'
+    + '.aap-chat.open{transform:translateX(0);}'
+    + '.aap-chat header{padding:12px 14px;border-bottom:1px solid #efece4;}'
+    + '.aap-chat .ct{font-size:13.5px;font-weight:600;color:#292524;display:flex;align-items:center;margin-bottom:6px;}'
+    + '.aap-chat .ct .x{margin-left:auto;border:0;background:none;font-size:18px;cursor:pointer;color:#8a8578;}'
+    + '.aap-chat .cq{font-size:12px;color:#8a8578;border-left:3px solid #e7d9a8;padding-left:8px;max-height:54px;overflow:hidden;line-height:1.5;}'
+    + '.aap-chat .hacts{margin-top:6px;display:flex;gap:6px;}'
+    + '.aap-chat .hacts button{border:1px solid #e5e1d8;background:#fff;border-radius:6px;padding:2px 10px;font:inherit;font-size:11.5px;color:#57534e;cursor:pointer;}'
+    + '.aap-chat .hacts button:hover{border-color:#0f766e;color:#0f766e;}'
+    + '.aap-chatlog{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}'
+    + '.aap-msg{max-width:86%;padding:8px 12px;border-radius:12px;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;}'
+    + '.aap-msg.user{align-self:flex-end;background:#0f766e;color:#fff;border-bottom-right-radius:4px;}'
+    + '.aap-msg.ai{align-self:flex-start;background:#f5f3ee;color:#3f3a32;border-bottom-left-radius:4px;}'
+    + '.aap-msg.typing{color:#b0aa9c;}'
+    + '.aap-msg.err{background:#fef2f2;color:#991b1b;}'
+    + '.aap-chatform{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #efece4;}'
+    + '.aap-chatform textarea{flex:1;height:44px;resize:none;border:1px solid #e5e1d8;border-radius:8px;padding:9px 10px;font:inherit;font-size:13px;color:#333;outline:none;background:#fff;}'
+    + '.aap-chatform textarea:focus{border-color:#0f766e;}'
+    + '.aap-chatform button{border:1px solid #0f766e;background:#0f766e;color:#fff;border-radius:8px;padding:0 16px;font:inherit;font-size:13px;cursor:pointer;}'
+    + '.aap-chatform button:disabled{opacity:.5;cursor:not-allowed;}'
     /* 评论区 */
     + '.aap-comments{margin-top:44px;border-top:1px solid #e5e1d8;padding-top:20px;}'
     + '.aap-comments h2{font-size:19px;margin:0 0 4px;color:#292524;}'
@@ -439,7 +460,7 @@
     if (!e.target.closest('.aap-seltool') && !e.target.closest('.aap-pop')) closeFloating();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closeFloating(); closeDrawer(); }
+    if (e.key === 'Escape') { closeFloating(); closeDrawer(); if (typeof closeChat === 'function') closeChat(); }
   });
 
   /* ================= 选区工具条 ================= */
@@ -542,117 +563,219 @@
     ta.focus();
   }
 
-  /* ================= 疑问卡（不懂的知识点） ================= */
+  /* ================= 疑问对话（不懂 → 与 AI 助教多轮讨论） ================= */
 
   function createDoubt(range, text) {
-    var item = {
-      id: uid(), type: 'doubt',
-      page: PAGE, title: PAGE_TITLE,
+    var pending = {
+      text: text.slice(0, 200),
       sPath: nodePath(range.startContainer), sOff: range.startOffset,
-      ePath: nodePath(range.endContainer), eOff: range.endOffset,
-      text: text.slice(0, 200), question: '', answer: '', status: 'open', ts: Date.now()
+      ePath: nodePath(range.endContainer), eOff: range.endOffset
     };
+    window.getSelection().removeAllRanges();
     closeFloating();
-    var pop = document.createElement('div');
-    pop.className = 'aap-pop';
-    pop.innerHTML = ''
-      + '<div class="q">' + escapeHtml(text.slice(0, 80)) + (text.length > 80 ? '…' : '') + '</div>'
-      + '<textarea placeholder="哪里不懂？用自己的话描述一下疑问……"></textarea>'
-      + '<div class="acts">'
-      + '<button class="ghost" data-a="save">存入疑问清单</button>'
-      + (AI_READY ? '<button data-a="ask">存入并问 AI ✨</button>' : '')
-      + '</div>';
-    var ta = pop.querySelector('textarea');
-    function commit(withAI) {
-      item.question = ta.value.trim() || '这段没看懂';
+    if (!AI_READY) {
+      /* 本地模式：先收集疑问，云端配好后随时可对话 */
+      var q = window.prompt('哪里不懂？用自己的话记录一下（配置云端后可与 AI 对话讨论）：');
+      if (q === null) return;
+      var item = {
+        id: uid(), type: 'doubt', page: PAGE, title: PAGE_TITLE,
+        sPath: pending.sPath, sOff: pending.sOff, ePath: pending.ePath, eOff: pending.eOff,
+        text: pending.text, question: q.trim() || '这段没看懂', answer: '', status: 'open', ts: Date.now(), chat: []
+      };
       db.items.push(item); save(); cloudUpsert(item);
       paintMark(item);
-      window.getSelection().removeAllRanges();
-      closeFloating();
       refreshBadge();
-      if (withAI) askAI(item, null);
+      return;
     }
-    pop.addEventListener('click', function (e) {
-      var a = e.target.getAttribute('data-a');
-      if (a === 'save') commit(false);
-      if (a === 'ask') commit(true);
-    });
-    showFloating(pop, range.getBoundingClientRect(), false);
-    ta.focus();
+    openChat(null, pending);
   }
 
-  /* AI 答疑：POST {question, quote, page, title} → {answer} */
-  function askAI(item, btn) {
-    if (!AI_READY) return;
-    if (btn) { btn.textContent = 'AI 思考中…'; btn.classList.add('thinking'); }
+  /* ---------- 对话面板 ---------- */
+  var chatPanel = null;
+  var chatItem = null;      // 当前对话挂的疑问卡（全局助教模式为 null）
+  var chatPending = null;   // 尚未保存的新疑问锚点
+  var chatLog = [];         // 当前对话消息 [{role, content, ts}]
+  var chatSending = false;
+
+  function ensureChatPanel() {
+    if (chatPanel) return;
+    chatPanel = document.createElement('div');
+    chatPanel.className = 'aap-chat';
+    chatPanel.innerHTML = ''
+      + '<header>'
+      + '<div class="ct">AI 助教<button class="x" title="关闭">×</button></div>'
+      + '<div class="cq"></div>'
+      + '<div class="hacts"></div>'
+      + '</header>'
+      + '<div class="aap-chatlog"></div>'
+      + '<div class="aap-chatform">'
+      + '<textarea placeholder="哪里不懂？直接问，可以来回讨论……"></textarea>'
+      + '<button>发送</button>'
+      + '</div>';
+    document.body.appendChild(chatPanel);
+    chatPanel.querySelector('.x').addEventListener('click', closeChat);
+    chatPanel.querySelector('.hacts').addEventListener('click', function (e) {
+      var a = e.target.getAttribute('data-h');
+      if (!chatItem) return;
+      if (a === 'toggle') {
+        chatItem.status = chatItem.status === 'done' ? 'open' : 'done';
+        chatItem.ts = Date.now();
+        save(); cloudUpsert(chatItem);
+        unpaint(chatItem.id); paintMark(chatItem);
+        renderList();
+        paintChatHeader();
+      }
+      if (a === 'del') { removeItem(chatItem.id); closeChat(); }
+    });
+    var ta = chatPanel.querySelector('textarea');
+    var btn = chatPanel.querySelector('.aap-chatform button');
+    function submit() {
+      var text = ta.value.trim();
+      if (!text || chatSending) return;
+      ta.value = '';
+      sendChat(text);
+    }
+    btn.addEventListener('click', submit);
+    ta.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+    });
+  }
+
+  function paintChatHeader() {
+    var q = chatPanel.querySelector('.cq');
+    var acts = chatPanel.querySelector('.hacts');
+    var quote = chatItem ? chatItem.text : (chatPending ? chatPending.text : '');
+    q.textContent = quote ? '原文：' + quote : '当前章节：《' + PAGE_TITLE + '》——随便问';
+    acts.innerHTML = chatItem
+      ? '<button data-h="toggle">' + (chatItem.status === 'done' ? '标回未懂' : '已搞懂 ✓') + '</button>'
+        + '<button data-h="del">删除此疑问</button>'
+      : '';
+  }
+
+  function renderChatMessages() {
+    var log = chatPanel.querySelector('.aap-chatlog');
+    log.innerHTML = '';
+    if (!chatLog.length) {
+      var tip = document.createElement('div');
+      tip.className = 'aap-msg ai';
+      tip.textContent = chatItem || chatPending
+        ? '我是本教程的 AI 助教。你划的这段哪里不懂？直接问，我会结合原文讲，可以追问。'
+        : '我是本教程的 AI 助教。关于《' + PAGE_TITLE + '》这章有什么想讨论的？';
+      log.appendChild(tip);
+      return;
+    }
+    chatLog.forEach(function (m) {
+      var div = document.createElement('div');
+      div.className = 'aap-msg ' + (m.role === 'user' ? 'user' : 'ai');
+      div.textContent = m.content;
+      log.appendChild(div);
+    });
+    log.scrollTop = log.scrollHeight;
+  }
+
+  /* 打开对话：item=已有疑问卡；pending=刚划选的新疑问；都为空=本章自由问答 */
+  function openChat(item, pending) {
+    if (!AI_READY) { window.alert('AI 答疑尚未配置云端，请稍后再试。'); return; }
+    ensureChatPanel();
+    chatItem = item || null;
+    chatPending = pending || null;
+    if (chatItem) {
+      if (!chatItem.chat) {
+        chatItem.chat = [];
+        if (chatItem.question) chatItem.chat.push({ role: 'user', content: chatItem.question });
+        if (chatItem.answer) chatItem.chat.push({ role: 'assistant', content: chatItem.answer });
+      }
+      chatLog = chatItem.chat;
+    } else if (chatPending) {
+      chatLog = [];
+    } else {
+      try { chatLog = JSON.parse(localStorage.getItem('aap-chat:' + PAGE) || '[]'); } catch (e) { chatLog = []; }
+    }
+    paintChatHeader();
+    renderChatMessages();
+    chatPanel.classList.add('open');
+    chatPanel.querySelector('textarea').focus();
+  }
+  function closeChat() { if (chatPanel) chatPanel.classList.remove('open'); }
+
+  function persistChat() {
+    if (chatItem) {
+      save(); cloudUpsert(chatItem);
+    } else {
+      try { localStorage.setItem('aap-chat:' + PAGE, JSON.stringify(chatLog.slice(-50))); } catch (e) {}
+    }
+  }
+
+  function sendChat(text) {
+    if (chatSending) return;
+    /* 首个问题落地成疑问卡（划线锚点 + 橙色标记） */
+    if (chatPending && !chatItem) {
+      chatItem = {
+        id: uid(), type: 'doubt', page: PAGE, title: PAGE_TITLE,
+        sPath: chatPending.sPath, sOff: chatPending.sOff,
+        ePath: chatPending.ePath, eOff: chatPending.eOff,
+        text: chatPending.text, question: text, answer: '', status: 'open', ts: Date.now(), chat: []
+      };
+      chatLog = chatItem.chat;
+      db.items.push(chatItem);
+      paintMark(chatItem);
+      chatPending = null;
+      refreshBadge();
+      paintChatHeader();
+    }
+    chatSending = true;
+    var btn = chatPanel.querySelector('.aap-chatform button');
+    btn.disabled = true;
+    chatLog.push({ role: 'user', content: text, ts: Date.now() });
+    renderChatMessages();
+    var log = chatPanel.querySelector('.aap-chatlog');
+    var typing = document.createElement('div');
+    typing.className = 'aap-msg ai typing';
+    typing.textContent = '思考中…';
+    log.appendChild(typing);
+    log.scrollTop = log.scrollHeight;
+
     var headers = { 'Content-Type': 'application/json' };
     if (ASK_API_KEY) headers['Authorization'] = 'Bearer ' + ASK_API_KEY;
     else if (SUPABASE_ANON_KEY) {
       headers['apikey'] = SUPABASE_ANON_KEY;
       headers['Authorization'] = 'Bearer ' + SUPABASE_ANON_KEY;
     }
+    var history = chatLog.slice(-12).map(function (m) { return { role: m.role, content: m.content }; });
     fetch(askEndpoint(), {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({
-        question: item.question || '这段没看懂，请讲解',
-        quote: item.text,
-        page: item.page,
-        title: item.title
+        messages: history,
+        quote: chatItem ? chatItem.text : '',
+        page: PAGE,
+        title: chatItem ? chatItem.title : PAGE_TITLE
       })
     }).then(function (r) {
       if (!r.ok) throw new Error('http ' + r.status);
       return r.json();
     }).then(function (d) {
-      if (!d || !d.answer) throw new Error('empty');
-      item.answer = String(d.answer);
-      item.ts = Date.now();
-      save(); cloudUpsert(item);
+      var ans = d && d.answer ? String(d.answer).trim() : '';
+      if (!ans) throw new Error('empty');
+      typing.remove();
+      chatLog.push({ role: 'assistant', content: ans, ts: Date.now() });
+      if (chatItem) {
+        chatItem.answer = ans;
+        chatItem.ts = Date.now();
+      }
+      persistChat();
+      renderChatMessages();
       renderList();
-      closeFloating();
-      openDoubtDetail(item, contentEl.querySelector('.aap-mark[data-nid="' + item.id + '"]'));
     }).catch(function () {
-      item.answer = item.answer || '';
-      if (btn) { btn.textContent = '问 AI ✨'; btn.classList.remove('thinking'); }
-      window.alert('AI 答疑暂时不可用，请稍后再试。疑问已保存在清单里。');
+      typing.className = 'aap-msg ai err';
+      typing.textContent = 'AI 助教暂时不可用，请稍后再发一次。';
+    }).then(function () {
+      chatSending = false;
+      btn.disabled = false;
+      chatPanel.querySelector('textarea').focus();
     });
   }
 
-  function openDoubtDetail(item, anchorEl) {
-    closeFloating();
-    var pop = document.createElement('div');
-    pop.className = 'aap-pop';
-    pop.innerHTML = ''
-      + '<div class="q">' + escapeHtml(item.text.slice(0, 80)) + (item.text.length > 80 ? '…' : '') + '</div>'
-      + '<div class="nt"><b>我的疑问：</b>' + escapeHtml(item.question || '这段没看懂')
-      + '<span class="st ' + (item.status === 'done' ? 'done' : 'open') + '">' + (item.status === 'done' ? '已搞懂' : '未搞懂') + '</span></div>'
-      + (item.answer ? '<div class="ans"><span class="who">AI 助教</span>' + escapeHtml(item.answer) + '</div>' : '')
-      + '<div class="meta">' + new Date(item.ts).toLocaleString('zh-CN') + '</div>'
-      + '<div class="acts">'
-      + '<button class="danger" data-a="del">删除</button>'
-      + (AI_READY ? '<button class="ghost" data-a="ask">' + (item.answer ? '重新问 AI' : '问 AI ✨') + '</button>' : '')
-      + '<button class="ghost" data-a="toggle">' + (item.status === 'done' ? '标回未懂' : '标记已懂 ✓') + '</button>'
-      + '<button data-a="close">关闭</button>'
-      + '</div>';
-    pop.addEventListener('click', function (ev) {
-      var a = ev.target.getAttribute('data-a');
-      if (a === 'close') closeFloating();
-      if (a === 'del') { removeItem(item.id); closeFloating(); }
-      if (a === 'ask') { closeFloating(); askAI(item, null); }
-      if (a === 'toggle') {
-        item.status = item.status === 'done' ? 'open' : 'done';
-        item.ts = Date.now();
-        save(); cloudUpsert(item);
-        unpaint(item.id); paintMark(item);
-        renderList();
-        openDoubtDetail(item, anchorEl);
-      }
-    });
-    var rect = anchorEl && anchorEl.getBoundingClientRect
-      ? anchorEl.getBoundingClientRect()
-      : { top: window.scrollY + 120, left: 60, width: 10, height: 20 };
-    showFloating(pop, rect, false);
-  }
 
 
   /* ================= 点击标记 → 详情 ================= */
@@ -663,7 +786,17 @@
     var id = span.getAttribute('data-nid');
     var item = db.items.filter(function (i) { return i.id === id; })[0];
     if (!item) return;
-    if (item.type === 'doubt') { openDoubtDetail(item, span); return; }
+    if (item.type === 'doubt') {
+      if (AI_READY) { openChat(item); return; }
+      /* 本地模式：简单展示疑问 */
+      closeFloating();
+      var dq = window.prompt('我的疑问（配置云端后可与 AI 对话）：', item.question || '');
+      if (dq !== null && dq.trim()) {
+        item.question = dq.trim(); item.ts = Date.now();
+        save(); cloudUpsert(item);
+      }
+      return;
+    }
     closeFloating();
     var pop = document.createElement('div');
     pop.className = 'aap-pop';
@@ -721,7 +854,8 @@
   fab.className = 'aap-fab';
   fab.innerHTML = ''
     + '<button id="aapFavBtn" title="收藏本页">☆</button>'
-    + '<button id="aapNoteBtn" title="我的笔记">✎<span class="badge" id="aapBadge" style="display:none"></span></button>';
+    + '<button id="aapNoteBtn" title="我的笔记">✎<span class="badge" id="aapBadge" style="display:none"></span></button>'
+    + '<button id="aapChatBtn" title="AI 助教：关于本章随便问">💬</button>';
   document.body.appendChild(fab);
 
   function paintFav() {
@@ -738,6 +872,13 @@
     badge.textContent = n > 99 ? '99+' : n;
   }
   fab.querySelector('#aapFavBtn').addEventListener('click', toggleFav);
+  fab.querySelector('#aapChatBtn').addEventListener('click', function () {
+    if (!AI_READY) {
+      window.alert('AI 助教需要云端配置后启用（疑问清单可正常使用）。');
+      return;
+    }
+    openChat(null, null);
+  });
 
   var drawer = document.createElement('div');
   drawer.className = 'aap-drawer';
@@ -883,13 +1024,13 @@
         + '<span class="st ' + (d.status === 'done' ? 'done' : 'open') + '">' + (d.status === 'done' ? '已搞懂' : '未搞懂') + '</span></div>'
         + (d.answer ? '<div class="da">' + escapeHtml(d.answer) + '</div>' : '')
         + '<div class="am">' + fmtTs(d.ts)
-        + (AI_READY ? '<button class="mini" data-x="ask">' + (d.answer ? '重问 AI' : '问 AI ✨') + '</button>' : '')
+        + (AI_READY ? '<button class="mini" data-x="ask">对话 💬</button>' : '')
         + '<button class="mini" data-x="toggle">' + (d.status === 'done' ? '标回未懂' : '已懂 ✓') + '</button>'
         + '<button class="del">删除</button></div>';
       div.addEventListener('click', function (e) {
         var x = e.target.getAttribute && e.target.getAttribute('data-x');
         if (e.target.className === 'del') { removeItem(d.id); return; }
-        if (x === 'ask') { askAI(d, e.target); return; }
+        if (x === 'ask') { openChat(d); return; }
         if (x === 'toggle') {
           d.status = d.status === 'done' ? 'open' : 'done';
           d.ts = Date.now();
