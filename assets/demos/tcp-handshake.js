@@ -87,6 +87,7 @@ window.DEMOS['tcp-handshake'] = function (container) {
     '    <div class="panel"><h5>服务端状态</h5><div id="sStates"></div></div>' +
     '  </div>' +
     '  <div class="row">' +
+    '    <button id="prevb" class="ghost">◀ 上一步</button>' +
     '    <button id="next">下一步 ▶</button>' +
     '    <button id="auto" class="ghost">自动播放</button>' +
     '    <button id="reset" class="ghost">重置</button>' +
@@ -112,6 +113,18 @@ window.DEMOS['tcp-handshake'] = function (container) {
     }).join('');
   }
 
+  function logEntry(st) {
+    return '<b>' + st.phase + '</b>　' +
+      (st.pkt.from === 'c' ? '客户端 → 服务端' : '服务端 → 客户端') + '：' + st.pkt.label;
+  }
+
+  function rebuildLog() {
+    state.log = [];
+    for (var i = 1; i <= state.step; i++) {
+      if (STEPS[i].pkt) state.log.unshift(logEntry(STEPS[i]));
+    }
+  }
+
   function render() {
     var st = STEPS[state.step];
     $('cStates').innerHTML = chipHtml(CLIENT_STATES, st.c, 'TIME_WAIT');
@@ -121,8 +134,6 @@ window.DEMOS['tcp-handshake'] = function (container) {
     if (st.pkt) {
       pkt.textContent = (st.pkt.from === 'c' ? '→ ' : '← ') + st.pkt.label;
       pkt.className = 'pkt show ' + (st.pkt.from === 'c' ? 'from-c' : 'from-s');
-      state.log.unshift('<b>' + st.phase + '</b>　' +
-        (st.pkt.from === 'c' ? '客户端 → 服务端' : '服务端 → 客户端') + '：' + st.pkt.label);
     } else {
       pkt.className = 'pkt';
       pkt.textContent = '—';
@@ -137,6 +148,7 @@ window.DEMOS['tcp-handshake'] = function (container) {
         '③ TIME_WAIT 是主动关闭方替全网付出的清理成本——短连接高并发下它堆积成灾，所以工程上用 Keep-Alive 与连接池把"建拆连接的税"摊平。';
     }
     $('next').disabled = state.step >= STEPS.length - 1;
+    $('prevb').disabled = state.step <= 0;
     // 到达终点后展示 TIME_WAIT 倒计时条
     if (state.step === STEPS.length - 1) startTwCountdown();
   }
@@ -169,7 +181,19 @@ window.DEMOS['tcp-handshake'] = function (container) {
 
   $('next').addEventListener('click', function () {
     stopAuto();
-    if (state.step < STEPS.length - 1) { state.step++; render(); }
+    if (state.step < STEPS.length - 1) {
+      state.step++;
+      if (STEPS[state.step].pkt) state.log.unshift(logEntry(STEPS[state.step]));
+      render();
+    }
+  });
+  $('prevb').addEventListener('click', function () {
+    stopAuto();
+    if (state.step > 0) {
+      state.step--;
+      rebuildLog();
+      render();
+    }
   });
   $('auto').addEventListener('click', function () {
     if (state.timer) { stopAuto(); return; }
@@ -177,7 +201,9 @@ window.DEMOS['tcp-handshake'] = function (container) {
     $('auto').textContent = '暂停';
     state.timer = setInterval(function () {
       if (state.step >= STEPS.length - 1) { stopAuto(); return; }
-      state.step++; render();
+      state.step++;
+      if (STEPS[state.step].pkt) state.log.unshift(logEntry(STEPS[state.step]));
+      render();
     }, 1600);
   });
   $('reset').addEventListener('click', function () {

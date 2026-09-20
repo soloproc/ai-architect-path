@@ -51,7 +51,8 @@ window.DEMOS['two-phase-commit'] = function (container) {
     '.slot.done{border-style:solid;border-color:#0f766e;color:#115e59;background:#ccfbf1;}' +
     '.slot.abort{border-style:solid;border-color:#dc2626;color:#991b1b;background:#fef2f2;}' +
     '.phasebar{display:flex;gap:8px;margin:8px 0;}' +
-    '.ph{flex:1;text-align:center;font-size:11px;padding:5px;border-radius:6px;background:#f5f5f4;color:#a8a29e;border:1px solid #e7e5e4;}' +
+    '.ph{flex:1;text-align:center;font-size:11px;padding:5px;border-radius:6px;background:#f5f5f4;color:#a8a29e;border:1px solid #e7e5e4;cursor:pointer;transition:all .2s;}' +
+    '.ph:hover{border-color:#0f766e;color:#0f766e;}' +
     '.ph.on{background:#f0fdfa;color:#0f766e;border-color:#0f766e;font-weight:600;}' +
     '.ph.bad{background:#fef2f2;color:#dc2626;border-color:#dc2626;font-weight:600;}' +
     '.log{margin-top:8px;max-height:120px;overflow:auto;font-size:11px;line-height:1.7;color:#57534e;background:#fafaf9;border:1px solid #e7e5e4;border-radius:6px;padding:8px 10px;font-family:ui-monospace,monospace;}' +
@@ -65,8 +66,8 @@ window.DEMOS['two-phase-commit'] = function (container) {
     '<div class="wrap">' +
     '  <div class="title">交互 Demo · 两阶段提交 2PC（卷04 §3.1：强一致的代价是"阻塞"）</div>' +
     '  <div class="phasebar">' +
-    '    <div class="ph" id="ph1">阶段一 Prepare（询问+锁资源）</div>' +
-    '    <div class="ph" id="ph2">阶段二 Commit / Rollback</div>' +
+    '    <div class="ph" id="ph1" title="点击查看阶段一详解">阶段一 Prepare（询问+锁资源）ⓘ</div>' +
+    '    <div class="ph" id="ph2" title="点击查看阶段二详解">阶段二 Commit / Rollback ⓘ</div>' +
     '  </div>' +
     '  <div class="row">' +
     '    <button id="start">发起"下单+扣库存+发券"事务</button>' +
@@ -79,7 +80,7 @@ window.DEMOS['two-phase-commit'] = function (container) {
     '  </div>' +
     '  <div class="swim" id="swim"></div>' +
     '  <div class="log" id="log"></div>' +
-    '  <div class="verdict" id="verdict">点「发起事务」，先看一遍<b>正常流程</b>：协调者逐个询问三个服务"能不能提交"（prepare），全部 YES 后统一下达 commit。然后勾选捣乱项重放，看 2PC 为什么在高并发互联网链路被弃用。</div>' +
+    '  <div class="verdict" id="verdict">先<b>点击上方两个阶段标签</b>，看清 Prepare 和 Commit 各自在做什么；再点「发起事务」走一遍<b>正常流程</b>：协调者逐个询问三个服务"能不能提交"（prepare），全部 YES 后统一下达 commit。然后勾选捣乱项重放，看 2PC 为什么在高并发互联网链路被弃用。</div>' +
     '  <div class="note">教学简化：真实 2PC 由 XA 协议在数据库层实现，prepare 后参与者把 redo/undo 日志落盘保证"醒来后还记得承诺"；此处聚焦时序与阻塞问题。</div>' +
     '</div>';
 
@@ -253,6 +254,24 @@ window.DEMOS['two-phase-commit'] = function (container) {
       }, 500);
     }
   }
+
+  var PHASE_INFO = {
+    ph1: '📖 <b>阶段一 · Prepare（准备/投票阶段）</b><br>' +
+      '① 协调者向所有参与者广播 PREPARE：「你能不能提交？」<br>' +
+      '② 每个参与者在本地执行事务（扣库存、写订单草稿……）但<b>不提交</b>，把 redo/undo 日志落盘，并<b>锁住涉及的资源</b>；<br>' +
+      '③ 能干成就投 YES，干不成（如库存不足）投 NO。<br>' +
+      '<b>关键：</b>投出 YES 是一个不可撤销的承诺——从这一刻起，资源被攥住，参与者把命运交给了协调者。锁等待、阻塞、宕机风险全都源于这个承诺。',
+    ph2: '📖 <b>阶段二 · Commit / Rollback（决策执行阶段）</b><br>' +
+      '① 协调者收齐投票：<b>全部 YES</b> → 广播 COMMIT，各参与者正式提交并释放锁；<b>任一 NO 或超时</b> → 广播 ROLLBACK，全局回滚、释放所有锁；<br>' +
+      '② 参与者在阶段一投了 YES 后只能干等协调者的决定——这就是 2PC 的<b>阻塞本质</b>：协调者此刻宕机，没人知道该提交还是回滚；<br>' +
+      '<b>关键：</b>两轮网络往返 = 延迟翻倍；锁持有时间 = 最慢参与者的耗时。高并发链路因此弃用 2PC，改用 TCC / Saga / 本地消息表（最终一致）。'
+  };
+  ['ph1', 'ph2'].forEach(function (id) {
+    $(id).addEventListener('click', function () {
+      if (state.busy) return;
+      setVerdict(PHASE_INFO[id]);
+    });
+  });
 
   $('start').addEventListener('click', function () {
     resetState();
