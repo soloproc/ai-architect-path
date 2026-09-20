@@ -14,6 +14,15 @@
   var SUPABASE_ANON_KEY = '';   // Supabase Settings → API → anon public key
   var CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 
+  /* AI 答疑：默认走 Supabase Edge Function（/functions/v1/ask），
+   * 也可改为任何 OpenAI 兼容的 /chat/completions 网关地址 + ASK_API_KEY */
+  var ASK_ENDPOINT = '';
+  var ASK_API_KEY = '';
+  function askEndpoint() {
+    return ASK_ENDPOINT || (SUPABASE_URL ? SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/ask' : '');
+  }
+  var AI_READY = !!askEndpoint();
+
   /* ================= 基础 ================= */
   var STORE_KEY = 'aap-notes-v1';
   var KEY_KEY = 'aap-user-key';
@@ -51,6 +60,9 @@
 
   function marks(page) {
     return db.items.filter(function (i) { return i.type === 'mark' && (!page || i.page === page); });
+  }
+  function doubts(page) {
+    return db.items.filter(function (i) { return i.type === 'doubt' && (!page || i.page === page); });
   }
   function favs() {
     return db.items.filter(function (i) { return i.type === 'fav'; });
@@ -207,6 +219,10 @@
     + '.aap-line{background:linear-gradient(transparent 55%, rgba(250,204,21,.45) 55%);}'
     + '.aap-note{background:rgba(15,118,110,.14);border-bottom:1px dashed #0f766e;}'
     + '.aap-note::after{content:"✎";font-size:.72em;color:#0f766e;margin-left:1px;vertical-align:super;}'
+    + '.aap-doubtmk{background:rgba(234,88,12,.10);border-bottom:1px dashed #ea580c;}'
+    + '.aap-doubtmk::after{content:"?";font-size:.72em;font-weight:700;color:#ea580c;margin-left:1px;vertical-align:super;}'
+    + '.aap-doubtmk.resolved{opacity:.75;border-bottom-color:#b0aa9c;}'
+    + '.aap-doubtmk.resolved::after{content:"✓";color:#0f766e;}'
     + '.aap-mark:hover{filter:brightness(.95);}'
     + '@keyframes aapFlash{0%,100%{background:rgba(250,204,21,.45);}50%{background:rgba(250,204,21,.85);}}'
     + '.aap-flash{animation:aapFlash 1.2s ease 2;}'
@@ -223,6 +239,11 @@
     + '.aap-pop .acts button.ghost{background:#fff;color:#0f766e;}'
     + '.aap-pop .acts button.danger{background:#fff;color:#dc2626;border-color:#dc2626;margin-right:auto;}'
     + '.aap-pop .nt{line-height:1.7;white-space:pre-wrap;}'
+    + '.aap-pop .ans{margin-top:8px;padding:8px 10px;background:#f0faf8;border-radius:6px;line-height:1.7;white-space:pre-wrap;font-size:12.5px;color:#115e59;max-height:220px;overflow-y:auto;}'
+    + '.aap-pop .ans .who{font-size:11px;color:#0f766e;font-weight:600;display:block;margin-bottom:4px;}'
+    + '.aap-pop .st{display:inline-block;font-size:11px;padding:1px 8px;border-radius:9px;margin-left:6px;}'
+    + '.aap-pop .st.open{background:#fff7ed;color:#ea580c;}'
+    + '.aap-pop .st.done{background:#f0faf8;color:#0f766e;}'
     + '.aap-pop .meta{font-size:11px;color:#b0aa9c;margin-top:8px;}'
     + '.aap-fab{position:fixed;right:22px;bottom:26px;z-index:80;display:flex;flex-direction:column;gap:10px;}'
     + '.aap-fab button{width:46px;height:46px;border-radius:50%;border:1px solid #e5e1d8;background:#fffdf9;box-shadow:0 4px 16px rgba(60,50,30,.16);cursor:pointer;font-size:18px;color:#0f766e;position:relative;transition:transform .15s;}'
@@ -247,6 +268,14 @@
     + '.aap-item .am{display:flex;align-items:center;margin-top:6px;font-size:11px;color:#b0aa9c;}'
     + '.aap-item .am .del{margin-left:auto;border:0;background:none;color:#c7c2b6;cursor:pointer;font-size:11.5px;}'
     + '.aap-item .am .del:hover{color:#dc2626;}'
+    + '.aap-item .dq{font-size:12.5px;color:#c2410c;margin-top:6px;line-height:1.55;white-space:pre-wrap;}'
+    + '.aap-item .da{font-size:12px;color:#115e59;margin-top:6px;line-height:1.6;background:#f0faf8;border-radius:6px;padding:6px 9px;max-height:100px;overflow:hidden;white-space:pre-wrap;}'
+    + '.aap-item .st{display:inline-block;font-size:10.5px;padding:0 7px;border-radius:8px;margin-left:6px;}'
+    + '.aap-item .st.open{background:#fff7ed;color:#ea580c;}'
+    + '.aap-item .st.done{background:#f0faf8;color:#0f766e;}'
+    + '.aap-item .mini{border:0;background:none;color:#c7c2b6;cursor:pointer;font-size:11.5px;margin-left:8px;padding:0;}'
+    + '.aap-item .mini:hover{color:#0f766e;}'
+    + '.aap-item .mini.thinking{color:#b45309;pointer-events:none;}'
     + '.aap-empty{text-align:center;color:#b0aa9c;font-size:12.5px;padding:42px 20px;line-height:2;}'
     + '.aap-drawer footer{padding:10px 14px;border-top:1px solid #efece4;}'
     + '.aap-drawer footer .syncrow{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:11.5px;}'
@@ -322,7 +351,7 @@
   }
 
   function paintMark(item) {
-    var cls = 'aap-mark ' + (item.kind === 'note' ? 'aap-note' : 'aap-line');
+    var cls = 'aap-mark ' + (item.kind === 'note' ? 'aap-note' : (item.type === 'doubt' ? 'aap-doubtmk' + (item.status === 'done' ? ' resolved' : '') : 'aap-line'));
     var s = nodeFromPath(item.sPath), e = nodeFromPath(item.ePath);
     if (s && e && s.nodeType === 3 && e.nodeType === 3) {
       var range = document.createRange();
@@ -387,7 +416,7 @@
     contentEl.normalize();
   }
   function paintAll() {
-    marks(PAGE).sort(function (a, b) { return cmpAnchor(b, a); }).forEach(paintMark);
+    marks(PAGE).concat(doubts(PAGE)).sort(function (a, b) { return cmpAnchor(b, a); }).forEach(paintMark);
   }
 
   /* ================= 浮动层 ================= */
@@ -433,6 +462,7 @@
       selTool.innerHTML = ''
         + '<button data-act="line">划线</button>'
         + '<button data-act="note">✎ 写想法</button>'
+        + '<button data-act="doubt">? 不懂</button>'
         + '<button data-act="copy">复制</button>';
       selTool.addEventListener('mousedown', function (e) { e.preventDefault(); });
       selTool.addEventListener('click', function (e) {
@@ -441,6 +471,10 @@
         if (act === 'copy') {
           try { navigator.clipboard.writeText(text); } catch (err) {}
           closeFloating();
+          return;
+        }
+        if (act === 'doubt') {
+          createDoubt(range, text);
           return;
         }
         createMark(range, text, act);
@@ -508,6 +542,119 @@
     ta.focus();
   }
 
+  /* ================= 疑问卡（不懂的知识点） ================= */
+
+  function createDoubt(range, text) {
+    var item = {
+      id: uid(), type: 'doubt',
+      page: PAGE, title: PAGE_TITLE,
+      sPath: nodePath(range.startContainer), sOff: range.startOffset,
+      ePath: nodePath(range.endContainer), eOff: range.endOffset,
+      text: text.slice(0, 200), question: '', answer: '', status: 'open', ts: Date.now()
+    };
+    closeFloating();
+    var pop = document.createElement('div');
+    pop.className = 'aap-pop';
+    pop.innerHTML = ''
+      + '<div class="q">' + escapeHtml(text.slice(0, 80)) + (text.length > 80 ? '…' : '') + '</div>'
+      + '<textarea placeholder="哪里不懂？用自己的话描述一下疑问……"></textarea>'
+      + '<div class="acts">'
+      + '<button class="ghost" data-a="save">存入疑问清单</button>'
+      + (AI_READY ? '<button data-a="ask">存入并问 AI ✨</button>' : '')
+      + '</div>';
+    var ta = pop.querySelector('textarea');
+    function commit(withAI) {
+      item.question = ta.value.trim() || '这段没看懂';
+      db.items.push(item); save(); cloudUpsert(item);
+      paintMark(item);
+      window.getSelection().removeAllRanges();
+      closeFloating();
+      refreshBadge();
+      if (withAI) askAI(item, null);
+    }
+    pop.addEventListener('click', function (e) {
+      var a = e.target.getAttribute('data-a');
+      if (a === 'save') commit(false);
+      if (a === 'ask') commit(true);
+    });
+    showFloating(pop, range.getBoundingClientRect(), false);
+    ta.focus();
+  }
+
+  /* AI 答疑：POST {question, quote, page, title} → {answer} */
+  function askAI(item, btn) {
+    if (!AI_READY) return;
+    if (btn) { btn.textContent = 'AI 思考中…'; btn.classList.add('thinking'); }
+    var headers = { 'Content-Type': 'application/json' };
+    if (ASK_API_KEY) headers['Authorization'] = 'Bearer ' + ASK_API_KEY;
+    else if (SUPABASE_ANON_KEY) {
+      headers['apikey'] = SUPABASE_ANON_KEY;
+      headers['Authorization'] = 'Bearer ' + SUPABASE_ANON_KEY;
+    }
+    fetch(askEndpoint(), {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        question: item.question || '这段没看懂，请讲解',
+        quote: item.text,
+        page: item.page,
+        title: item.title
+      })
+    }).then(function (r) {
+      if (!r.ok) throw new Error('http ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      if (!d || !d.answer) throw new Error('empty');
+      item.answer = String(d.answer);
+      item.ts = Date.now();
+      save(); cloudUpsert(item);
+      renderList();
+      closeFloating();
+      openDoubtDetail(item, contentEl.querySelector('.aap-mark[data-nid="' + item.id + '"]'));
+    }).catch(function () {
+      item.answer = item.answer || '';
+      if (btn) { btn.textContent = '问 AI ✨'; btn.classList.remove('thinking'); }
+      window.alert('AI 答疑暂时不可用，请稍后再试。疑问已保存在清单里。');
+    });
+  }
+
+  function openDoubtDetail(item, anchorEl) {
+    closeFloating();
+    var pop = document.createElement('div');
+    pop.className = 'aap-pop';
+    pop.innerHTML = ''
+      + '<div class="q">' + escapeHtml(item.text.slice(0, 80)) + (item.text.length > 80 ? '…' : '') + '</div>'
+      + '<div class="nt"><b>我的疑问：</b>' + escapeHtml(item.question || '这段没看懂')
+      + '<span class="st ' + (item.status === 'done' ? 'done' : 'open') + '">' + (item.status === 'done' ? '已搞懂' : '未搞懂') + '</span></div>'
+      + (item.answer ? '<div class="ans"><span class="who">AI 助教</span>' + escapeHtml(item.answer) + '</div>' : '')
+      + '<div class="meta">' + new Date(item.ts).toLocaleString('zh-CN') + '</div>'
+      + '<div class="acts">'
+      + '<button class="danger" data-a="del">删除</button>'
+      + (AI_READY ? '<button class="ghost" data-a="ask">' + (item.answer ? '重新问 AI' : '问 AI ✨') + '</button>' : '')
+      + '<button class="ghost" data-a="toggle">' + (item.status === 'done' ? '标回未懂' : '标记已懂 ✓') + '</button>'
+      + '<button data-a="close">关闭</button>'
+      + '</div>';
+    pop.addEventListener('click', function (ev) {
+      var a = ev.target.getAttribute('data-a');
+      if (a === 'close') closeFloating();
+      if (a === 'del') { removeItem(item.id); closeFloating(); }
+      if (a === 'ask') { closeFloating(); askAI(item, null); }
+      if (a === 'toggle') {
+        item.status = item.status === 'done' ? 'open' : 'done';
+        item.ts = Date.now();
+        save(); cloudUpsert(item);
+        unpaint(item.id); paintMark(item);
+        renderList();
+        openDoubtDetail(item, anchorEl);
+      }
+    });
+    var rect = anchorEl && anchorEl.getBoundingClientRect
+      ? anchorEl.getBoundingClientRect()
+      : { top: window.scrollY + 120, left: 60, width: 10, height: 20 };
+    showFloating(pop, rect, false);
+  }
+
+
   /* ================= 点击标记 → 详情 ================= */
 
   contentEl.addEventListener('click', function (e) {
@@ -516,6 +663,7 @@
     var id = span.getAttribute('data-nid');
     var item = db.items.filter(function (i) { return i.id === id; })[0];
     if (!item) return;
+    if (item.type === 'doubt') { openDoubtDetail(item, span); return; }
     closeFloating();
     var pop = document.createElement('div');
     pop.className = 'aap-pop';
@@ -584,7 +732,7 @@
     b.title = on ? '已收藏，点击取消' : '收藏本页';
   }
   function refreshBadge() {
-    var n = marks().length;
+    var n = marks().length + doubts().length;
     var badge = fab.querySelector('#aapBadge');
     badge.style.display = n ? '' : 'none';
     badge.textContent = n > 99 ? '99+' : n;
@@ -597,6 +745,7 @@
     + '<header><h3>我的笔记与收藏<button class="x" title="关闭">×</button></h3>'
     + '<div class="aap-tabs">'
     + '<button data-tab="notes" class="on">划线与想法</button>'
+    + '<button data-tab="doubts">疑问</button>'
     + '<button data-tab="favs">收藏</button>'
     + '</div></header>'
     + '<div class="aap-list" id="aapList"></div>'
@@ -657,6 +806,7 @@
   function renderList() {
     var list = drawer.querySelector('#aapList');
     if (!drawer.classList.contains('open')) return;
+    if (curTab === 'doubts') { renderDoubts(list); return; }
     if (curTab === 'favs') {
       var fs = favs().sort(function (a, b) { return b.ts - a.ts; });
       list.innerHTML = fs.length ? '' : '<div class="aap-empty">还没有收藏<br>点右下角 ☆ 收藏当前章节</div>';
@@ -703,6 +853,62 @@
     });
   }
 
+  /* 疑问清单：未搞懂优先，按章节分组 */
+  function renderDoubts(list) {
+    var ds = doubts().sort(function (a, b) {
+      if ((a.status === 'done') !== (b.status === 'done')) return a.status === 'done' ? 1 : -1;
+      return b.ts - a.ts;
+    });
+    list.innerHTML = ds.length ? '' : '<div class="aap-empty">还没有疑问<br>读不懂的地方选中文字<br>点「? 不懂」收集起来，AI 帮你讲透</div>';
+    if (ds.length) {
+      var openN = ds.filter(function (d) { return d.status !== 'done'; }).length;
+      var stat = document.createElement('div');
+      stat.className = 'aap-group';
+      stat.textContent = '共 ' + ds.length + ' 个疑问 · ' + openN + ' 个待搞懂';
+      list.appendChild(stat);
+    }
+    var lastPage = null;
+    ds.forEach(function (d) {
+      if (d.page !== lastPage) {
+        lastPage = d.page;
+        var g = document.createElement('div');
+        g.className = 'aap-group';
+        g.textContent = (d.page === PAGE ? '本篇 · ' : '') + d.title;
+        list.appendChild(g);
+      }
+      var div = document.createElement('div');
+      div.className = 'aap-item';
+      div.innerHTML = '<div class="aq">' + escapeHtml(d.text) + '</div>'
+        + '<div class="dq">？' + escapeHtml(d.question || '这段没看懂')
+        + '<span class="st ' + (d.status === 'done' ? 'done' : 'open') + '">' + (d.status === 'done' ? '已搞懂' : '未搞懂') + '</span></div>'
+        + (d.answer ? '<div class="da">' + escapeHtml(d.answer) + '</div>' : '')
+        + '<div class="am">' + fmtTs(d.ts)
+        + (AI_READY ? '<button class="mini" data-x="ask">' + (d.answer ? '重问 AI' : '问 AI ✨') + '</button>' : '')
+        + '<button class="mini" data-x="toggle">' + (d.status === 'done' ? '标回未懂' : '已懂 ✓') + '</button>'
+        + '<button class="del">删除</button></div>';
+      div.addEventListener('click', function (e) {
+        var x = e.target.getAttribute && e.target.getAttribute('data-x');
+        if (e.target.className === 'del') { removeItem(d.id); return; }
+        if (x === 'ask') { askAI(d, e.target); return; }
+        if (x === 'toggle') {
+          d.status = d.status === 'done' ? 'open' : 'done';
+          d.ts = Date.now();
+          save(); cloudUpsert(d);
+          unpaint(d.id); paintMark(d);
+          renderList();
+          return;
+        }
+        if (d.page === PAGE) {
+          closeDrawer();
+          scrollToMark(d.id);
+        } else {
+          location.href = d.page + '.html#nid-' + d.id;
+        }
+      });
+      list.appendChild(div);
+    });
+  }
+
   function scrollToMark(id) {
     var span = contentEl.querySelector('.aap-mark[data-nid="' + id + '"]');
     if (!span) return;
@@ -725,6 +931,16 @@
         if (m.note) lines.push('✎ ' + m.note, '');
       });
     });
+    var dts = doubts();
+    if (dts.length) {
+      lines.push('## 疑问清单', '');
+      dts.sort(function (a, b) { return b.ts - a.ts; }).forEach(function (d) {
+        lines.push('### ' + (d.status === 'done' ? '[已搞懂] ' : '[待搞懂] ') + d.title, '');
+        lines.push('> ' + d.text.replace(/\n/g, ' '), '');
+        lines.push('？' + (d.question || '这段没看懂'), '');
+        if (d.answer) lines.push('AI 助教：' + d.answer, '');
+      });
+    }
     var fs = favs();
     if (fs.length) {
       lines.push('## 收藏的章节', '');
