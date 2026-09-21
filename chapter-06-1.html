@@ -379,6 +379,11 @@ class ContextAssembler:
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m8-context-memory.zip">下载 retailhub-m8-context-memory.zip</a> 本地跑（解压后 <code>cd m8-context-memory &amp;&amp; bash run.sh</code> 一键跑通 Context 装配管线，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m8"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<p><strong>命题（先合上教程）</strong>。运营总监原话：&quot;AI 算出来的 GMV 跟财务报表对不上，一会儿含运费一会儿不含，我们开会都在吵数。还有，别再把几万行明细塞给它了，上次直接答非所问。&quot;——日均 5000 问跑稳之后，矛盾从&quot;跑不跑得完&quot;变成了&quot;喂得对不对&quot;。先自己写 5 分钟方案：怎么让模型每次都按对的口径、看&quot;够又不多&quot;的信息？</p>
+<p><strong>架构师的澄清提问（压缩版）</strong>。① 错一次口径的代价？——决定&quot;关键上下文缺失即停止&quot;要不要做成硬熔断（业务方答：对外报表错一次就下架功能，必须熔断）。② 一次调用窗口多大、现在塞了什么？——32K 窗口，目前一个万能大 Prompt 全塞，8K token 的口径文档常被几万行 SQL 结果挤没。③ 哪些信息绝不能让某些租户看到？——跨租户口径与成本数据，这决定硬过滤是物理执行还是 Prompt 祈祷。④ 四个决策步骤（规划/写 SQL/分析/写建议）该看到的东西一样吗？——业务方从没想过这个问题，这正是 Profile 化的起点。⑤ 谁为&quot;它当时看到了什么&quot;负责？——审计条款已进客户合同，答不出就不能上线。</p>
+<p><strong>容量估算（一本账就够）</strong>。无装配策略时单次调用平均塞入约 10K token（万能 Prompt + 全量证据）；按决策契约装配后约 4K。日均 5000 问 × 平均 3 次调用，月消耗从约 45 亿 token 降到约 18 亿，混合价折算月成本从约 ¥10 万降到约 ¥4 万，且&quot;口径被挤没&quot;类事故归零。<strong>失效边界</strong>：当单步证据规模超过窗口 10 倍（如全库明细级归因），分区预算也装不下，必须升级为 Artifact 引用与恢复时装配——篇06-2 接手。</p>
+<p><strong>方案空间与取舍（简版）</strong>。A 土办法：一个万能大 Prompt 模板（现状，口径稀释的元凶）；B 四个 Context Profile 共用一条装配管线（本篇打法）；C 过度工程：上 RAG 平台 + 特征仓库 + 在线检索索引（日均 5000 问、候选仅 20 条，杀鸡用屠龙刀）。<strong>决策：B</strong>——契约参数差异化而管线复用，改动最小、收益直接；记入 ADR-003，并写明&quot;窗口扩容到 200K 或候选规模破千时结论需复审&quot;。</p>
+<p>想清楚再动手——以下是把决策落地的装配练习。</p>
 <p>为规划、查询设计、原因分析、建议生成各建一份 Profile：规划 Profile 的语义区占大头、证据区留空；查询设计 Profile 加大 schema 与行列权限、砍掉历史对话；原因分析 Profile 把预算向证据区倾斜；建议生成 Profile 只收&quot;已验证&quot;状态的证据引用。四个 Profile 共用同一条管线、不同的契约参数——这正是 Provider 化与契约化带来的复用。</p>
 <p>看完代码骨架，用下面的交互 Demo 把整条管线亲手跑一遍：左侧候选池有 15 条信息，里面埋了四处隐患——一条租户 B 的口径、一份含注入指令的外部文档、一对冲突的 GMV 口径版本、一条重复投递的证据。点「开始装配」，观察四段管线如何依次裁决：跨租户与不可信条目在①硬过滤直接出局（无论它多&quot;相关&quot;），v41 口径在②冲突裁决中被 v42 取代，③分区装填时证据区预算不足会把 5 万行原始结果压缩成 Artifact 引用卡。然后把 Token Budget 拖到 4000 以下，看保底区纹丝不动、弹性证据区先压缩后剔除的取舍顺序；最后打开「关闭硬过滤」开关再跑一次——右侧审计日志会告诉你注入与跨租户泄漏是怎样发生的：</p>
 <div class="demo-embed" data-demo="context-assembler"><div class="demo-loading">交互 Demo 加载中…</div></div>
@@ -390,6 +395,7 @@ class ContextAssembler:
 <li>打开「关闭硬过滤」开关重跑：注入文档与租户 B 口径各自走到了哪一步？这违反了 6.1 节信任三圈的哪条铁律？</li>
 <li>思考：为什么关闭硬过滤后注入不是&quot;必然成功&quot;而只是&quot;风险敞口&quot;？防御为什么必须分层（对照 6.1 节攻击路径图）？</li>
 </ol>
+<p><strong>复盘追问</strong>。① 证据区需求再翻 10 倍（全库明细级归因）怎么办？——Artifact 引用卡 + 恢复时装配，这正是篇06-2 要解决的。② 客户安全审查要求&quot;逐条解释为什么给它看这条信息&quot;？——Decision Trace 从排障日志升级为审计产物，也是篇06-2 的收官动作。③ 模型想记住用户口径偏好、带进每次装配？——记忆召回要过同样的 Scope 与状态硬过滤，篇08-2 见。</p>
 <hr>
 <h2 id="参考与脚注">参考与脚注</h2>
 <hr>

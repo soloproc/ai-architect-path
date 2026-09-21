@@ -114,6 +114,23 @@
 <p>建议姿势：读章节时用「在线运行」建立直觉；想跑完整服务（含 FastAPI 端口、压测脚本）就开云端虚拟机；读到「本卷实战 / 本篇实战」要长期折腾时，下载源码包到本地，亲手跑通验收清单。</p>
 </blockquote>
 <hr>
+<h2 id="0-实战的正确打开方式-先遮住方案-再想再看">0. 实战的正确打开方式（先遮住方案，再想再看）</h2>
+<p>从卷01-2 起，每个实战章节都是<strong>五段式结构</strong>，实现步骤只是其中一段：</p>
+<ol>
+<li><strong>命题</strong>：一段口语化的&quot;老板需求原文&quot;——含糊、留坑、带约束（预算/人/时间/合规）。</li>
+<li><strong>澄清提问</strong>：架构师拿到命题先问什么，每个问题为什么决定架构形态，附假想业务方回答（锚定数字）。</li>
+<li><strong>容量估算</strong>：用锚定的数字做 back-of-envelope 计算，推出架构形态，并写明&quot;失效边界&quot;（什么规模下结论被推翻）。</li>
+<li><strong>方案取舍</strong>：2-4 个候选方案的对比表（含一个过度设计项、一个零开发项），明确决策与一句话理由。</li>
+<li><strong>复盘追问</strong>：实现验收全绿之后，用 3-5 个变体追问把结论再压一遍，每条只给方向、不给答案。</li>
+</ol>
+<p><strong>推荐用法：先遮住，再对照。</strong></p>
+<ul>
+<li>读到「命题」就停下，<strong>合上教程自己写 10 分钟</strong>——你会问什么、你估的量级、你选什么方案。写在纸上，别在脑子里过。</li>
+<li>然后对照 2-4 段：差距不在&quot;没想到缓存&quot;，而在&quot;没问出那个决定缓存合法性的问题&quot;。<strong>把差距记下来，这比代码值钱。</strong></li>
+<li>第 5 段的追问不留完整答案是故意的——它们指向后续卷章，想不出来就带着问题往下读。</li>
+</ul>
+<p>直接跳到实现步骤照做，也能跑通验收，但学到的只是&quot;怎么做&quot;；走完五段式，学到的才是&quot;怎么想&quot;。</p>
+<hr>
 <h2 id="1-环境准备-只做一次-macos-为主">1. 环境准备（只做一次，macOS 为主）</h2>
 <p>源码全部是 Python 写的，唯一硬性要求是 <strong>Python ≥ 3.10</strong>。不需要装 Redis / MySQL / GPU——缓存用 fakeredis 模拟、数据库用 SQLite、推理服务是本地 mock。</p>
 <h3 id="1-1-检查-python3">1.1 检查 python3</h3>
@@ -324,6 +341,7 @@ uvicorn app.main:app --port 8000
 <aside class="toc">
   <div class="toc-title">本页目录</div>
   <nav>
+    <a class="toc-h2" href="#0-实战的正确打开方式-先遮住方案-再想再看">0. 实战的正确打开方式（先遮住方案，再想再看）</a>
     <a class="toc-h2" href="#1-环境准备-只做一次-macos-为主">1. 环境准备（只做一次，macOS 为主）</a>
     <a class="toc-h3" href="#1-1-检查-python3">1.1 检查 python3</a>
     <a class="toc-h3" href="#1-2-安装-python3-没有的话">1.2 安装 python3（没有的话）</a>

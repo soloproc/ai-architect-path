@@ -447,6 +447,77 @@ def governed_recall(contract: RecallContract, ctx: SecurityContext) -&gt; list[d
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m8-context-memory.zip">下载 retailhub-m8-context-memory.zip</a> 本地跑（解压后 <code>cd m8-context-memory &amp;&amp; bash run.sh</code> 一键跑通记忆写入/召回管线，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m8"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="命题-先合上教程">命题（先合上教程）</h3>
+<blockquote>
+<p>&quot;客户成功部收上来两条完全相反的用户反馈。一条：『你们 AI 是金鱼吗？我每周都说周报要用同比口径，它下周又忘了。』另一条来自法务：『客户行使删除权，要求把系统里关于他的一切删干净——包括 AI 记住的东西，你们做得到吗？』老板说，记忆功能这个月要上。&quot;</p>
+</blockquote>
+<p>记忆是整个教程里最诱人的功能，也是翻车最狠的功能。先自己写 10 分钟方案，再对照下面的追问。</p>
+<h3 id="架构师的澄清提问">架构师的澄清提问</h3>
+<ol>
+<li><strong>用户抱怨的&quot;记不住&quot;具体是什么？</strong> 口径偏好？写作风格？还是历史数据？——偏好该记，历史数据永远实时查（&quot;记忆不存事实&quot;原则）；这一问答错，整个方案就歪了。</li>
+<li><strong>记错了的代价是什么？</strong> 把&quot;同比&quot;记成&quot;环比&quot;是体验问题，把恶意注入的口径记成事实是安全事故——错误代价决定写入要不要设人工确认档。</li>
+<li><strong>谁能看谁删？</strong> 个人记忆、租户共享记忆、平台运维各是什么权限？——角色矩阵不画出来，&quot;提升为共享记忆&quot;早晚变成跨租户泄漏。</li>
+<li><strong>删除的 SLA 与范围？</strong> 法务说的&quot;删干净&quot;包括向量索引、缓存、已导出的报告副本吗？——每一层都是独立的工程问题。</li>
+<li><strong>日均写入与召回的量级？</strong> 决定存储三层要不要分库、召回 token 预算怎么定。</li>
+<li><strong>记忆会过期吗？</strong> 去年&quot;主推品类是咖啡&quot;今年还成立吗？——没有 TTL 与遗忘机制的记忆库，半年后一半是假真相。</li>
+</ol>
+<p>假想业务方回答（锚定数字）：要记的主要是口径偏好、报告格式偏好、归因经验三类；活跃用户约 <strong>3000 人</strong>；日均写入候选约 <strong>500 条</strong>、问答召回注入约 <strong>1.5 万次</strong>；法务要求删除 <strong>24 小时内全层生效</strong>并出具证明；错误口径记成事实算一级事故；共享记忆只有租户管理员能提升。</p>
+<h3 id="容量估算与约束推导">容量估算与约束推导</h3>
+<ul>
+<li><strong>存储账</strong>：3000 用户 × 人均 20 条 × 条约 2KB ≈ 120MB——SQLite 主库 + 内存向量索引绰绰有余。<strong>存储从来不是记忆系统的难点，治理才是。</strong></li>
+<li><strong>召回 token 账</strong>：1.5 万次召回/日 × 每次注入 ≤400 token ≈ 6M token/日的额外上下文消耗，约占篇06 总盘子（60M token/日）的 10%——可控，但必须设硬上限，否则&quot;越记越贵&quot;。</li>
+<li><strong>删除账</strong>：每次删除要传播到主库、向量索引、缓存、进行中任务、导出副本共 5 层，每层独立确认 + 定期对账——漏掉向量索引是最常见的残留事故。</li>
+<li><strong>失效边界</strong>：记忆条数破千万级（全量企业客户）时，内存索引换 ANN 服务；当记忆成为审计与对抗的主战场，六维评测与红队用例必须进 CI——这正是篇09 受控进化要接住的。</li>
+</ul>
+<h3 id="方案空间与取舍">方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>候选方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 土办法：对话摘要直接塞向量库，Top-K 召回</td>
+<td>2 天</td>
+<td>最低</td>
+<td>记脏、记串、删不掉、注入直通——四宗罪全占</td>
+<td>无，欠债必还</td>
+<td>低</td>
+</tr>
+<tr>
+<td>B. 记忆治理体系（写入管线 + Recall Contract + MemoryOps）</td>
+<td>2-3 周</td>
+<td>低（复用 m8 基础设施）</td>
+<td>治理过滤可能误伤有价值记忆，需对照实验调权</td>
+<td>每层独立演进</td>
+<td>中高</td>
+</tr>
+<tr>
+<td>C. 商用托管记忆平台</td>
+<td>1 周</td>
+<td>中（订阅费）</td>
+<td>删除权与数据驻留受供应商约束，法务未必放行</td>
+<td>受平台能力约束</td>
+<td>低</td>
+</tr>
+<tr>
+<td>D. 过度工程：微调专属模型让模型&quot;天然记住&quot;</td>
+<td>1 个月+</td>
+<td>极高</td>
+<td>微调无法删除单条记忆，法务红线直接踩死</td>
+<td>几乎不可逆</td>
+<td>极高</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：选 B。</strong> 一句话理由：D 在&quot;删除权&quot;一条上直接出局，A 的四宗罪条条致命，C 过不了法务的数据驻留审查——B 是唯一同时满足&quot;记得住、删得掉、防得住&quot;的形态。落成 ADR：《ADR-005 记忆系统采用治理管线而非裸向量库》，附六维评测指标的目标值。</p>
+<p>想清楚再动手——以下是把决策落地的递进步骤。</p>
 <h3 id="第-1-步-记忆分类训练-认知层">第 1 步：记忆分类训练（认知层）</h3>
 <ul>
 <li><strong>目标</strong>：见到任意一条信息，30 秒内判定它的归宿。</li>
@@ -471,6 +542,13 @@ def governed_recall(contract: RecallContract, ctx: SecurityContext) -&gt; list[d
 <li><strong>操作</strong>：(a) 画出&quot;用户删除一条租户共享经验&quot;的完整传播链路（主库/向量索引/缓存/进行中任务/已导出报告），标注每一环的失败模式和兜底机制（对账任务怎么设计）；(b) 写出&quot;恶意指标口径注入&quot;的完整测试剧本——注入材料构造、预期被拦截的环节、未被拦截时的二次防线、判定通过/失败的标准。</li>
 <li><strong>验收标准</strong>：传播链路覆盖全部 5 类目标且每环有兜底；红队剧本可直接交给 CI 执行，判定标准是布尔的而非主观的。</li>
 </ul>
+<h3 id="复盘追问">复盘追问</h3>
+<ol>
+<li><strong>记忆条数翻 100 倍，哪里先撑不住？</strong> 方向提示：不是存储——是召回质量（候选变多，排序五因子权重必须重新标定）与遗忘机制的吞吐量。</li>
+<li><strong>监管要求&quot;AI 依据的每条记忆都能向用户解释来源&quot;？</strong> 方向提示：Memory Trace 已有雏形，要升级为面向用户的解释视图（4.1 节）；评测侧要新增&quot;解释完整率&quot;指标——这正是篇09 评测框架能装下的。</li>
+<li><strong>红队通过恶意文档批量投毒记忆库，现有防线够吗？</strong> 方向提示：4.4 节三层防线拦单点，批量投毒要靠写入速率异常检测 + 污染率抽检——MemoryOps 的运营面。</li>
+<li><strong>记忆策略想升级（新的排序权重），怎么证明比旧的好？</strong> 方向提示：4.7 节三组对照实验只是手工版，自动化、门禁化的版本正是篇09 的 Regression Gate。</li>
+</ol>
 <h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
 <p>① <strong>可复制提示词模板</strong>（把第 2 步的冲突仲裁函数委托给 AI 起草）：</p>
 <pre><code class="language-text">你是企业级 Agent 记忆系统的后端工程师。基于以下 MemoryRecord 骨架
@@ -547,10 +625,15 @@ def governed_recall(contract: RecallContract, ctx: SecurityContext) -&gt; list[d
     <a class="toc-h3" href="#4-7-上线验收-三组对照实验">4.7 上线验收：三组对照实验</a>
     <a class="toc-h2" href="#常见误区">常见误区</a>
     <a class="toc-h2" href="#本篇实战-为-dataagent-设计记忆治理体系">本篇实战：为 DataAgent 设计记忆治理体系</a>
+    <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
+    <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
+    <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>
+    <a class="toc-h3" href="#方案空间与取舍">方案空间与取舍</a>
     <a class="toc-h3" href="#第-1-步-记忆分类训练-认知层">第 1 步：记忆分类训练（认知层）</a>
     <a class="toc-h3" href="#第-2-步-写入管线补全-机制层">第 2 步：写入管线补全（机制层）</a>
     <a class="toc-h3" href="#第-3-步-recall-contract-设计-召回层">第 3 步：Recall Contract 设计（召回层）</a>
     <a class="toc-h3" href="#第-4-步-删除传播与红队推演-治理层">第 4 步：删除传播与红队推演（治理层）</a>
+    <a class="toc-h3" href="#复盘追问">复盘追问</a>
     <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
     <a class="toc-h2" href="#自测清单">自测清单</a>
     <a class="toc-h2" href="#参考与脚注">参考与脚注</a>

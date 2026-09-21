@@ -439,6 +439,80 @@
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m7-agent-runtime.zip">下载 retailhub-m7-agent-runtime.zip</a> 本地跑（解压后 <code>cd m7-agent-runtime &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m7"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="命题-先合上教程">命题（先合上教程）</h3>
+<blockquote>
+<p>&quot;客户成功团队又投诉了：经营月报生成到一半服务重启，仨小时的分析白跑，只能从头再来。另外数据组想要一个『退款率异常自动诊断』：自己查数、比对、归因，最后给人审一眼再发建议。还有，新版补贴系统上线后，日均问答要从 500 涨到 5000。别跟我说重启加内存就行。&quot;</p>
+</blockquote>
+<p>老规矩：先合上教程，自己写 10 分钟方案再对照下面的追问。</p>
+<h3 id="架构师的澄清提问">架构师的澄清提问</h3>
+<ol>
+<li><strong>一次诊断任务跑多久、多少步？</strong> 5 分钟的任务重跑无所谓，3 小时的任务崩一次就是事故——任务时长决定&quot;状态外置 + Checkpoint&quot;是必修还是选修。</li>
+<li><strong>中断的真实频率和来源是什么？</strong> 发版重启？OOM？模型超时？——不同死因对应不同机制（Checkpoint / Lease 接管 / Attempt 重试），不分类就会拿重试治百病。</li>
+<li><strong>任务里有副作用吗？</strong> &quot;发建议&quot;&quot;调阈值&quot;&quot;建工单&quot;是不可逆动作——有副作用就必须上幂等键与审批 Gate，没有则可以先省掉。</li>
+<li><strong>谁要看任务的中间过程？</strong> 只要最终结果，还是运营要看&quot;诊断进行到哪一步&quot;？——决定要不要 Event 流与 Timeline 这种可观测外设。</li>
+<li><strong>审批要等多久？</strong> 等 5 分钟和等 2 天，对挂起态持久化的要求完全不同——用内存等 2 天等于必丢。</li>
+<li><strong>5000 问里长任务占多少？</strong> 占比 1% 与 30%，对调度与隔离的设计压力是两个量级。</li>
+<li><strong>多任务并发会互相踩踏吗？</strong> 租户 A 跑飞的任务会不会拖死租户 B 的月报？——决定隔离要做到什么粒度。</li>
+</ol>
+<p>假想业务方回答（锚定数字）：日均 5000 问中约 <strong>200 个深度诊断类长任务</strong>；单任务 20-40 步、<strong>平均 25 分钟、最长 3 小时</strong>；副作用两类——建工单（低风险自动）、调阈值建议（<strong>必须人工审批，审批可能隔夜</strong>）；中断主要来自每周发版与偶发 OOM，月报场景目前每月丢 3-4 次；运营要看进度；多租户并发已经存在。</p>
+<h3 id="容量估算与约束推导">容量估算与约束推导</h3>
+<ul>
+<li><strong>Token 账</strong>：一次诊断 ≈ 30 步 × 每步一次模型调用 ≈ 240K token；200 个长任务/日 ≈ 48M token，叠加常规问答后日消耗约 110M token——比篇04-2 翻了约 17 倍，<strong>成本闸门从选修变必修</strong>。</li>
+<li><strong>中断浪费账</strong>：无 Checkpoint 时一次中断平均浪费半程进度 ≈ 120K token + 12.5 分钟；按 5%/日的任务中断率，每天白烧 200 × 5% × 120K ≈ 1.2M token，且月报这种 deadline 型任务重跑一次就错过早会。</li>
+<li><strong>并发账</strong>：200 个长任务摊到 16 小时工作窗口，稳态并发 ≈ 200 × 25min / 960min ≈ 5 个同时在跑——并发极低，<strong>单 Scheduler + 少量 Worker 足够，分布式是&quot;顺手&quot;不是&quot;刚需&quot;</strong>。</li>
+<li><strong>审批账</strong>：审批隔夜即挂起 8-16 小时——任何形式的内存态等待都不可接受，挂起必须持久化。</li>
+</ul>
+<p>推导结论：本步形态 = 状态机 + append-only 事件流 + Step 边界 Checkpoint + 持久化审批，全部用 SQLite 落地，不上消息队列。</p>
+<p><strong>失效边界</strong>：当稳态并发长任务破百、需要跨机接管与租户级隔离调度时，单进程方案失效——5.3 节的 Lease + fencing token 就是为那一天准备的；再往后，&quot;每次调用该给模型看什么&quot;会成为新瓶颈，这正是篇06 要解决的。</p>
+<h3 id="方案空间与取舍">方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>候选方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 土办法：while 循环跑到底，崩了人工重跑</td>
+<td>0（现状）</td>
+<td>看似为零</td>
+<td>中断即全损、审批无法隔夜、无审计</td>
+<td>无</td>
+<td>低</td>
+</tr>
+<tr>
+<td>B. 裸循环 → 套 Harness → 状态外置（本实战三级跳）</td>
+<td>约 1 周</td>
+<td>低（SQLite + 标准库）</td>
+<td>自研状态机需故障注入证明</td>
+<td>事件流是 Replay/审计的地基</td>
+<td>中</td>
+</tr>
+<tr>
+<td>C. 直接引入 Temporal/Durable Functions</td>
+<td>2-3 周接入</td>
+<td>中（新基础设施）</td>
+<td>团队不会运维，调试链路深</td>
+<td>强，但被编程模型锁定</td>
+<td>高</td>
+</tr>
+<tr>
+<td>D. 过度工程：自研多活分布式 Runtime + 分片调度</td>
+<td>2 个月+</td>
+<td>高</td>
+<td>5 个稳态并发上多活，复杂度全是空转</td>
+<td>过度设计反而难改</td>
+<td>极高</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：选 B，把 C 记为失效边界触发后的迁移目标。</strong> 一句话理由：5 个稳态并发配不上分布式调度，但&quot;中断全损、审批隔夜、结论要可解释&quot;三条里的任何一条都判了裸循环死刑。落成 ADR：《ADR-002 诊断任务从裸循环升级为事件溯源的可恢复 Run》，附本表与失效边界。</p>
+<p>想清楚再动手——以下是把决策落地的递进步骤。</p>
 <p>目标：亲手走完&quot;裸循环 → 套 Harness → 状态外置&quot;的三级跳，体会每一层各解决什么死法。</p>
 <p><strong>Step 1：裸循环 baseline（约 30 分钟）</strong></p>
 <ul>
@@ -464,6 +538,13 @@
 <li>操作：到达 Gate 时 Run 转 WAITING_APPROVAL 并落盘；外部写入审批结论文件后回调恢复。</li>
 <li>验收标准：审批等待期间重启程序，Run 仍能恢复并正确读取审批结论；审批拒绝走 CANCELLED 分支。</li>
 </ul>
+<h3 id="复盘追问">复盘追问</h3>
+<ol>
+<li><strong>长任务稳态并发从 5 涨到 500，先改哪里？</strong> 方向提示：Worker 水平扩容 + Lease 接管 + 按租户配额隔离（5.4-5.6 节）——调度层先动，状态机不用动，这就是事件溯源的回报。</li>
+<li><strong>监管要求&quot;每个结论说清是怎么得来的&quot;，现有机制够吗？</strong> 方向提示：Run Timeline 能答&quot;发生了什么&quot;，但答不了&quot;模型当时看到了什么&quot;——这正是篇06-2 ContextOps 要补的审计面。</li>
+<li><strong>模型在循环里反复查同一张表、原地打转怎么办？</strong> 方向提示：无进展检测 + Replan 预算（3.4 节）；再进一步，&quot;模型该看到什么&quot;由装配管线决定，是篇06 的主线。</li>
+<li><strong>诊断任务&quot;记住上次这么归因是对的&quot;并自动复用，是福音还是炸弹？</strong> 方向提示：跨任务的经验复用就是记忆系统，没有治理的记忆是记脏之源——这正是篇08-2 要解决的。</li>
+</ol>
 <h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
 <p><strong>① 可复制的 AI 提示词模板</strong></p>
 <pre><code class="language-text">你是资深分布式系统工程师。我们在给一个 ReAct 分析循环加企业级 Harness，请只完成当前步骤，不要提前实现后面的步骤。
@@ -555,6 +636,11 @@
     <a class="toc-h3" href="#6-4-故障注入测试-证明-能跨故障完成任务">6.4 故障注入测试：证明"能跨故障完成任务"</a>
     <a class="toc-h2" href="#常见误区">常见误区</a>
     <a class="toc-h2" href="#本篇实战-把-退款率异常诊断-从-while-循环升级为可恢复的-run">本篇实战：把"退款率异常诊断"从 while 循环升级为可恢复的 Run</a>
+    <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
+    <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
+    <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>
+    <a class="toc-h3" href="#方案空间与取舍">方案空间与取舍</a>
+    <a class="toc-h3" href="#复盘追问">复盘追问</a>
     <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
     <a class="toc-h2" href="#动手练习">动手练习</a>
     <a class="toc-h2" href="#自测清单">自测清单</a>
