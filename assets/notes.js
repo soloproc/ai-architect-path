@@ -216,19 +216,39 @@
       syncing: ['⟳ 同步中…', '#8a8578'],
       synced: ['☁ 已上云', '#0f766e'],
       offline: ['☁ 离线，稍后自动补传', '#b45309'],
-      local: ['本地模式（云端未配置）', '#b0aa9c']
+      local: ['本地模式 · 同步码可换设备', '#b0aa9c']
     };
     var m = map[state] || map.local;
     syncBadgeEl.textContent = m[0];
     syncBadgeEl.style.color = m[1];
   }
 
-  /* 换设备：输入同步码 → 拉取该码的云上数据合并 */
-  function adoptSyncKey(code) {
-    try { localStorage.setItem(KEY_KEY, code.trim()); } catch (e) {}
-    syncFromCloud().then(function (changed) {
-      if (changed) { unpaintAll(); paintAll(); paintFav(); refreshBadge(); renderList(); }
+  /* 换设备：同步码即数据本体（base64 编码的全部笔记），不依赖任何服务器 */
+  var SYNC_PREFIX = 'AAP1.';
+  function exportSyncCode() {
+    var json = JSON.stringify(db.items);
+    return SYNC_PREFIX + btoa(unescape(encodeURIComponent(json)));
+  }
+  function importSyncCode(code) {
+    code = String(code || '').trim();
+    if (code.indexOf(SYNC_PREFIX) !== 0) return { ok: false, msg: '同步码格式不对（应以 ' + SYNC_PREFIX + ' 开头）' };
+    var items;
+    try {
+      items = JSON.parse(decodeURIComponent(escape(atob(code.slice(SYNC_PREFIX.length)))));
+      if (!Array.isArray(items)) throw new Error('bad');
+    } catch (e) { return { ok: false, msg: '同步码无法解析，请确认完整复制' }; }
+    var byId = {};
+    db.items.forEach(function (i) { byId[i.id] = i; });
+    var added = 0, updated = 0;
+    items.forEach(function (r) {
+      if (!r || !r.id || !r.type) return;
+      var local = byId[r.id];
+      if (!local) { db.items.push(r); added++; }
+      else if ((r.ts || 0) > (local.ts || 0)) { db.items[db.items.indexOf(local)] = r; updated++; }
     });
+    save();
+    unpaintAll(); paintAll(); paintFav(); refreshBadge(); renderList();
+    return { ok: true, msg: '导入完成：新增 ' + added + ' 条，更新 ' + updated + ' 条' };
   }
 
   /* ================= 样式 ================= */
@@ -343,6 +363,10 @@
     + '.aap-citem .ct{font-size:11px;color:#b0aa9c;}'
     + '.aap-citem .cb{font-size:13.5px;color:#3f3a32;line-height:1.7;margin-top:4px;white-space:pre-wrap;}'
     + '.aap-cempty{font-size:12.5px;color:#b0aa9c;padding:14px 0;}'
+    + '.aap-wall{display:flex;gap:10px;flex-wrap:wrap;}'
+    + '.aap-wall .wbtn{display:inline-block;border:1px solid #e5e1d8;background:#fff;border-radius:8px;padding:9px 16px;font-size:13px;color:#57534e;text-decoration:none;cursor:pointer;}'
+    + '.aap-wall .wbtn:hover{border-color:#0f766e;color:#0f766e;}'
+    + '.aap-wall .wbtn.primary{background:#0f766e;border-color:#0f766e;color:#fff;}'
     + '@media (max-width:900px){.aap-fab{right:14px;bottom:18px;}.aap-pop{width:min(300px,86vw);}}'
     /* 云端设置弹窗 */
     + '.aap-settings{position:fixed;inset:0;z-index:95;background:rgba(41,37,36,.45);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}'
@@ -923,9 +947,9 @@
     + '<div class="aap-list" id="aapList"></div>'
     + '<footer>'
     + '<div class="syncrow"><span class="sp" id="aapSyncState"></span>'
-    + '<button id="aapCopyKey" style="display:none">复制同步码</button>'
-    + '<button id="aapUseKey" style="display:none">输入同步码</button>'
-    + '<button id="aapSettingsBtn">⚙ 云端设置</button></div>'
+    + '<button id="aapCopyKey">导出同步码</button>'
+    + '<button id="aapUseKey">导入同步码</button>'
+    + '<button id="aapSettingsBtn">⚙ 云端</button></div>'
     + '<div class="btnrow"><button id="aapExport">导出 Markdown</button></div>'
     + '</footer>';
   document.body.appendChild(drawer);
@@ -935,21 +959,23 @@
   drawer.querySelector('#aapSettingsBtn').addEventListener('click', openSettings);
 
   drawer.querySelector('#aapCopyKey').addEventListener('click', function () {
-    var k = userKey();
+    var k = exportSyncCode();
     function done() {
       var b = drawer.querySelector('#aapCopyKey');
       b.textContent = '已复制 ✓';
-      setTimeout(function () { b.textContent = '复制同步码'; }, 1500);
+      setTimeout(function () { b.textContent = '导出同步码'; }, 1500);
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(k).then(done, done);
     } else {
-      window.prompt('长按复制你的同步码：', k);
+      window.prompt('长按复制你的同步码（换设备时粘贴导入）：', k);
     }
   });
   drawer.querySelector('#aapUseKey').addEventListener('click', function () {
-    var code = window.prompt('粘贴另一台设备上的同步码，拉取云端的笔记与收藏：');
-    if (code && code.trim().length >= 8) adoptSyncKey(code);
+    var code = window.prompt('粘贴另一台设备上「导出同步码」得到的同步码，笔记会合并进本机：');
+    if (!code || !code.trim()) return;
+    var r = importSyncCode(code);
+    window.alert(r.msg);
   });
 
   var curTab = 'notes';
@@ -965,10 +991,6 @@
   });
   fab.querySelector('#aapNoteBtn').addEventListener('click', function () {
     drawer.classList.toggle('open');
-    if (isCloud()) {
-      drawer.querySelector('#aapCopyKey').style.display = '';
-      drawer.querySelector('#aapUseKey').style.display = '';
-    }
     renderList();
   });
   function closeDrawer() { drawer.classList.remove('open'); }
@@ -1129,11 +1151,31 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
   });
 
-  /* ================= 评论区 ================= */
+  /* ================= 评论区 =================
+   * 默认（零配置）：飞书评论墙——站长统一开通，读者免登录填写，全站可见。
+   * 自托管 Supabase（⚙ 云端里配置）时升级为页内实时评论区。 */
+  var COMMENT_FORM_URL = '';   // 飞书表单公开填写链接（站长配置）
+  var COMMENT_VIEW_URL = '';   // 飞书表格公开查看链接（站长配置）
 
   var commentsBox = null;
   function buildComments() {
-    if (!isCloud()) return;
+    if (isCloud()) { buildCloudComments(); return; }
+    if (!COMMENT_FORM_URL) return;
+    commentsBox = document.createElement('section');
+    commentsBox.className = 'aap-comments';
+    commentsBox.innerHTML = ''
+      + '<h2>评论墙</h2>'
+      + '<div class="c-sub">站长统一开通 · 免登录留言，全站读者可见</div>'
+      + '<div class="aap-wall">'
+      + '<a class="wbtn primary" target="_blank" rel="noopener" href="' + COMMENT_FORM_URL + '">✍️ 写评论（《' + escapeHtml(PAGE_TITLE.slice(0, 20)) + '》）</a>'
+      + '<a class="wbtn" target="_blank" rel="noopener" href="' + COMMENT_VIEW_URL + '">📋 查看全部评论</a>'
+      + '</div>'
+      + '<div class="c-sub" style="margin-top:8px">留言时注明当前章节，方便大家定位讨论。</div>';
+    var pn = contentEl.querySelector('.prevnext');
+    contentEl.insertBefore(commentsBox, pn || null);
+  }
+
+  function buildCloudComments() {
     commentsBox = document.createElement('section');
     commentsBox.className = 'aap-comments';
     commentsBox.innerHTML = ''
@@ -1218,10 +1260,13 @@
     settingsEl.className = 'aap-settings';
     settingsEl.innerHTML = ''
       + '<div class="card">'
-      + '<h3>⚙ 云端设置<button class="x" title="关闭">×</button></h3>'
-      + '<div class="sub">AI 助教开箱即用（内置免费公共模型，无需任何配置）。<br>'
-      + '配置 Supabase 后可解锁：笔记/收藏跨设备同步、每页公开评论区、AI 改走自家答疑网关。<br>'
-      + '还没有 Supabase？到 supabase.com 免费建项目 → SQL Editor 执行本教程附带的 supabase-setup.sql → Settings → API 复制下面两项填进来即可。</div>'
+      + '<h3>⚙ 云端与同步<button class="x" title="关闭">×</button></h3>'
+      + '<div class="sub">开箱即用，无需任何配置：<br>'
+      + '✅ AI 助教：内置免费公共模型，划词即问<br>'
+      + '✅ 评论墙：站长统一开通（章节底部「写评论」，免登录）<br>'
+      + '✅ 笔记换设备：笔记抽屉底部「导出/导入同步码」，同步码即数据，不经过任何服务器</div>'
+      + '<div class="sub" style="color:#57534e;font-weight:600">高级：自托管 Supabase（一般不用配）</div>'
+      + '<div class="sub">想让笔记自动实时上云、评论区变成页内实时讨论，才需要填下面两项。到 supabase.com 免费建项目 → SQL Editor 执行本教程附带的 supabase-setup.sql → Settings → API 复制。</div>'
       + '<label>Supabase Project URL</label>'
       + '<input id="aapSUrl" placeholder="https://abcdefgh.supabase.co" value="' + escapeHtml(c.url) + '"/>'
       + '<label>anon public key</label>'
