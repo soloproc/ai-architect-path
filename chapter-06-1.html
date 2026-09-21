@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -374,6 +375,9 @@ class ContextAssembler:
                 and not self._expired(c) and self._trust_allowed(c, req))
 </code></pre>
 <h3 id="3-6-dataagent-实战-四个-context-profile">3.6 DataAgent 实战：四个 Context Profile</h3>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m8-context-memory.zip">下载 retailhub-m8-context-memory.zip</a>，解压后 <code>cd m8-context-memory &amp;&amp; bash run.sh</code> 一键跑通 Context 装配管线（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <p>为规划、查询设计、原因分析、建议生成各建一份 Profile：规划 Profile 的语义区占大头、证据区留空；查询设计 Profile 加大 schema 与行列权限、砍掉历史对话；原因分析 Profile 把预算向证据区倾斜；建议生成 Profile 只收&quot;已验证&quot;状态的证据引用。四个 Profile 共用同一条管线、不同的契约参数——这正是 Provider 化与契约化带来的复用。</p>
 <p>看完代码骨架，用下面的交互 Demo 把整条管线亲手跑一遍：左侧候选池有 15 条信息，里面埋了四处隐患——一条租户 B 的口径、一份含注入指令的外部文档、一对冲突的 GMV 口径版本、一条重复投递的证据。点「开始装配」，观察四段管线如何依次裁决：跨租户与不可信条目在①硬过滤直接出局（无论它多&quot;相关&quot;），v41 口径在②冲突裁决中被 v42 取代，③分区装填时证据区预算不足会把 5 万行原始结果压缩成 Artifact 引用卡。然后把 Token Budget 拖到 4000 以下，看保底区纹丝不动、弹性证据区先压缩后剔除的取舍顺序；最后打开「关闭硬过滤」开关再跑一次——右侧审计日志会告诉你注入与跨租户泄漏是怎样发生的：</p>
 <div class="demo-embed" data-demo="context-assembler"><div class="demo-loading">交互 Demo 加载中…</div></div>

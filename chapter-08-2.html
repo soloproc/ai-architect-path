@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -442,6 +443,9 @@ def governed_recall(contract: RecallContract, ctx: SecurityContext) -&gt; list[d
 <li><strong>上线靠 demo 验证</strong>。不做 Memory Off / Blind Top-K / Governed 对照实验，你无法区分&quot;记忆有用&quot;和&quot;记忆显得有用&quot;。</li>
 </ol>
 <h2 id="本篇实战-为-dataagent-设计记忆治理体系">本篇实战：为 DataAgent 设计记忆治理体系</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m8-context-memory.zip">下载 retailhub-m8-context-memory.zip</a>，解压后 <code>cd m8-context-memory &amp;&amp; bash run.sh</code> 一键跑通记忆写入/召回管线（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <h3 id="第-1-步-记忆分类训练-认知层">第 1 步：记忆分类训练（认知层）</h3>
 <ul>
 <li><strong>目标</strong>：见到任意一条信息，30 秒内判定它的归宿。</li>

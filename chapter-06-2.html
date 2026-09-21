@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -534,6 +535,9 @@
 <li><strong>上下文出故障怪模型</strong>：先按故障分类表查管线（没召回？被过滤？被挤压？被压坏？），排完才轮到怀疑模型。</li>
 </ol>
 <h2 id="本篇实战-给-dataagent-造一条可审计的上下文装配管线">本篇实战：给 DataAgent 造一条可审计的上下文装配管线</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m8-context-memory.zip">下载 retailhub-m8-context-memory.zip</a>，解压后 <code>cd m8-context-memory &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <p>目标：实现 3.5 节 ContextAssembler 的简化版，用埋雷候选集验证六阶段行为，最后产出一条能回答&quot;它当时看到了什么&quot;的 Decision Trace。</p>
 <p><strong>Step 1：Context Schema 与候选池（约 30 分钟）</strong></p>
 <ul>
