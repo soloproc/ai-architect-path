@@ -340,6 +340,17 @@
     + '.aap-msg.ai{align-self:flex-start;background:#f5f3ee;color:#3f3a32;border-bottom-left-radius:4px;}'
     + '.aap-msg.typing{color:#b0aa9c;}'
     + '.aap-msg.err{background:#fef2f2;color:#991b1b;}'
+    + '.aap-msg.ai p{margin:4px 0;}'
+    + '.aap-msg.ai ul{margin:4px 0;padding-left:18px;}'
+    + '.aap-msg.ai li{margin:2px 0;}'
+    + '.aap-msg.ai .mdh{font-weight:700;color:#292524;margin:8px 0 3px;font-size:13px;}'
+    + '.aap-msg.ai .mdq{border-left:3px solid #d6d0c2;padding-left:8px;color:#6b675d;margin:4px 0;}'
+    + '.aap-msg.ai .mdi{background:rgba(15,118,110,.09);color:#0f766e;border-radius:4px;padding:0 4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;}'
+    + '.aap-msg.ai .mdc{background:#292524;color:#e7e5e4;border-radius:8px;padding:9px 11px;overflow-x:auto;margin:6px 0;}'
+    + '.aap-msg.ai .mdc code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.6;white-space:pre;}'
+    + '.aap-msg.ai a{color:#0f766e;}'
+    + '.aap-msg .mdr{margin-top:8px;padding-top:6px;border-top:1px dashed #e0dccf;font-size:11px;color:#8a8578;}'
+    + '.aap-msg .mdr a{color:#0f766e;text-decoration:none;margin-right:4px;}'
     + '.aap-chatform{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #efece4;}'
     + '.aap-chatform textarea{flex:1;height:44px;resize:none;border:1px solid #e5e1d8;border-radius:8px;padding:9px 10px;font:inherit;font-size:13px;color:#333;outline:none;background:#fff;}'
     + '.aap-chatform textarea:focus{border-color:#0f766e;}'
@@ -626,6 +637,73 @@
 
   /* ================= 疑问对话（不懂 → 与 AI 助教多轮讨论） ================= */
 
+  /* ---- 迷你 Markdown 渲染（AI 回答上屏用；先转义再排版，防 XSS） ---- */
+  function renderMd(src) {
+    var s = String(src);
+    var fences = [];
+    s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, function (m, lang, code) {
+      fences.push('<pre class="mdc"><code>' + escapeHtml(code.replace(/\n$/, '')) + '</code></pre>');
+      return '\x00F' + (fences.length - 1) + '\x00';
+    });
+    s = escapeHtml(s);
+    s = s.replace(/`([^`\n]+)`/g, '<code class="mdi">$1</code>');
+    s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    var lines = s.split('\n'), out = [], inList = false;
+    function closeList() { if (inList) { out.push('</ul>'); inList = false; } }
+    lines.forEach(function (ln) {
+      var t = ln.trim();
+      if (!t) { closeList(); return; }
+      var h = t.match(/^(#{1,4})\s+(.*)$/);
+      if (h) { closeList(); out.push('<div class="mdh">' + h[2] + '</div>'); return; }
+      var li = t.match(/^[-*]\s+(.*)$/) || t.match(/^\d+[.、]\s+(.*)$/);
+      if (li) { if (!inList) { out.push('<ul>'); inList = true; } out.push('<li>' + li[1] + '</li>'); return; }
+      if (/^&gt;\s?/.test(t)) { closeList(); out.push('<div class="mdq">' + t.replace(/^&gt;\s?/, '') + '</div>'); return; }
+      closeList(); out.push('<p>' + t + '</p>');
+    });
+    closeList();
+    return out.join('').replace(/\x00F(\d+)\x00/g, function (m, i) { return fences[+i]; });
+  }
+
+  /* ---- 全教程检索（客户端 RAG：让助教引用整部教程而非当前一章） ---- */
+  var tutIndex = null;        // null=未加载；[]=加载失败
+  var tutIndexLoading = null;
+  function loadTutorialIndex() {
+    if (tutIndex) return Promise.resolve(tutIndex);
+    if (tutIndexLoading) return tutIndexLoading;
+    tutIndexLoading = fetch('assets/tutorial-index.json')
+      .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      .then(function (d) { tutIndex = d; return d; })
+      .catch(function () { tutIndex = []; return []; });
+    return tutIndexLoading;
+  }
+  function bigrams(s) {
+    var grams = {}, str = String(s).replace(/\s+/g, '');
+    for (var i = 0; i < str.length - 1; i++) grams[str.slice(i, i + 2)] = 1;
+    return grams;
+  }
+  function searchTutorial(query, topN) {
+    if (!tutIndex || !tutIndex.length) return [];
+    var g = bigrams(query);
+    var scored = [];
+    tutIndex.forEach(function (c) {
+      var hay = bigrams(c.h + ' ' + c.t);
+      var hit = 0;
+      for (var k in g) if (hay[k]) hit++;
+      if (hit > 0) scored.push({ c: c, score: hit / Math.sqrt(Object.keys(hay).length + 1) });
+    });
+    scored.sort(function (a, b) { return b.score - a.score; });
+    /* 去重：同一页面最多留 2 块 */
+    var perPage = {}, out = [];
+    for (var i = 0; i < scored.length && out.length < (topN || 3); i++) {
+      var p = scored[i].c.slug;
+      perPage[p] = (perPage[p] || 0) + 1;
+      if (perPage[p] > 2) continue;
+      out.push(scored[i].c);
+    }
+    return out;
+  }
+
   function createDoubt(range, text) {
     var pending = {
       text: text.slice(0, 200),
@@ -716,7 +794,19 @@
     chatLog.forEach(function (m) {
       var div = document.createElement('div');
       div.className = 'aap-msg ' + (m.role === 'user' ? 'user' : 'ai');
-      div.textContent = m.content;
+      if (m.role === 'user') {
+        div.textContent = m.content;
+      } else {
+        div.innerHTML = renderMd(m.content);
+      }
+      if (m.refs && m.refs.length) {
+        var rd = document.createElement('div');
+        rd.className = 'mdr';
+        rd.innerHTML = '📖 教程相关：' + m.refs.map(function (r) {
+          return '<a href="' + r.slug + '.html#' + r.a + '">' + escapeHtml(r.page + ' · ' + r.h) + '</a>';
+        }).join('　');
+        div.appendChild(rd);
+      }
       log.appendChild(div);
     });
     log.scrollTop = log.scrollHeight;
@@ -785,6 +875,10 @@
 
     var ac = cfg();
     var headers = { 'Content-Type': 'application/json' };
+    var quote = chatItem ? chatItem.text : (chatPending ? chatPending.text : '');
+    var refs = [];
+
+    function doFetch(ctx) {
     var body;
     if (useEdgeFn()) {
       /* 本站 Supabase Edge Function：服务端组装提示词，返回 {answer} */
@@ -795,18 +889,22 @@
       }
       body = {
         messages: chatLog.slice(-12).map(function (m) { return { role: m.role, content: m.content }; }),
-        quote: chatItem ? chatItem.text : '',
+        quote: quote,
         page: PAGE,
-        title: chatItem ? chatItem.title : PAGE_TITLE
+        title: chatItem ? chatItem.title : PAGE_TITLE,
+        context: ctx
       };
     } else {
       /* OpenAI 兼容端点（含内置公共默认端点）：客户端组装 system 提示词 */
       if (ac.askKey) headers['Authorization'] = 'Bearer ' + ac.askKey;
-      var quote = chatItem ? chatItem.text : (chatPending ? chatPending.text : '');
-      var sys = '你是中文自学教程《AI 全栈架构师之路》的 AI 助教，读者是零基础到进阶的学习者。'
+      var sys = '你是中文自学教程《AI 全栈架构师之路》的内置导师，也是一位有一线实战经验的全栈架构师。'
+        + '读者是零基础到进阶的学习者。'
         + '当前章节：《' + (chatItem ? chatItem.title : PAGE_TITLE) + '》。'
         + (quote ? '读者划选了原文：「' + quote.slice(0, 300) + '」。' : '')
-        + '请用通俗的中文讲解，结合原文与章节上下文，多用类比和小例子；回答控制在 300 字以内；读者可以追问，保持连贯。';
+        + '回答要求：先给结论，再用通俗类比和具体例子讲清原理；适当补充行业实践、常见误区与演进历史；'
+        + '问题超出本教程范围也照常回答（编程、架构、AI、工程职业都可以），不确定的地方如实说明，不要编造数字和版本；'
+        + '用 Markdown 排版（小标题/列表/加粗/代码块），正文控制在 400 字以内（代码除外）；读者会追问，保持连贯。'
+        + (ctx ? '\n全教程中与问题最相关的内容摘录（相关时优先依据并提及出自哪里）：\n' + ctx : '');
       body = {
         model: 'openai',
         messages: [{ role: 'system', content: sys }]
@@ -827,7 +925,7 @@
       ans = String(ans).trim();
       if (!ans) throw new Error('empty');
       typing.remove();
-      chatLog.push({ role: 'assistant', content: ans, ts: Date.now() });
+      chatLog.push({ role: 'assistant', content: ans, ts: Date.now(), refs: refs });
       if (chatItem) {
         chatItem.answer = ans;
         chatItem.ts = Date.now();
@@ -842,6 +940,16 @@
       chatSending = false;
       btn.disabled = false;
       chatPanel.querySelector('textarea').focus();
+    });
+    }  /* doFetch */
+
+    /* 先检索全教程相关内容，再发问（检索失败/为空也照常发问） */
+    loadTutorialIndex().then(function () {
+      refs = searchTutorial(text + ' ' + quote, 3);
+      var ctx = refs.map(function (r, i) {
+        return (i + 1) + '. 《' + r.page + '》' + r.h + '：' + r.t.slice(0, 260);
+      }).join('\n');
+      doFetch(ctx);
     });
   }
 
