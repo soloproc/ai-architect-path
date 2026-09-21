@@ -368,8 +368,9 @@ if __name__ == &quot;__main__&quot;:
 <hr>
 <h2 id="本卷实战-retailhub-演进第-6-步-私有化推理服务-向量检索-成本账本">本卷实战：RetailHub 演进第 6 步——私有化推理服务 + 向量检索 + 成本账本</h2>
 <blockquote>
-<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m6-inference-bench.zip">下载 retailhub-m6-inference-bench.zip</a>，解压后 <code>cd m6-inference-bench &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m6-inference-bench.zip">下载 retailhub-m6-inference-bench.zip</a> 本地跑（解压后 <code>cd m6-inference-bench &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
+<div class="demo-embed" data-demo="lab-m6"><div class="demo-loading">交互 Demo 加载中…</div></div>
 <p><strong>背景</strong>：RetailHub 的最大客户提出&quot;经营数据不出域&quot;；同时财务发现云 API 账单已占该租户收入的 31%。架构评审决定：为高频数据问答任务建立私有化推理与检索能力，前沿复杂任务继续走云 API，由 LLM Runtime 路由。</p>
 <h3 id="递进任务步骤">递进任务步骤</h3>
 <p><strong>步骤 1：起服务。</strong></p>

@@ -282,7 +282,7 @@
 <hr>
 <h2 id="7-本卷实战-retailhub-演进第-2-步">7. 本卷实战：RetailHub 演进第 2 步</h2>
 <blockquote>
-<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m2-cache-mq.zip">下载 retailhub-m2-cache-mq.zip</a>，解压后 <code>cd m2-cache-mq &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m2-cache-mq.zip">下载 retailhub-m2-cache-mq.zip</a> 本地跑（解压后 <code>cd m2-cache-mq &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
 <h3 id="7-1-背景">7.1 背景</h3>
 <p>承接卷01 末状态：FastAPI + SQLite 单体，3 个查询端点。本步把它演进为：<strong>MySQL 主从 + Redis 缓存 + RocketMQ 异步日报 + 订单/报表两服务</strong>。全部用 docker-compose 在本机编排，可一键起停、可压测验证。</p>

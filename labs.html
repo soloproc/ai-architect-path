@@ -104,13 +104,14 @@
 <main class="main">
   <article class="content">
 <h1 id="实操指南-手把手跑起来">实操指南：手把手跑起来</h1>
-<p>实操这本教程有两种方式，可以混着用：</p>
+<p>实操这本教程有三种方式，可以混着用：</p>
 <ul>
-<li><strong>在线 Demo，零安装</strong>：很多章节页里内嵌了可点击的交互 Demo（装配管线、熔断器状态机、Token 预算滑块……），打开网页直接玩，什么都不用装。</li>
-<li><strong>源码包，下载到本地跑</strong>：贯穿项目 RetailHub 的 9 个里程碑源码，解压后一条命令跑通，本页教你怎么从零装环境、跑通第一个里程碑。</li>
+<li><strong>在线运行，零安装看逻辑</strong>：章节实战区里的「▶ 在线运行」面板，代码直接在浏览器里跑（Pyodide，无需装 Python），适合快速看懂核心逻辑与验收口径；很多章节页还内嵌了可点击的交互 Demo（装配管线、熔断器状态机、Token 预算滑块……），打开网页直接玩。</li>
+<li><strong>☁️ 云端虚拟机，真实环境跑完整服务</strong>：点章节里的「云端虚拟机」链接（GitHub Codespaces，账号一键开机），自动装好全部依赖的真实 Linux 环境——能跑 FastAPI 服务、开端口、发 curl，适合想做完整验收但不想折腾本机环境的同学。</li>
+<li><strong>源码包，下载到本地跑</strong>：贯穿项目 RetailHub 的 9 个里程碑源码，解压后一条命令跑通，离线可用、完全掌控，本页教你怎么从零装环境、跑通第一个里程碑。</li>
 </ul>
 <blockquote>
-<p>建议姿势：读章节时玩在线 Demo 建立直觉；读到「本卷实战 / 本篇实战」时下载对应源码包，亲手跑通验收清单。</p>
+<p>建议姿势：读章节时用「在线运行」建立直觉；想跑完整服务（含 FastAPI 端口、压测脚本）就开云端虚拟机；读到「本卷实战 / 本篇实战」要长期折腾时，下载源码包到本地，亲手跑通验收清单。</p>
 </blockquote>
 <hr>
 <h2 id="1-环境准备-只做一次-macos-为主">1. 环境准备（只做一次，macOS 为主）</h2>
@@ -171,6 +172,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <th>学什么</th>
 <th>运行命令</th>
 <th>下载</th>
+<th>☁️ 云端虚拟机</th>
 </tr>
 </thead>
 <tbody>
@@ -180,6 +182,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>FastAPI + SQLite 单体：分页、JOIN 明细、GMV 口径、访问日志</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m1-monolith.zip">retailhub-m1-monolith.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M2 缓存与消息队列</td>
@@ -187,6 +190,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>Cache-Aside 缓存（防穿透/防雪崩）、异步队列、读写分离</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m2-cache-mq.zip">retailhub-m2-cache-mq.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M3 超卖实验</td>
@@ -194,6 +198,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>隔离级别实验：naive 写法必现超卖 vs 原子 UPDATE 正确互斥</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m3-oversell-lab.zip">retailhub-m3-oversell-lab.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M4 流量治理与可观测</td>
@@ -201,6 +206,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>熔断器状态机、令牌桶限流、Outbox 本地消息表、极简调用链</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m4-traffic-observability.zip">retailhub-m4-traffic-observability.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M5 架构文档包</td>
@@ -208,6 +214,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td><strong>文档实战，无代码</strong>：4+1 视图 / 质量属性场景 / ADR / 评审纪要全套可填模板</td>
 <td>打开 <code>docs/</code> 模板按 README 填写</td>
 <td><a href="assets/labs/retailhub-m5-architecture-docs.zip">retailhub-m5-architecture-docs.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M6 推理压测</td>
@@ -215,6 +222,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>OpenAI 兼容 mock 推理服务、TTFT/TPOT 压测、容量曲线拐点、自建 vs 云成本</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m6-inference-bench.zip">retailhub-m6-inference-bench.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M7 Agent Runtime</td>
@@ -222,6 +230,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>最小企业级 Agent Runtime：统一执行模型、Checkpoint 恢复、人工审批幂等</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m7-agent-runtime.zip">retailhub-m7-agent-runtime.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M8 上下文与记忆</td>
@@ -229,6 +238,7 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>Context 装配六阶段管线 + 记忆写入五段管线与 Recall Contract</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m8-context-memory.zip">retailhub-m8-context-memory.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 <tr>
 <td>M9 评测与进化</td>
@@ -236,9 +246,13 @@ pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、
 <td>评测集 / Fixture / 四类 Grader / Multi-Trial / Scorecard / Regression Gate</td>
 <td><code>bash run.sh</code></td>
 <td><a href="assets/labs/retailhub-m9-eval-ops.zip">retailhub-m9-eval-ops.zip</a></td>
+<td><a href="https://codespaces.new/soloproc/ai-architect-path">一键开机</a></td>
 </tr>
 </tbody>
 </table></div>
+<blockquote>
+<p>☁️ 云端虚拟机（GitHub Codespaces）开机后依赖已预装，直接 <code>cd labs/mX-xxx &amp;&amp; bash run.sh</code> 即可，适合跑需要起服务、开端口的完整版里程碑。</p>
+</blockquote>
 <p>学习路径按里程碑编号顺序来：<strong>M1 → M2 → M3 → M4 → M5（文档）→ M6 → M7 → M8 → M9</strong>，每个里程碑跑通后回到对应章节完成实战验收清单。</p>
 <hr>
 <h2 id="3-手把手第一跑-以-m1-为例">3. 手把手第一跑：以 M1 为例</h2>

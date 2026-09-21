@@ -306,7 +306,7 @@
 <hr>
 <h2 id="8-本卷实战-上-给订单服务装上-安全气囊">8. 本卷实战（上）：给订单服务装上&quot;安全气囊&quot;</h2>
 <blockquote>
-<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m4-traffic-observability.zip">下载 retailhub-m4-traffic-observability.zip</a>，解压后 <code>cd m4-traffic-observability &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m4-traffic-observability.zip">下载 retailhub-m4-traffic-observability.zip</a> 本地跑（解压后 <code>cd m4-traffic-observability &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
 <h3 id="8-1-背景">8.1 背景</h3>
 <p>卷03 末态：RetailHub 有网关 + 订单服务 + 库存服务（REST 互调）、PostgreSQL 主从、Redis 缓存、MQ 异步报表，完成了数据架构文档与防超卖实验。卷04 的实战按主题拆到三个子页，本页完成前两步：给跨服务调用装上超时与熔断、加上租户级限流——先让订单服务在下游故障与流量尖峰面前不被拖死。</p>
