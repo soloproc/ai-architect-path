@@ -1,0 +1,16 @@
+{
+  // 《AI 全栈架构师之路》云端实操环境：读者点一下按钮即可在 GitHub Codespaces 开机跑教程源码
+  "name": "AI 全栈架构师之路 · 云端实操环境",
+  // 官方 Python 3.12 开发容器镜像（Debian bookworm），预装 git / pip / venv 等工具链
+  "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
+  // 容器创建完成后自动安装 9 个里程碑实验（labs/m1 ~ m9）的全部 Python 依赖，约 1-2 分钟
+  "postCreateCommand": "pip install -r labs/requirements-all.txt",
+  // 转发 FastAPI / Uvicorn 常用端口，方便在浏览器中预览教程里的 Web 服务
+  "forwardPorts": [8000, 8001],
+  "customizations": {
+    "vscode": {
+      // 自动安装 Python 扩展，获得调试 / 测试 / Lint / 智能补全支持
+      "extensions": ["ms-python.python", "ms-python.vscode-pylance"]
+    }
+  }
+}
