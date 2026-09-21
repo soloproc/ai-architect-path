@@ -271,6 +271,54 @@ hard_gates:
 </table></div>
 <h3 id="开放式任务的-eval-case-设计">开放式任务的 Eval Case 设计</h3>
 <p>&quot;诊断 GMV 下降&quot;没有唯一标准答案，传统 assert 式测试直接失效。企业级 Eval Case 的设计要点是把&quot;验收什么&quot;从<strong>字面答案</strong>转为<strong>结构化验收点</strong>：</p>
+<p><strong>设计说明：EvalCase 的字段为什么长这样</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>case_id</code> + <code>taxonomy</code></td>
+<td>稳定 ID + 分类标签</td>
+<td>标签是按类别配额采样与覆盖率核算的依据；没有 taxonomy，&quot;长尾类一个不缺&quot;就无从检查</td>
+</tr>
+<tr>
+<td><code>user_input</code></td>
+<td>原始业务请求</td>
+<td>测的是真实分布的输入，不是改写过的&quot;干净 prompt&quot;——Case 输入必须保持日志原貌</td>
+</tr>
+<tr>
+<td><code>fixture_ref</code></td>
+<td>环境快照引用</td>
+<td>可复现性的来源：Case 不自带环境，每次运行都在测一个不同的系统</td>
+</tr>
+<tr>
+<td><code>version_tuple</code></td>
+<td>六维版本元组</td>
+<td>结果归因的最小单元；Case 必须记录它&quot;测谁&quot;，跨版本比较才可能</td>
+</tr>
+<tr>
+<td><code>acceptance</code></td>
+<td>结构化验收点列表</td>
+<td>&quot;期望&quot;的载体从标准答案换成事实点+行为点——开放式任务没有唯一答案，但有可枚举的验收点</td>
+</tr>
+<tr>
+<td><code>hard_gates</code></td>
+<td>一票否决条款引用</td>
+<td>硬门槛必须在 Case 上显式声明、单独判定；混进加权总分就会被一份 91 分的好报告掩盖</td>
+</tr>
+<tr>
+<td><code>trials</code></td>
+<td>重复次数</td>
+<td>概率系统单次结果不是能力证据；DataAgent 起步配置 12 条 Case × 3 trials（见实战容量账），是成本与置信度的平衡点</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：这套结构的核心取舍是&quot;用结构化验收点换可机检性&quot;——写验收点比写标准答案费脑，但它让 Code/Trace/Env Grader 接走大部分判定，LLM Judge 只补开放性维度。fixture_ref 用引用而非内嵌数据，因为快照会被多个 Case 共享、独立版本化；内嵌会让环境更新变成逐 Case 修改的灾难。故意不做的：Case 不存期望输出的完整范文——范文会引诱评审者做字面比对，把评分拖回文本相似度的老路。演进：Regression Set 的 Case 只增不改（改了就等于擦掉历史事故的证据），确需修正时新增 case_id 并标注 supersedes 关系。</p>
 <pre><code class="language-python"># EvalCase 代码骨架（一）
 from dataclasses import dataclass, field
 from typing import Any, Literal
@@ -598,6 +646,44 @@ class BatchEvalRunner:
     R4 -- &quot;是&quot; --&gt; P[&quot;PASS&lt;br/&gt;获得灰度入场券&quot;]
 </pre>
 <p>注意规则一的失败去向与众不同：硬门槛违规不是&quot;回去优化&quot;，而是<strong>安全事件</strong>——它意味着候选版本已经具备伤害能力，要按事故流程处置，而不是按优化流程排期。</p>
+<p><strong>设计说明：四条门禁规则的结构化理由</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>规则</th>
+<th>判定类型</th>
+<th>失败去向</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>硬门槛违规 = 0</td>
+<td>布尔，一票否决</td>
+<td>安全事件响应流程</td>
+<td>安全不是优化目标而是生存前提；走优化排期等于默认安全可交易</td>
+</tr>
+<tr>
+<td>Regression Set 通过率 = 100%</td>
+<td>布尔，零容忍</td>
+<td>Trace + Ablation 诊断</td>
+<td>历史事故复发说明根因没修透；先诊断后调参，防止&quot;修症状&quot;</td>
+</tr>
+<tr>
+<td>各维度无显著下降</td>
+<td>统计检验</td>
+<td>同上</td>
+<td>防拆东墙补西墙——总分涨了而安全维度跌了，必须被拦住</td>
+</tr>
+<tr>
+<td>提升须在 Validation Set 达成</td>
+<td>集合归属检查</td>
+<td>HOLD 复测</td>
+<td>Dev Set 涨分可能是过拟合虚高；裁决权交给低可见性的集合（9.2 节分层）</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：四条规则按&quot;安全 → 历史 → 维度 → 证据来源&quot;排序，越靠前失效代价越大，短路求值让最危险的问题最先暴露。判定刻意只用布尔与统计检验两类，不引入&quot;综合评分 ≥ X&quot;的连续阈值——阈值会随发布压力被人为挪动，布尔规则没有谈判空间。故意不做的：门禁只输出 PASS / BLOCK / HOLD 三态加失败去向，不输出&quot;建议&quot;——给门禁配灵活裁量，等于把它降级成周报。演进：新风险类别出现时，先加契约层的硬门槛条款，门禁规则本身保持稳定——规则是宪法，条款是法律。</p>
 <p>把门禁逻辑亲手操作一遍：在下面的模拟器里组装你的候选版本——先跑一组&quot;Prompt 优化 + 模型升级&quot;看门禁放行长什么样；再加上&quot;夹带越权回退&quot;重跑，观察平均分继续上涨、门禁却亮红灯的撕裂场面；最后把&quot;调优集&quot;切到 Dev Set，看规则四如何识别出过拟合虚高的分数：</p>
 <div class="demo-embed" data-demo="regression-gate"><div class="demo-loading">交互 Demo 加载中…</div></div>
 <p><strong>Demo 导学单</strong>：</p>

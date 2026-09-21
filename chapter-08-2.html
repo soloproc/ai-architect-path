@@ -197,6 +197,49 @@
 <h3 id="3-5-memory-使用追踪-让每次召回可解释">3.5 Memory 使用追踪：让每次召回可解释</h3>
 <p>&quot;Agent 为什么突然在报告里用了同比口径？&quot;——没有追踪体系，这个问题无法回答。Memory Trace 记录每次召回的完整现场：Contract 内容、候选列表、每条候选的过滤原因或排序得分、最终注入集合、以及后续该记忆是否出现在产出中。它同时服务于三件事：线上问题排查、Memory Eval（第 4 节）的数据来源、合规审计。</p>
 <h3 id="3-6-代码骨架-recallcontract-与受控召回">3.6 代码骨架：RecallContract 与受控召回</h3>
+<p><strong>设计说明：RecallContract 的字段是一份&quot;不信任清单&quot;</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>intent</code></td>
+<td>枚举三选一</td>
+<td>召回意图决定类型白名单；没有 intent，所有步骤召回同一堆记忆，一半是噪音（3.1 节）</td>
+</tr>
+<tr>
+<td><code>INTENT_TYPES</code> 映射</td>
+<td>intent → 类型集合</td>
+<td>白名单写成显式映射表而不是散落的 if——加新意图时，编译器会逼你表态&quot;它允许什么记忆&quot;</td>
+</tr>
+<tr>
+<td><code>tenant_id</code> / <code>user_id</code></td>
+<td>必填，来自安全上下文</td>
+<td>契约里 assert 与 ctx 对账是刻意的：Scope 自报是红队经典入口，这些字段必须由系统填、绝不接受模型填</td>
+</tr>
+<tr>
+<td><code>token_budget</code></td>
+<td>整数，默认 400</td>
+<td>最小注入的硬上限；记忆注入不设预算，&quot;越记越贵&quot;会在月度账单上慢慢兑现</td>
+</tr>
+<tr>
+<td><code>top_k</code> ×4 过采样</td>
+<td>检索参数</td>
+<td>向量层只产候选，过采样给硬过滤留余量——不过采样，过滤后可能一条不剩</td>
+</tr>
+<tr>
+<td><code>min_confidence</code></td>
+<td>阈值</td>
+<td>排序分低于阈值宁可不注入；&quot;召回为空&quot;是合法结果，凑数注入低质记忆比不召回更糟</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：这份契约的哲学是&quot;召回方显式声明、系统强制执行&quot;——任务步骤先说出自己要什么，Runtime 才有依据拒绝它不该拿的。意图枚举只有三类是刻意的少：召回场景收敛后才扩枚举，意图粒度过细（十几种）会让白名单映射失去可评审性。故意不做的：契约不携带排序权重——权重是系统级调参对象（4.7 节三组对照实验调的就是它），放进步骤级契约会让每个调用方各自为政。演进：新增召回意图 = 新枚举值 + 新白名单映射 + Memory Trace 新维度，三件套一起评审，缺一不许合并。</p>
 <pre><code class="language-python">from dataclasses import dataclass
 from enum import Enum
 
@@ -278,6 +321,50 @@ def governed_recall(contract: RecallContract, ctx: SecurityContext) -&gt; list[d
 <li><strong>下游</strong>：已被注入过该记忆的运行中任务、导出的报告副本（至少登记影响面）。</li>
 </ol>
 <p>工程上建议<strong>删除事件走消息队列扇出</strong>，每个存储层独立确认，配合定期对账任务（主库 vs 索引的漂移检测）。&quot;删除有效性&quot;必须进入评测指标，不能靠相信。</p>
+<p><strong>设计说明：删除传播为什么分五层、各自怎么确认</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>层</th>
+<th>残留风险</th>
+<th>确认机制</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主库</td>
+<td>状态未置 deleted</td>
+<td>状态机流转回执</td>
+<td>唯一事实来源；它不动，其他层对账无据</td>
+</tr>
+<tr>
+<td>向量索引</td>
+<td>主库删了索引仍能召回——最高频残留点</td>
+<td>按 memory_id 删向量 + 定期对账（主库 deleted 而索引仍可命中即告警）</td>
+<td>索引是派生物可删可重建，但它&quot;记得&quot;的能力恰恰最强</td>
+</tr>
+<tr>
+<td>缓存</td>
+<td>召回结果缓存、Context 缓存给旧记忆续命</td>
+<td>删除事件使相关缓存键失效</td>
+<td>缓存 TTL 不能当删除机制用——法务要的 24h SLA 里 TTL 不可控</td>
+</tr>
+<tr>
+<td>进行中任务</td>
+<td>已注入 Context 的记忆仍在生效</td>
+<td>登记影响面；长任务重查记忆状态</td>
+<td>无法撤回已发生的推理，但必须知道哪些产出被污染过</td>
+</tr>
+<tr>
+<td>导出副本</td>
+<td>报告副本仍含被删内容</td>
+<td>登记导出清单，通知持有人</td>
+<td>物理抹除做不到，合规上&quot;登记 + 通知&quot;是可交付的底线</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：五层用消息队列扇出、每层独立确认，而不是一个分布式事务——各层延迟与可用性差异极大，事务会把删除 SLA 绑死在最慢的一层；队列加对账任务换来每层按各自节奏收敛，24 小时全层生效的 SLA（本篇实战锚定值）才有工程可行性。删除事件必须携带 memory_id 全集与删除时间戳，这是对账任务比对的唯一基准。故意不做的：不追求&quot;物理抹除每一个字节&quot;——合规语义是&quot;不可再被召回、不可再影响产出、影响面可证明&quot;，而墓碑与审计记录本身恰恰要求保留&quot;曾经存在过&quot;的证据。</p>
 <h3 id="4-4-memory-poisoning-防护">4.4 Memory Poisoning 防护</h3>
 <p>攻击者不需要攻破你的数据库，只需要让 Agent&quot;自愿&quot;记下恶意内容。三种注入路径与对策：</p>
 <div class="table-wrap"><table>

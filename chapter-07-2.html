@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -227,6 +228,34 @@
     A2 -- 进入具体步骤时 --&gt; A3
 </pre>
 <p>模型每轮只看到几十行的索引卡；命中后才加载该 Skill 的核心约束；真正执行到某一步时才展开细节。这样 Skill 库规模增长时，Context 成本近似常数。</p>
+<p><strong>设计说明：索引卡为什么是&quot;名称 + 一句话使命 + 触发条件&quot;这三件套</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>名称</td>
+<td>动词短语，如 <code>diagnose_gmv_anomaly</code></td>
+<td>模型匹配 Skill 的第一信号；名字即边界，含糊的名字招来错误触发</td>
+</tr>
+<tr>
+<td>一句话使命</td>
+<td>≤50 字，含&quot;做什么 + 不做什么&quot;</td>
+<td>模型在几十张索引卡之间做选择的全部依据——这句话写歪了，后面六层写得再好也不会被正确选中</td>
+</tr>
+<tr>
+<td>触发条件</td>
+<td>任务特征 + 反触发例</td>
+<td>把&quot;何时该用&quot;从模型猜测变成显式声明；反触发例（&quot;不用于实时定价&quot;）防高代价误启用</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：常驻层每轮都占 Token，信息密度必须压到极限；但压掉触发条件换省 Token 是假节省——误触发一次的代价远超几百 Token。描述决定选择质量的机理和工具描述完全一样：模型看不到 Skill 的实现，只能凭文本语义做匹配，索引卡就是它的&quot;用户界面&quot;。故意不放进索引卡的：方法论、完成标准、工具清单——它们属于 L2/L3，全堆在常驻层会让 30 个 Skill 的索引成本失控，渐进式加载就白设计了。演进：索引卡字段冻结后当&quot;API&quot;对待，Skill 内部六层随便改；改索引卡（尤其触发条件）视同变更对外契约，要走 4.6 节的兼容性回归。</p>
 <h3 id="4-5-skill-validator-不相信-我完成了">4.5 Skill Validator：不相信&quot;我完成了&quot;</h3>
 <p>模型声称&quot;诊断完成&quot;不等于真的完成。Skill Validator 是独立于执行模型的<strong>验收器</strong>（可以是规则、另一个模型或两者结合），对照完成标准逐项检查：报告里有量化幅度吗？每个原因假设都有证据引用吗？有没有至少排除一个竞争性假设？验收不通过，结果打回并附具体缺失项——这把&quot;完成&quot;从模型的自我感觉变成了可执行的契约。</p>
 <h3 id="4-6-skill-生命周期治理">4.6 Skill 生命周期治理</h3>
@@ -361,6 +390,34 @@
 </table></div>
 <h3 id="5-6-动态-toolset-编译-针对-mcp-的再次强调">5.6 动态 ToolSet 编译（针对 MCP 的再次强调）</h3>
 <p>MCP Server 倾向于暴露大量工具（广告平台可能暴露 40 个）。把它们全部交给模型，等于把第 1.5 节解决的问题重新制造一遍。正确做法不变：Host 侧按（租户 × 角色 × 任务阶段）编译最小 ToolSet，MCP 只是能力来源之一，不改变最小可见面原则。</p>
+<p><strong>设计说明：MCP 工具清单里，模型能看到的只有三个字段</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>服务端唯一标识</td>
+<td>调用的路由键，也是模型的第一分类线索；<code>budget_adjust</code> 与 <code>budget_query</code> 的命名区分度直接决定误调率</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>自然语言职责说明</td>
+<td>模型&quot;什么时候用这个工具&quot;的全部知识来源——Server 端逻辑再严谨，description 写模糊了模型照样选错</td>
+</tr>
+<tr>
+<td><code>inputSchema</code></td>
+<td>JSON Schema</td>
+<td>参数合法空间的机器可读表达；枚举与约束写进 Schema，模型才能&quot;在受控空间里选参数&quot;而不是编造</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：必须认识到 MCP 清单是<strong>给两个读者</strong>的同一份契约——Host 按 name/schema 做校验与路由，模型按 name/description 做语义选择，任何一边含糊都会兑现成线上误调用。这正是 5.3 节要求 Schema 版本管理的原因：description 语义变了而版本号没变，等于静默替换了模型的行为依据，排查时你会以为&quot;系统没动&quot;。故意不做的：清单不携带示例对话——Few-shot 示例放 Host 侧按需注入，塞进 Server 清单会让每个消费方都背上全量 Token 成本。演进：新工具先经 Capability Registry 评审（5.4）再进清单；下线先标 deprecated 并给 sunset 期，而不是直接消失。</p>
 <h3 id="5-7-credential-broker-与-tool-trace">5.7 Credential Broker 与 Tool Trace</h3>
 <p>最后两块拼图：</p>
 <ul>

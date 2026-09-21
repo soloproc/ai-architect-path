@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -345,6 +346,7 @@
 <li><strong>策略判断</strong>：套用 Memory Policy（1.4 节），输出决策：拒绝 / 需确认 / 允许写入及 Scope、TTL；</li>
 <li><strong>提交</strong>：幂等写入主库、登记版本、更新向量索引、归档证据。</li>
 </ul>
+<p><strong>写入候选为什么独立于正式记录</strong>：候选记忆在管线里流动的形态与正式记录同构但地位不同——它只携带内容、类型、来源、证据四要素，没有 status、version，更没有索引位置。这个区分不是形式游戏：候选可以被丢弃、被退回、被挂进确认队列，而正式记录一旦创建就进入版本链与审计。若用同一个对象加 <code>is_candidate</code> 标志表示两者，看似省事，实则让&quot;垃圾候选混进主库再删&quot;成为可能的代码路径——删除传播（下篇 4.3 节）的复杂度会因此成倍上升。纪律只有一条：管线各段只允许变换候选、对候选做判决，写主库的动作全部收口在提交段。</p>
 <h3 id="2-3-memory-schema-与-scope">2.3 Memory Schema 与 Scope</h3>
 <p>一条记忆必须显式回答&quot;属于谁&quot;。最小 Schema 要素：</p>
 <ul>
@@ -457,6 +459,49 @@
 </pre>
 <p>召回只看 <code>active</code>；<code>contested</code> 暂停参与；其余终态全部触发失效传播——这张图就是 Memory Policy 的状态机表达。</p>
 <h3 id="2-7-代码骨架-memoryrecord-与写入管线">2.7 代码骨架：MemoryRecord 与写入管线</h3>
+<p><strong>设计说明：MemoryRecord 的每个字段都对应一类真实事故</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mem_type</code></td>
+<td>枚举三选一</td>
+<td>写入白名单的代码化：枚举之外（事实数据、临时结论、未证实推测）在类型层面就无法实例化，比 Policy 文档可靠</td>
+</tr>
+<tr>
+<td><code>scope.tenant_id</code></td>
+<td>必填，取自安全上下文</td>
+<td>租户隔离的全部依据；召回时每个过滤条件都从这里取，缺一个字段就是一种泄漏路径</td>
+</tr>
+<tr>
+<td><code>provenance</code> + <code>evidence_ref</code></td>
+<td>来源字典 + 强制证据指针</td>
+<td>&quot;这条记忆哪来的&quot;必须可回答；evidence_ref 设为强制字段，把&quot;无证据不写入&quot;从口号变成构造器报错</td>
+</tr>
+<tr>
+<td><code>confirm_required</code></td>
+<td>布尔</td>
+<td>置信度的结构化表达：推断类记忆强制走确认队列，而不是让模型自评一个无校准保证的 0-1 分数</td>
+</tr>
+<tr>
+<td><code>ttl_days</code></td>
+<td>可空整数</td>
+<td>有效期的显式声明；null 是给&quot;长期偏好&quot;留的特例，但每个 null 都要经 Policy 批准——默认必须有 TTL</td>
+</tr>
+<tr>
+<td><code>version</code> + <code>supersedes</code> + <code>status</code></td>
+<td>版本链</td>
+<td>修正与遗忘都是状态流转而非物理删除；审计与&quot;为什么不再召回&quot;的解释全靠这条链</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：这套字段的哲学是&quot;宁可写入时被拒，不可召回时出错&quot;——必填字段多、构造麻烦，是有意抬高写入门槛，因为写入是一次性的，污染是永久性的。confirm_required 用布尔而不用连续置信度分数，是刻意的诚实：模型自评置信度没有校准保证，变成&quot;需不需要人确认&quot;的布尔决策反而可执行。故意不做的：记录里不存向量、不存权限判断结果——向量是索引的派生物可随时重建，权限判断必须在召回时实时做，存下来就是第二个会漂移的&quot;真相&quot;。演进：新字段以可空方式追加（如 review_due_at），老记录免迁移；mem_type 加枚举值必须同步更新写入白名单与召回类型映射（下篇 INTENT_TYPES），三处一起改。</p>
 <pre><code class="language-python">from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
