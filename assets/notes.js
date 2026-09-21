@@ -9,19 +9,30 @@
 (function () {
   'use strict';
 
-  /* ================= 云端配置 ================= */
+  /* ================= 云端配置 =================
+   * 内置常量（作者部署时写入）+ 界面设置（localStorage 'aap-config' 覆盖），
+   * 读者在网站「⚙ 云端设置」里粘贴自己的 Supabase 配置即可启用。 */
   var SUPABASE_URL = '';        // 例如 'https://abcdefgh.supabase.co'
   var SUPABASE_ANON_KEY = '';   // Supabase Settings → API → anon public key
-  var CLOUD = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+  var ASK_ENDPOINT = '';        // 可选：自定义 OpenAI 兼容答疑网关
+  var ASK_API_KEY = '';         // 可选：自定义网关密钥
 
-  /* AI 答疑：默认走 Supabase Edge Function（/functions/v1/ask），
-   * 也可改为任何 OpenAI 兼容的 /chat/completions 网关地址 + ASK_API_KEY */
-  var ASK_ENDPOINT = '';
-  var ASK_API_KEY = '';
-  function askEndpoint() {
-    return ASK_ENDPOINT || (SUPABASE_URL ? SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/ask' : '');
+  function cfg() {
+    var c = {};
+    try { c = JSON.parse(localStorage.getItem('aap-config') || '{}'); } catch (e) {}
+    return {
+      url: String(c.url || SUPABASE_URL || '').replace(/\/+$/, ''),
+      key: c.key || SUPABASE_ANON_KEY || '',
+      ask: c.ask || ASK_ENDPOINT || '',
+      askKey: c.askKey || ASK_API_KEY || ''
+    };
   }
-  var AI_READY = !!askEndpoint();
+  function isCloud() { var c = cfg(); return !!(c.url && c.key); }
+  function askEndpoint() {
+    var c = cfg();
+    return c.ask || (c.url ? c.url + '/functions/v1/ask' : '');
+  }
+  function isAiReady() { return !!askEndpoint(); }
 
   /* ================= 基础 ================= */
   var STORE_KEY = 'aap-notes-v1';
@@ -80,22 +91,23 @@
   /* ================= 云端（Supabase PostgREST） ================= */
 
   function api(path, opts) {
+    var c = cfg();
     opts = opts || {};
     opts.headers = Object.assign({
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'apikey': c.key,
+      'Authorization': 'Bearer ' + c.key,
       'Content-Type': 'application/json'
     }, opts.headers || {});
-    return fetch(SUPABASE_URL + '/rest/v1/' + path, opts);
+    return fetch(c.url + '/rest/v1/' + path, opts);
   }
 
   function cloudUpsert(item) {
-    if (!CLOUD) return;
+    if (!isCloud()) return;
     enqueue({ op: 'upsert', item: item });
     flushQueue();
   }
   function cloudDelete(id) {
-    if (!CLOUD) return;
+    if (!isCloud()) return;
     enqueue({ op: 'delete', id: id });
     flushQueue();
   }
@@ -119,7 +131,7 @@
 
   var flushing = false;
   function flushQueue() {
-    if (!CLOUD || flushing) return;
+    if (!isCloud() || flushing) return;
     var q = getQueue();
     if (!q.length) { setSyncBadge('synced'); return; }
     flushing = true;
@@ -153,7 +165,7 @@
 
   /* 启动时：推本地队列 → 拉云端 → 合并（同 id 取 ts 新者）→ 重绘 */
   function syncFromCloud() {
-    if (!CLOUD) return Promise.resolve(false);
+    if (!isCloud()) return Promise.resolve(false);
     setSyncBadge('syncing');
     return api('reading_notes?user_key=eq.' + encodeURIComponent(userKey()) + '&select=id,payload')
       .then(function (r) {
@@ -324,7 +336,25 @@
     + '.aap-citem .ct{font-size:11px;color:#b0aa9c;}'
     + '.aap-citem .cb{font-size:13.5px;color:#3f3a32;line-height:1.7;margin-top:4px;white-space:pre-wrap;}'
     + '.aap-cempty{font-size:12.5px;color:#b0aa9c;padding:14px 0;}'
-    + '@media (max-width:900px){.aap-fab{right:14px;bottom:18px;}.aap-pop{width:min(300px,86vw);}}';
+    + '@media (max-width:900px){.aap-fab{right:14px;bottom:18px;}.aap-pop{width:min(300px,86vw);}}'
+    /* 云端设置弹窗 */
+    + '.aap-settings{position:fixed;inset:0;z-index:95;background:rgba(41,37,36,.45);display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}'
+    + '.aap-settings .card{background:#fffdf9;border:1px solid #e5e1d8;border-radius:12px;box-shadow:0 18px 60px rgba(60,50,30,.3);width:min(460px,100%);max-height:88vh;overflow-y:auto;padding:22px 24px;}'
+    + '.aap-settings h3{margin:0 0 4px;font-size:16px;color:#292524;display:flex;align-items:center;}'
+    + '.aap-settings h3 .x{margin-left:auto;border:0;background:none;font-size:20px;cursor:pointer;color:#8a8578;}'
+    + '.aap-settings .sub{font-size:12px;color:#8a8578;line-height:1.7;margin-bottom:16px;}'
+    + '.aap-settings label{display:block;font-size:12.5px;color:#57534e;margin:12px 0 5px;font-weight:600;}'
+    + '.aap-settings input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #e5e1d8;border-radius:7px;font:inherit;font-size:13px;color:#333;outline:none;background:#fff;}'
+    + '.aap-settings input:focus{border-color:#0f766e;}'
+    + '.aap-settings .adv{font-size:11.5px;color:#b0aa9c;margin-top:18px;border-top:1px dashed #efece4;padding-top:12px;}'
+    + '.aap-settings .srow{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;}'
+    + '.aap-settings .srow button{border:1px solid #e5e1d8;background:#fff;border-radius:7px;padding:8px 14px;font:inherit;font-size:12.5px;color:#57534e;cursor:pointer;}'
+    + '.aap-settings .srow button:hover{border-color:#0f766e;color:#0f766e;}'
+    + '.aap-settings .srow button.primary{background:#0f766e;border-color:#0f766e;color:#fff;}'
+    + '.aap-settings .srow button.danger{color:#dc2626;}'
+    + '.aap-settings .smsg{font-size:12px;margin-top:10px;min-height:16px;}'
+    + '.aap-settings .smsg.ok{color:#0f766e;}'
+    + '.aap-settings .smsg.bad{color:#dc2626;}';
 
   var styleEl = document.createElement('style');
   styleEl.textContent = css;
@@ -460,7 +490,7 @@
     if (!e.target.closest('.aap-seltool') && !e.target.closest('.aap-pop')) closeFloating();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closeFloating(); closeDrawer(); if (typeof closeChat === 'function') closeChat(); }
+    if (e.key === 'Escape') { closeFloating(); closeDrawer(); if (typeof closeChat === 'function') closeChat(); if (typeof closeSettings === 'function') closeSettings(); }
   });
 
   /* ================= 选区工具条 ================= */
@@ -573,20 +603,6 @@
     };
     window.getSelection().removeAllRanges();
     closeFloating();
-    if (!AI_READY) {
-      /* 本地模式：先收集疑问，云端配好后随时可对话 */
-      var q = window.prompt('哪里不懂？用自己的话记录一下（配置云端后可与 AI 对话讨论）：');
-      if (q === null) return;
-      var item = {
-        id: uid(), type: 'doubt', page: PAGE, title: PAGE_TITLE,
-        sPath: pending.sPath, sOff: pending.sOff, ePath: pending.ePath, eOff: pending.eOff,
-        text: pending.text, question: q.trim() || '这段没看懂', answer: '', status: 'open', ts: Date.now(), chat: []
-      };
-      db.items.push(item); save(); cloudUpsert(item);
-      paintMark(item);
-      refreshBadge();
-      return;
-    }
     openChat(null, pending);
   }
 
@@ -616,6 +632,7 @@
     chatPanel.querySelector('.x').addEventListener('click', closeChat);
     chatPanel.querySelector('.hacts').addEventListener('click', function (e) {
       var a = e.target.getAttribute('data-h');
+      if (a === 'settings') { openSettings(); return; }
       if (!chatItem) return;
       if (a === 'toggle') {
         chatItem.status = chatItem.status === 'done' ? 'open' : 'done';
@@ -646,10 +663,11 @@
     var acts = chatPanel.querySelector('.hacts');
     var quote = chatItem ? chatItem.text : (chatPending ? chatPending.text : '');
     q.textContent = quote ? '原文：' + quote : '当前章节：《' + PAGE_TITLE + '》——随便问';
-    acts.innerHTML = chatItem
+    acts.innerHTML = (chatItem
       ? '<button data-h="toggle">' + (chatItem.status === 'done' ? '标回未懂' : '已搞懂 ✓') + '</button>'
         + '<button data-h="del">删除此疑问</button>'
-      : '';
+      : '')
+      + '<button data-h="settings">⚙ 设置</button>';
   }
 
   function renderChatMessages() {
@@ -661,6 +679,9 @@
       tip.textContent = chatItem || chatPending
         ? '我是本教程的 AI 助教。你划的这段哪里不懂？直接问，我会结合原文讲，可以追问。'
         : '我是本教程的 AI 助教。关于《' + PAGE_TITLE + '》这章有什么想讨论的？';
+      if (!isAiReady()) {
+        tip.textContent += '\n\n（尚未配置云端：你的问题会先存入疑问清单，点右上角「⚙ 设置」填好 Supabase 配置后 AI 即可回答）';
+      }
       log.appendChild(tip);
       return;
     }
@@ -675,7 +696,6 @@
 
   /* 打开对话：item=已有疑问卡；pending=刚划选的新疑问；都为空=本章自由问答 */
   function openChat(item, pending) {
-    if (!AI_READY) { window.alert('AI 答疑尚未配置云端，请稍后再试。'); return; }
     ensureChatPanel();
     chatItem = item || null;
     chatPending = pending || null;
@@ -728,6 +748,19 @@
     btn.disabled = true;
     chatLog.push({ role: 'user', content: text, ts: Date.now() });
     renderChatMessages();
+    if (!isAiReady()) {
+      /* 未配置云端：问题已存入疑问清单，提示去设置 */
+      var hintBubble = document.createElement('div');
+      hintBubble.className = 'aap-msg ai';
+      hintBubble.textContent = 'AI 助教还没接通云端，你的疑问已存入「疑问清单」。点右上角「⚙ 设置」填入 Supabase 配置后，我就可以直接回答你了。';
+      chatPanel.querySelector('.aap-chatlog').appendChild(hintBubble);
+      persistChat();
+      renderList();
+      chatSending = false;
+      btn.disabled = false;
+      chatPanel.querySelector('textarea').focus();
+      return;
+    }
     var log = chatPanel.querySelector('.aap-chatlog');
     var typing = document.createElement('div');
     typing.className = 'aap-msg ai typing';
@@ -736,10 +769,11 @@
     log.scrollTop = log.scrollHeight;
 
     var headers = { 'Content-Type': 'application/json' };
-    if (ASK_API_KEY) headers['Authorization'] = 'Bearer ' + ASK_API_KEY;
-    else if (SUPABASE_ANON_KEY) {
-      headers['apikey'] = SUPABASE_ANON_KEY;
-      headers['Authorization'] = 'Bearer ' + SUPABASE_ANON_KEY;
+    var ac = cfg();
+    if (ac.askKey) headers['Authorization'] = 'Bearer ' + ac.askKey;
+    else if (ac.key) {
+      headers['apikey'] = ac.key;
+      headers['Authorization'] = 'Bearer ' + ac.key;
     }
     var history = chatLog.slice(-12).map(function (m) { return { role: m.role, content: m.content }; });
     fetch(askEndpoint(), {
@@ -786,17 +820,7 @@
     var id = span.getAttribute('data-nid');
     var item = db.items.filter(function (i) { return i.id === id; })[0];
     if (!item) return;
-    if (item.type === 'doubt') {
-      if (AI_READY) { openChat(item); return; }
-      /* 本地模式：简单展示疑问 */
-      closeFloating();
-      var dq = window.prompt('我的疑问（配置云端后可与 AI 对话）：', item.question || '');
-      if (dq !== null && dq.trim()) {
-        item.question = dq.trim(); item.ts = Date.now();
-        save(); cloudUpsert(item);
-      }
-      return;
-    }
+    if (item.type === 'doubt') { openChat(item); return; }
     closeFloating();
     var pop = document.createElement('div');
     pop.className = 'aap-pop';
@@ -873,10 +897,6 @@
   }
   fab.querySelector('#aapFavBtn').addEventListener('click', toggleFav);
   fab.querySelector('#aapChatBtn').addEventListener('click', function () {
-    if (!AI_READY) {
-      window.alert('AI 助教需要云端配置后启用（疑问清单可正常使用）。');
-      return;
-    }
     openChat(null, null);
   });
 
@@ -893,12 +913,15 @@
     + '<footer>'
     + '<div class="syncrow"><span class="sp" id="aapSyncState"></span>'
     + '<button id="aapCopyKey" style="display:none">复制同步码</button>'
-    + '<button id="aapUseKey" style="display:none">输入同步码</button></div>'
+    + '<button id="aapUseKey" style="display:none">输入同步码</button>'
+    + '<button id="aapSettingsBtn">⚙ 云端设置</button></div>'
     + '<div class="btnrow"><button id="aapExport">导出 Markdown</button></div>'
     + '</footer>';
   document.body.appendChild(drawer);
   syncBadgeEl = drawer.querySelector('#aapSyncState');
-  setSyncBadge(CLOUD ? 'syncing' : 'local');
+  setSyncBadge(isCloud() ? 'syncing' : 'local');
+
+  drawer.querySelector('#aapSettingsBtn').addEventListener('click', openSettings);
 
   drawer.querySelector('#aapCopyKey').addEventListener('click', function () {
     var k = userKey();
@@ -931,7 +954,7 @@
   });
   fab.querySelector('#aapNoteBtn').addEventListener('click', function () {
     drawer.classList.toggle('open');
-    if (CLOUD) {
+    if (isCloud()) {
       drawer.querySelector('#aapCopyKey').style.display = '';
       drawer.querySelector('#aapUseKey').style.display = '';
     }
@@ -1024,7 +1047,7 @@
         + '<span class="st ' + (d.status === 'done' ? 'done' : 'open') + '">' + (d.status === 'done' ? '已搞懂' : '未搞懂') + '</span></div>'
         + (d.answer ? '<div class="da">' + escapeHtml(d.answer) + '</div>' : '')
         + '<div class="am">' + fmtTs(d.ts)
-        + (AI_READY ? '<button class="mini" data-x="ask">对话 💬</button>' : '')
+        + '<button class="mini" data-x="ask">对话 💬</button>'
         + '<button class="mini" data-x="toggle">' + (d.status === 'done' ? '标回未懂' : '已懂 ✓') + '</button>'
         + '<button class="del">删除</button></div>';
       div.addEventListener('click', function (e) {
@@ -1099,7 +1122,7 @@
 
   var commentsBox = null;
   function buildComments() {
-    if (!CLOUD) return;
+    if (!isCloud()) return;
     commentsBox = document.createElement('section');
     commentsBox.className = 'aap-comments';
     commentsBox.innerHTML = ''
@@ -1174,13 +1197,88 @@
     });
   }
 
+  /* ================= 云端设置弹窗 ================= */
+
+  var settingsEl = null;
+  function openSettings() {
+    if (settingsEl) return;
+    var c = cfg();
+    settingsEl = document.createElement('div');
+    settingsEl.className = 'aap-settings';
+    settingsEl.innerHTML = ''
+      + '<div class="card">'
+      + '<h3>⚙ 云端设置<button class="x" title="关闭">×</button></h3>'
+      + '<div class="sub">云端开启后：笔记/收藏跨设备同步、每页评论区开放、AI 助教答疑可用。<br>'
+      + '还没有 Supabase？到 supabase.com 免费建项目 → SQL Editor 执行本教程附带的 supabase-setup.sql → Settings → API 复制下面两项填进来即可。</div>'
+      + '<label>Supabase Project URL</label>'
+      + '<input id="aapSUrl" placeholder="https://abcdefgh.supabase.co" value="' + escapeHtml(c.url) + '"/>'
+      + '<label>anon public key</label>'
+      + '<input id="aapSKey" placeholder="eyJhbGciOi…" value="' + escapeHtml(c.key) + '"/>'
+      + '<div class="adv">高级选项（一般不用填）：自带答疑网关时填写，留空则默认用 Supabase Edge Function ask</div>'
+      + '<label>自定义答疑网关 endpoint（可选）</label>'
+      + '<input id="aapSAsk" placeholder="https://…/ask" value="' + escapeHtml(c.ask) + '"/>'
+      + '<label>网关 Key（可选）</label>'
+      + '<input id="aapSAskKey" placeholder="留空则复用 anon key" value="' + escapeHtml(c.askKey) + '"/>'
+      + '<div class="srow">'
+      + '<button id="aapSTest">测试连接</button>'
+      + '<button class="primary" id="aapSSave">保存并刷新</button>'
+      + '<button class="danger" id="aapSClear">清除自定义配置</button>'
+      + '</div>'
+      + '<div class="smsg" id="aapSMsg"></div>'
+      + '</div>';
+    document.body.appendChild(settingsEl);
+    function msg(text, ok) {
+      var m = settingsEl.querySelector('#aapSMsg');
+      m.textContent = text;
+      m.className = 'smsg ' + (ok ? 'ok' : 'bad');
+    }
+    function collect() {
+      return {
+        url: settingsEl.querySelector('#aapSUrl').value.trim().replace(/\/+$/, ''),
+        key: settingsEl.querySelector('#aapSKey').value.trim(),
+        ask: settingsEl.querySelector('#aapSAsk').value.trim(),
+        askKey: settingsEl.querySelector('#aapSAskKey').value.trim()
+      };
+    }
+    settingsEl.querySelector('.x').addEventListener('click', closeSettings);
+    settingsEl.addEventListener('mousedown', function (e) {
+      if (e.target === settingsEl) closeSettings();
+    });
+    settingsEl.querySelector('#aapSTest').addEventListener('click', function () {
+      var v = collect();
+      if (!v.url || !v.key) { msg('先填 Project URL 和 anon key', false); return; }
+      msg('连接中…', true);
+      fetch(v.url + '/rest/v1/reading_notes?limit=1', {
+        headers: { 'apikey': v.key, 'Authorization': 'Bearer ' + v.key }
+      }).then(function (r) {
+        if (r.ok) msg('✓ 连接成功，点「保存并刷新」生效', true);
+        else msg('✗ 连接失败（HTTP ' + r.status + '）——检查 URL/key 是否正确、数据表是否已创建', false);
+      }).catch(function () {
+        msg('✗ 网络不通——检查 URL 是否拼对、项目是否在运行', false);
+      });
+    });
+    settingsEl.querySelector('#aapSSave').addEventListener('click', function () {
+      var v = collect();
+      if (!v.url && !v.key && !v.ask) { msg('啥都没填：要保存请至少填 URL + key，或点「清除自定义配置」', false); return; }
+      try { localStorage.setItem('aap-config', JSON.stringify(v)); } catch (e) {}
+      location.reload();
+    });
+    settingsEl.querySelector('#aapSClear').addEventListener('click', function () {
+      try { localStorage.removeItem('aap-config'); } catch (e) {}
+      location.reload();
+    });
+  }
+  function closeSettings() {
+    if (settingsEl) { settingsEl.remove(); settingsEl = null; }
+  }
+
   /* ================= 启动 ================= */
 
   paintAll();
   paintFav();
   refreshBadge();
   buildComments();
-  if (CLOUD) {
+  if (isCloud()) {
     syncFromCloud().then(function (changed) {
       if (changed) { unpaintAll(); paintAll(); paintFav(); refreshBadge(); }
     });
