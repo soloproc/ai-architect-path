@@ -1,0 +1,5 @@
+# M6 依赖：FastAPI 起 OpenAI 兼容 mock 服务，httpx 做异步压测客户端。
+# Python >= 3.11
+fastapi>=0.110
+uvicorn>=0.29
+httpx>=0.27
