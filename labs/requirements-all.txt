@@ -1,0 +1,8 @@
+# RetailHub 全部代码里程碑的依赖并集（在 labs/ 根目录装一次即可）
+# M1/M2/M6 用 fastapi+uvicorn 起服务；M2 用 fakeredis 做内存版 Redis；
+# httpx/pytest 是测试与压测客户端。M3/M4/M8/M9 纯标准库，无需安装。
+fastapi
+uvicorn
+fakeredis==2.38.0
+httpx
+pytest
