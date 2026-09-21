@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -304,6 +305,9 @@
 <p>一句话注明出处：这是<strong>淘宝/阿里在 2010 年后于云平台上演进出的形态</strong>（从同城双活到&quot;异地三活&quot;再到单元化）<sup class="fn-ref"><a href="#fn-2" id="ref-2">[2]</a></sup>，与卷02 淘宝章节讲的&quot;去 IOE、自研中间件&quot;是同一条演进线的后半程。对 RetailHub 现阶段只需记住设计动机——<strong>把爆炸半径从&quot;整个系统&quot;缩小到&quot;一个单元&quot;</strong>，真到多地域经营那天再启用。</p>
 <hr>
 <h2 id="8-本卷实战-上-给订单服务装上-安全气囊">8. 本卷实战（上）：给订单服务装上&quot;安全气囊&quot;</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m4-traffic-observability.zip">下载 retailhub-m4-traffic-observability.zip</a>，解压后 <code>cd m4-traffic-observability &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <h3 id="8-1-背景">8.1 背景</h3>
 <p>卷03 末态：RetailHub 有网关 + 订单服务 + 库存服务（REST 互调）、PostgreSQL 主从、Redis 缓存、MQ 异步报表，完成了数据架构文档与防超卖实验。卷04 的实战按主题拆到三个子页，本页完成前两步：给跨服务调用装上超时与熔断、加上租户级限流——先让订单服务在下游故障与流量尖峰面前不被拖死。</p>
 <h3 id="8-2-任务清单-本页两步-验收通过再进下一步">8.2 任务清单（本页两步，验收通过再进下一步）</h3>

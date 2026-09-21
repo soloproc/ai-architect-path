@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -280,6 +281,9 @@
 <p>与淘宝对照，路径形状几乎一样——都是&quot;单体起步、规模倒逼、逐代演进&quot;，没有一步是设计出来的；区别在于<strong>倒逼的力不同：淘宝是交易流量倒逼，WPS 是文档云服务的存储与协作规模倒逼</strong>。这再次印证本卷的核心命题：演进顺序是约束条件的函数，不是物理定律。KAE 故事的后半段（可靠性工程与四个 9 可用性）会在卷08 展开。</p>
 <hr>
 <h2 id="7-本卷实战-retailhub-演进第-2-步">7. 本卷实战：RetailHub 演进第 2 步</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m2-cache-mq.zip">下载 retailhub-m2-cache-mq.zip</a>，解压后 <code>cd m2-cache-mq &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <h3 id="7-1-背景">7.1 背景</h3>
 <p>承接卷01 末状态：FastAPI + SQLite 单体，3 个查询端点。本步把它演进为：<strong>MySQL 主从 + Redis 缓存 + RocketMQ 异步日报 + 订单/报表两服务</strong>。全部用 docker-compose 在本机编排，可一键起停、可压测验证。</p>
 <p>按递进步骤做，每步有独立验收标准——<strong>任何一步验收不过，不进入下一步</strong>。</p>

@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -307,6 +308,9 @@
 </pre>
 <hr>
 <h2 id="11-本卷实战-retailhub-演进第-3-步">11. 本卷实战：RetailHub 演进第 3 步</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m3-oversell-lab.zip">下载 retailhub-m3-oversell-lab.zip</a>，解压后 <code>cd m3-oversell-lab &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <h3 id="11-1-背景">11.1 背景</h3>
 <p>卷02 末状态的 RetailHub 跑得不错，但三个增长信号出现了：订单表预计一年内过 5000 万行；商品属性随品类扩张频繁变更 schema；行为日志（埋点）每天 3000 万条无处安放。本步不写新功能，产出两件东西：<strong>一份《数据架构设计文档》<strong>和</strong>一个防超卖隔离级别实验</strong>。</p>
 <h3 id="11-2-任务一-数据架构设计文档">11.2 任务一：《数据架构设计文档》</h3>

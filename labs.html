@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>实操指南：手把手跑起来 · AI 全栈架构师之路 · 自学教程</title>
+<meta property="og:title" content="实操指南：手把手跑起来 · AI 全栈架构师之路">
+<meta property="og:description" content="AI 全栈架构师之路 · 自学教程">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%AD%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://fontsapi.zeoseven.com/256/main/result.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.min.css">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<header class="topbar">
+  <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
+  <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+</header>
+
+<aside class="sidebar" id="sidebar">
+  <div class="site-title"><a href="index.html">AI 全栈架构师之路<br><span>自学教程</span></a></div>
+  <nav class="site-nav">
+    <a href="index.html" class="">首页</a>
+    <div class="nav-group">学习地图</div>
+    <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="active">实操指南 · 手把手跑起来</a>
+    <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
+    <div class="nav-group">阶段一 · 服务端筑基</div>
+    <div class="nav-sub">卷01 · 服务端筑基</div>
+    <a href="vol-01-1.html" class=" nav-child">卷01-1 · HTTP 与网络基础</a>
+    <a href="vol-01-2.html" class=" nav-child">卷01-2 · 数据库与部署实战</a>
+    <div class="nav-group">阶段二 · 架构演进实践</div>
+    <div class="nav-sub">卷02 · 架构演进实践</div>
+    <a href="vol-02-1.html" class=" nav-child">卷02-1 · 缓存与读写分离</a>
+    <a href="vol-02-2.html" class=" nav-child">卷02-2 · 消息队列与服务拆分</a>
+    <a href="vol-02-3.html" class=" nav-child">卷02-3 · 演进案例与大促实战</a>
+    <div class="nav-group">阶段三 · 数据密集型系统 DDIA</div>
+    <div class="nav-sub">卷03 · 数据密集型系统 DDIA</div>
+    <a href="vol-03-1.html" class=" nav-child">卷03-1 · 存储复制与分区</a>
+    <a href="vol-03-2.html" class=" nav-child">卷03-2 · 事务一致性与实战</a>
+    <div class="nav-group">阶段四 · 分布式与平台工程</div>
+    <div class="nav-sub">卷04 · 分布式与平台工程</div>
+    <a href="vol-04-1.html" class=" nav-child">卷04-1 · 通信与流量治理</a>
+    <a href="vol-04-2.html" class=" nav-child">卷04-2 · 分布式事务与共识</a>
+    <a href="vol-04-3.html" class=" nav-child">卷04-3 · 可观测与平台工程</a>
+    <div class="nav-group">阶段五 · 架构师方法论</div>
+    <div class="nav-sub">卷05 · 架构师方法论与软考</div>
+    <a href="vol-05-1.html" class=" nav-child">卷05-1 · 架构师方法论</a>
+    <a href="vol-05-2.html" class=" nav-child">卷05-2 · 软考与文档实战</a>
+    <div class="nav-group">阶段六 · Agent 前置与认知</div>
+    <div class="nav-sub">篇00 · 前置知识</div>
+    <a href="chapter-00-1.html" class=" nav-child">篇00-1 · 前置知识（上）基本功</a>
+    <a href="chapter-00-2.html" class=" nav-child">篇00-2 · 前置知识（下）递进 Demo</a>
+    <a href="chapter-01.html" class="">篇01 · AI 核心认知</a>
+    <a href="chapter-02.html" class="">篇02 · AI Coding 道法术器</a>
+    <a href="chapter-03.html" class="">篇03 · 实战立项</a>
+    <div class="nav-group">阶段七 · AI Infra</div>
+    <div class="nav-sub">卷06 · AI Infra</div>
+    <a href="vol-06-1.html" class=" nav-child">卷06-1 · GPU 与推理服务化</a>
+    <a href="vol-06-2.html" class=" nav-child">卷06-2 · 推理成本、向量检索与 LLMOps</a>
+    <div class="nav-group">阶段八 · SRE 可靠性工程</div>
+    <div class="nav-sub">卷08 · SRE 可靠性工程</div>
+    <a href="vol-08-1.html" class=" nav-child">卷08-1 · SLO 与错误预算</a>
+    <a href="vol-08-2.html" class=" nav-child">卷08-2 · 监控告警与事故管理</a>
+    <a href="vol-08-3.html" class=" nav-child">卷08-3 · 发布工程与 AI 服务 SRE</a>
+    <div class="nav-group">阶段九 · Agent 工程化深入</div>
+    <div class="nav-sub">篇04 · LLM 执行底座</div>
+    <a href="chapter-04-1.html" class=" nav-child">篇04-1 · 调用解剖与重试退避</a>
+    <a href="chapter-04-2.html" class=" nav-child">篇04-2 · 结构化输出与函数调用</a>
+    <div class="nav-sub">篇05 · Agent Harness 与 Runtime</div>
+    <a href="chapter-05-1.html" class=" nav-child">篇05-1 · Harness 与 Run 执行模型</a>
+    <a href="chapter-05-2.html" class=" nav-child">篇05-2 · Workflow 与分布式 Runtime</a>
+    <div class="nav-sub">篇06 · Agent 上下文治理</div>
+    <a href="chapter-06-1.html" class=" nav-child">篇06-1 · 上下文契约与装配预算</a>
+    <a href="chapter-06-2.html" class=" nav-child">篇06-2 · 证据长任务与 ContextOps</a>
+    <div class="nav-sub">篇07 · 工具与技能治理</div>
+    <a href="chapter-07-1.html" class=" nav-child">篇07-1 · 能力形态与受控执行</a>
+    <a href="chapter-07-2.html" class=" nav-child">篇07-2 · Skill 工程与 MCP 治理</a>
+    <div class="nav-sub">篇08 · Agent 记忆治理</div>
+    <a href="chapter-08-1.html" class=" nav-child">篇08-1 · 记忆契约与可信写入</a>
+    <a href="chapter-08-2.html" class=" nav-child">篇08-2 · 受控召回与 MemoryOps</a>
+    <a href="chapter-09.html" class="">篇09 · 评测与受控进化</a>
+    <a href="chapter-10.html" class="">篇10 · 面向未来的工程判断</a>
+    <div class="nav-group">阶段十 · AI FDE 交付</div>
+    <a href="vol-07.html" class="">卷07 · AI FDE 交付实战</a>
+    <div class="nav-group">附录与资料存档</div>
+    <a href="report.html" class="">课程分析报告</a>
+    <a href="ref-01.html" class="">资料01 · 服务端演进 14 次</a>
+    <a href="ref-02.html" class="">资料02 · 淘宝架构变迁</a>
+    <a href="ref-03.html" class="">资料03 · 金山 KAE 规模之道</a>
+    <a href="ref-04.html" class="">资料04 · WPS Comate 落地</a>
+    <a href="ref-05.html" class="">资料05 · AI Docs 知识湖</a>
+    <a href="ref-06.html" class="">资料06 · ADR 原始博客</a>
+    <a href="ref-07.html" class="">资料07 · Building Effective Agents</a>
+  </nav>
+  <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
+</aside>
+<div class="overlay" id="overlay"></div>
+
+<main class="main">
+  <article class="content">
+<h1 id="实操指南-手把手跑起来">实操指南：手把手跑起来</h1>
+<p>实操这本教程有两种方式，可以混着用：</p>
+<ul>
+<li><strong>在线 Demo，零安装</strong>：很多章节页里内嵌了可点击的交互 Demo（装配管线、熔断器状态机、Token 预算滑块……），打开网页直接玩，什么都不用装。</li>
+<li><strong>源码包，下载到本地跑</strong>：贯穿项目 RetailHub 的 9 个里程碑源码，解压后一条命令跑通，本页教你怎么从零装环境、跑通第一个里程碑。</li>
+</ul>
+<blockquote>
+<p>建议姿势：读章节时玩在线 Demo 建立直觉；读到「本卷实战 / 本篇实战」时下载对应源码包，亲手跑通验收清单。</p>
+</blockquote>
+<hr>
+<h2 id="1-环境准备-只做一次-macos-为主">1. 环境准备（只做一次，macOS 为主）</h2>
+<p>源码全部是 Python 写的，唯一硬性要求是 <strong>Python ≥ 3.10</strong>。不需要装 Redis / MySQL / GPU——缓存用 fakeredis 模拟、数据库用 SQLite、推理服务是本地 mock。</p>
+<h3 id="1-1-检查-python3">1.1 检查 python3</h3>
+<p>打开「终端」（Terminal），输入：</p>
+<pre><code class="language-bash">python3 --version
+</code></pre>
+<ul>
+<li>预期输出：<code>Python 3.10.x</code> 或更高（如 <code>Python 3.12.4</code>）✅ 直接跳到 1.3。</li>
+<li>如果提示 <code>command not found</code>，或版本低于 3.10，继续 1.2。</li>
+</ul>
+<h3 id="1-2-安装-python3-没有的话">1.2 安装 python3（没有的话）</h3>
+<p><strong>macOS 方式 A</strong>：安装苹果命令行工具（自带 python3）：</p>
+<pre><code class="language-bash">xcode-select --install
+</code></pre>
+<p>会弹出一个系统安装窗口，点「安装」等它装完（约几分钟），然后回到终端重新执行 <code>python3 --version</code> 确认。</p>
+<p><strong>macOS 方式 B</strong>：去 <a href="https://www.python.org/downloads/">python.org</a> 下载 macOS 安装包，双击一路「继续」，装完重新打开终端确认版本。</p>
+<p><strong>Windows 简要说明</strong>：去 <a href="https://www.python.org/downloads/">python.org</a> 下载 Windows 安装包，安装时<strong>务必勾选 &quot;Add python.exe to PATH&quot;</strong>；验证用 <code>python --version</code>（Windows 上通常没有 <code>python3</code> 这个命令，后面所有 <code>python3</code> 换成 <code>python</code>）。运行 shell 脚本（<code>run.sh</code> / <code>bootstrap.sh</code>）推荐用安装 Git for Windows 自带的 <strong>Git Bash</strong>；也可以在 PowerShell 里手动逐条执行等价命令（见 1.3 的括号注释）。</p>
+<h3 id="1-3-一键建环境">1.3 一键建环境</h3>
+<p>先下载全量源码包（见第 2 节）并解压，然后在终端进入解压出来的目录：</p>
+<pre><code class="language-bash">cd retailhub-source        # 你解压出来的目录名；里面是 m1-monolith、m2-cache-mq 等 9 个目录
+bash bootstrap.sh
+</code></pre>
+<p>预期看到四步输出，每步一个 ✅：</p>
+<pre><code class="language-plaintext">== 1/4 检测 python3 ==
+   python3 版本 3.12 ✅
+== 2/4 创建虚拟环境 .venv ==
+   已创建 .venv ✅
+== 3/4 安装依赖（requirements-all.txt）==
+   依赖安装完成 ✅
+== 4/4 自检 ==
+   核心依赖导入正常 ✅
+🎉 环境就绪。下一步：source .venv/bin/activate …
+</code></pre>
+<p><code>bootstrap.sh</code> 帮你做的三件事，等价于手工执行（Windows / 想理解原理的读者看这里）：</p>
+<pre><code class="language-bash">python3 -m venv .venv            # 建一个独立虚拟环境，不污染系统 Python
+source .venv/bin/activate        # 激活（Windows PowerShell：.venv\Scripts\Activate.ps1）
+pip install -r requirements-all.txt   # 装全部里程碑的依赖（fastapi、uvicorn、httpx、pytest 等）
+</code></pre>
+<blockquote>
+<p>pip 下载慢或超时：换国内镜像再装一次
+<code>pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements-all.txt</code></p>
+</blockquote>
+<p><strong>每次新开终端</strong>跑里程碑前，记得先激活环境：<code>source .venv/bin/activate</code>（Windows PowerShell：<code>.venv\Scripts\Activate.ps1</code>）。激活后命令行最前面会出现 <code>(.venv)</code> 字样。</p>
+<blockquote>
+<p>只下载了单个里程碑 zip、没有全量包？也行：进入该里程碑目录后手工执行上面三条命令，把 <code>requirements-all.txt</code> 换成目录里的 <code>requirements.txt</code>。M3 / M4 / M8 / M9 只用 Python 标准库，不装任何依赖也能跑。</p>
+</blockquote>
+<hr>
+<h2 id="2-下载源码包">2. 下载源码包</h2>
+<p><strong>全量包（推荐）</strong>：<a href="assets/labs/retailhub-source.zip">下载 retailhub-source.zip</a>（约 170KB，含全部 9 个里程碑 + 一键环境脚本 bootstrap.sh）</p>
+<p>也可以按里程碑单独下载（注意：单独 zip 不含 bootstrap.sh，建环境见 1.3 末尾的说明）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>里程碑</th>
+<th>对应教程章节</th>
+<th>学什么</th>
+<th>运行命令</th>
+<th>下载</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M1 单体服务</td>
+<td><a href="vol-01-2.html">卷01-2 数据库与部署实战</a></td>
+<td>FastAPI + SQLite 单体：分页、JOIN 明细、GMV 口径、访问日志</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m1-monolith.zip">retailhub-m1-monolith.zip</a></td>
+</tr>
+<tr>
+<td>M2 缓存与消息队列</td>
+<td><a href="vol-02-3.html">卷02-3 演进案例与大促实战</a></td>
+<td>Cache-Aside 缓存（防穿透/防雪崩）、异步队列、读写分离</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m2-cache-mq.zip">retailhub-m2-cache-mq.zip</a></td>
+</tr>
+<tr>
+<td>M3 超卖实验</td>
+<td><a href="vol-03-2.html">卷03-2 事务一致性与实战</a></td>
+<td>隔离级别实验：naive 写法必现超卖 vs 原子 UPDATE 正确互斥</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m3-oversell-lab.zip">retailhub-m3-oversell-lab.zip</a></td>
+</tr>
+<tr>
+<td>M4 流量治理与可观测</td>
+<td><a href="vol-04-1.html">卷04-1 通信与流量治理</a> / <a href="vol-04-2.html">卷04-2 分布式事务与共识</a> / <a href="vol-04-3.html">卷04-3 可观测与平台工程</a></td>
+<td>熔断器状态机、令牌桶限流、Outbox 本地消息表、极简调用链</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m4-traffic-observability.zip">retailhub-m4-traffic-observability.zip</a></td>
+</tr>
+<tr>
+<td>M5 架构文档包</td>
+<td><a href="vol-05-2.html">卷05-2 软考与文档实战</a></td>
+<td><strong>文档实战，无代码</strong>：4+1 视图 / 质量属性场景 / ADR / 评审纪要全套可填模板</td>
+<td>打开 <code>docs/</code> 模板按 README 填写</td>
+<td><a href="assets/labs/retailhub-m5-architecture-docs.zip">retailhub-m5-architecture-docs.zip</a></td>
+</tr>
+<tr>
+<td>M6 推理压测</td>
+<td><a href="vol-06-2.html">卷06-2 推理成本与 LLMOps</a></td>
+<td>OpenAI 兼容 mock 推理服务、TTFT/TPOT 压测、容量曲线拐点、自建 vs 云成本</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m6-inference-bench.zip">retailhub-m6-inference-bench.zip</a></td>
+</tr>
+<tr>
+<td>M7 Agent Runtime</td>
+<td><a href="chapter-04-2.html">篇04-2 结构化输出与函数调用</a> / <a href="chapter-05-2.html">篇05-2 Workflow 与分布式 Runtime</a></td>
+<td>最小企业级 Agent Runtime：统一执行模型、Checkpoint 恢复、人工审批幂等</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m7-agent-runtime.zip">retailhub-m7-agent-runtime.zip</a></td>
+</tr>
+<tr>
+<td>M8 上下文与记忆</td>
+<td><a href="chapter-06-2.html">篇06-2 证据长任务与 ContextOps</a> / <a href="chapter-08-2.html">篇08-2 受控召回与 MemoryOps</a></td>
+<td>Context 装配六阶段管线 + 记忆写入五段管线与 Recall Contract</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m8-context-memory.zip">retailhub-m8-context-memory.zip</a></td>
+</tr>
+<tr>
+<td>M9 评测与进化</td>
+<td><a href="chapter-09.html">篇09 评测与受控进化</a></td>
+<td>评测集 / Fixture / 四类 Grader / Multi-Trial / Scorecard / Regression Gate</td>
+<td><code>bash run.sh</code></td>
+<td><a href="assets/labs/retailhub-m9-eval-ops.zip">retailhub-m9-eval-ops.zip</a></td>
+</tr>
+</tbody>
+</table></div>
+<p>学习路径按里程碑编号顺序来：<strong>M1 → M2 → M3 → M4 → M5（文档）→ M6 → M7 → M8 → M9</strong>，每个里程碑跑通后回到对应章节完成实战验收清单。</p>
+<hr>
+<h2 id="3-手把手第一跑-以-m1-为例">3. 手把手第一跑：以 M1 为例</h2>
+<p>下面是从解压到看到结果的完整过程，照着做一遍，后面 8 个里程碑都是同样的套路。</p>
+<p><strong>第 1 步：解压。</strong> 双击下载好的 <code>retailhub-source.zip</code>（macOS 会自动解出一个文件夹）。打开终端，进入目录：</p>
+<pre><code class="language-bash">cd ~/Downloads/retailhub-source    # 按你实际解压位置调整；可以把文件夹直接拖进终端窗口自动填路径
+ls
+</code></pre>
+<p>预期输出看到 <code>README.md</code>、<code>bootstrap.sh</code>、<code>m1-monolith</code>、<code>m2-cache-mq</code> … <code>m9-eval-ops</code>。</p>
+<p><strong>第 2 步：建环境（首次）。</strong> 执行 <code>bash bootstrap.sh</code>，看到 1.3 节的四步 ✅ 输出。然后激活环境：</p>
+<pre><code class="language-bash">source .venv/bin/activate
+</code></pre>
+<p>预期：命令行提示符前面多出 <code>(.venv)</code>。</p>
+<p><strong>第 3 步：进入 M1 并启动。</strong></p>
+<pre><code class="language-bash">cd m1-monolith
+bash run.sh
+</code></pre>
+<p><code>run.sh</code> 会先做种子数据初始化（生成 50 个商品、5000 张订单、30 天数据，输出类似 <code>seed done: products=50 orders=5000</code>），然后启动服务，最后几行长这样：</p>
+<pre><code class="language-plaintext">INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started server process
+INFO:     Application startup complete.
+</code></pre>
+<p>看到这个说明服务已经跑起来了。<strong>这个终端窗口不要关</strong>，服务就住在里面。</p>
+<p><strong>第 4 步：用浏览器看接口文档。</strong> 打开浏览器访问 <code>http://localhost:8000/docs</code>，你会看到 FastAPI 自动生成的 Swagger 交互式接口文档页面：列出 <code>/orders</code>、<code>/orders/{id}</code>、<code>/stats/gmv</code>、<code>/health</code> 等接口，点任意一个展开，点「Try it out」→「Execute」，就能直接在网页里调接口看返回。</p>
+<p><strong>第 5 步：用 curl 跑验收（新开一个终端窗口）。</strong></p>
+<pre><code class="language-bash">curl &quot;http://localhost:8000/orders?page=1&amp;size=5&quot;
+</code></pre>
+<p>预期返回 JSON：含 <code>items</code>（5 条订单）、<code>total</code>（=5000）、<code>page</code>、<code>size</code>。再试：</p>
+<pre><code class="language-bash">curl http://localhost:8000/health
+</code></pre>
+<p>预期返回 <code>{&quot;status&quot;:&quot;ok&quot;}</code>。</p>
+<p><strong>第 6 步：跑自动化测试。</strong> 先回到服务窗口按 <code>Ctrl+C</code> 停掉服务，然后：</p>
+<pre><code class="language-bash">python -m pytest tests/ -q
+</code></pre>
+<p>预期输出最后一行类似 <code>8 passed in 0.5s</code>，全绿即通过。</p>
+<p><strong>第 7 步：对照验收清单。</strong> 打开 <code>m1-monolith/README.md</code> 里的「验收命令对照表」，逐条 curl 验证（分页结构、详情含商品、404 为 JSON、参数校验 422、GMV 口径、访问日志……），全过后回到 <a href="vol-01-2.html">卷01-2 的实战章节</a>勾选验收清单，M1 完成，进 M2。</p>
+<hr>
+<h2 id="4-faq-常见问题">4. FAQ 常见问题</h2>
+<p><strong>Q1：M6 压测全部失败，报 <code>Server disconnected without sending a response</code>？</strong></p>
+<p>你的系统代理把 localhost 请求也劫持了（macOS 上 httpx 会读系统偏好设置里的代理，本机压测走代理会被断开）。M6 的 <code>load_test.py</code> 已经内置了修复：创建 httpx 客户端时加 <code>trust_env=False</code> 参数绕开系统代理。如果你自己写 httpx 客户端遇到同样问题，照抄这个参数即可；临时验证也可以在终端里 <code>unset http_proxy https_proxy all_proxy</code> 后再跑。</p>
+<p><strong>Q2：启动时报 <code>Address already in use</code>（端口被占）？</strong></p>
+<p>说明 8000 端口已有程序在用。两个办法：① 换端口启动，如 <code>uvicorn app.main:app --port 8001</code>，验收命令里的 <code>localhost:8000</code> 同步换成 <code>8001</code>；② 找出占用者关掉：<code>lsof -i :8000</code> 查到 PID 后 <code>kill &lt;PID&gt;</code>（Windows：<code>netstat -ano | findstr :8000</code>）。</p>
+<p><strong>Q3：Windows 上 <code>bash run.sh</code> 跑不了？</strong></p>
+<p>用 Git for Windows 自带的 <strong>Git Bash</strong> 打开里程碑目录再执行 <code>bash run.sh</code>；或者不用脚本，在 PowerShell 里手动执行等价命令：</p>
+<pre><code class="language-powershell">python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m app.seed          # 仅 M1 需要，生成种子数据
+uvicorn app.main:app --port 8000
+</code></pre>
+<p>如果 PowerShell 拦激活脚本，先执行一次 <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code>。</p>
+<p><strong>Q4：<code>ModuleNotFoundError: No module named 'fastapi'</code>？</strong></p>
+<p>没装依赖或没激活虚拟环境。回到源码包根目录执行 <code>source .venv/bin/activate</code>（命令行前面出现 <code>(.venv)</code> 才算激活成功），或全程用 <code>.venv/bin/python</code> 代替 <code>python</code>。</p>
+<p><strong>Q5：pip install 卡住或超时？</strong></p>
+<p>换国内镜像：<code>pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements-all.txt</code>。</p>
+<p><strong>Q6：想重置数据重新跑？</strong></p>
+<p>种子数据是确定性生成的（<code>random.seed(42)</code>），删掉里程碑目录里的 <code>.db</code> 数据库文件（如 M1 的 <code>retailhub.db</code>）再跑一次即可，任何人跑出的验收数字都一致。</p>
+<p><strong>Q7：M5 怎么没有 run.sh？</strong></p>
+<p>M5 是文档实战，产物是一份架构文档包（4+1 视图、质量属性场景、ADR、评审纪要），没有要运行的代码。解压后打开 <code>m5-architecture-docs/README.md</code>，按说明填写 <code>docs/</code> 下的模板即可。</p>
+<hr>
+<p>遇到问题先翻对应里程碑目录里的 README（都有「常见报错 FAQ」一节），再回到本页对照排查。</p>
+
+    <nav class="prevnext">
+      <a class="prev" href="guide.html"><span class="pn-label">← 上一篇</span><span class="pn-title">总纲 · 学习路径</span></a>
+      <a class="next" href="glossary.html"><span class="pn-label">下一篇 →</span><span class="pn-title">附录 · 术语表（卡壳就查）</span></a>
+    </nav>
+  </article>
+</main>
+<aside class="toc">
+  <div class="toc-title">本页目录</div>
+  <nav>
+    <a class="toc-h2" href="#1-环境准备-只做一次-macos-为主">1. 环境准备（只做一次，macOS 为主）</a>
+    <a class="toc-h3" href="#1-1-检查-python3">1.1 检查 python3</a>
+    <a class="toc-h3" href="#1-2-安装-python3-没有的话">1.2 安装 python3（没有的话）</a>
+    <a class="toc-h3" href="#1-3-一键建环境">1.3 一键建环境</a>
+    <a class="toc-h2" href="#2-下载源码包">2. 下载源码包</a>
+    <a class="toc-h2" href="#3-手把手第一跑-以-m1-为例">3. 手把手第一跑：以 M1 为例</a>
+    <a class="toc-h2" href="#4-faq-常见问题">4. FAQ 常见问题</a>
+  </nav>
+</aside>
+
+<script src="assets/demos-loader.js"></script>
+<script src="assets/terms.js" defer></script>
+<script src="assets/notes.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
+<script>
+(function () {
+  try {
+    if (window.mermaid) {
+      mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    } else {
+      document.documentElement.classList.add('no-mermaid');
+    }
+  } catch (e) {
+    document.documentElement.classList.add('no-mermaid');
+  }
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js" onerror="document.documentElement.classList.add('no-hljs')"></script>
+<script>
+(function () {
+  try { if (window.hljs) hljs.highlightAll(); } catch (e) {}
+
+  var btn = document.getElementById('menu-btn');
+  var overlay = document.getElementById('overlay');
+  if (btn) btn.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  if (overlay) overlay.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  document.querySelectorAll('.site-nav a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  var bar = document.getElementById('progress');
+  window.addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var max = h.scrollHeight - h.clientHeight;
+    bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%';
+  }, { passive: true });
+
+  // 进度记忆：任务清单勾选状态持久化到 localStorage（key = 页面 slug + 序号）
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  document.querySelectorAll('.task-item input[type="checkbox"]').forEach(function (cb, i) {
+    var key = 'aifs-check:labs:' + i;
+    function paint() {
+      cb.closest('.task-item').classList.toggle('done', cb.checked);
+    }
+    if (store) {
+      try {
+        var saved = store.getItem(key);
+        if (saved !== null) cb.checked = saved === '1';
+      } catch (e) {}
+    }
+    paint();
+    cb.addEventListener('change', function () {
+      paint();
+      if (store) { try { store.setItem(key, cb.checked ? '1' : '0'); } catch (e) {} }
+    });
+  });
+})();
+</script>
+</body>
+</html>

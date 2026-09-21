@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -329,6 +330,9 @@ class ReliableExecutor:
 <li><strong>成本只做事后统计</strong>。没有事前/事中闸门，账单出来时损失已经发生了。</li>
 </ol>
 <h2 id="本篇实战-给-dataagent-写一个迷你-reliableexecutor">本篇实战：给 DataAgent 写一个迷你 ReliableExecutor</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m7-agent-runtime.zip">下载 retailhub-m7-agent-runtime.zip</a>，解压后 <code>cd m7-agent-runtime &amp;&amp; bash run.sh</code> 一键跑通（首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <p>目标：不依赖任何框架，用 Python 实现一个支持&quot;Fallback 链 + 指数退避 + Schema 修复重问&quot;的迷你执行器，并用故障注入证明它有效。</p>
 <p><strong>Step 1：定义契约与故障语义（约 30 分钟）</strong></p>
 <ul>

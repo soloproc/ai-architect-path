@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -289,6 +290,9 @@
 <p>本卷是平台工程第一次登场，但绝不是最后一次。<strong>卷06（AI Infra）</strong>：GPU 调度、模型服务化、推理网关、评测流水线——如果没有平台思维，每个算法团队都自己管 GPU 集群，结局和前六节描述的一模一样，只是更贵。<strong>阶段九（Agent 企业工程化）</strong>：LLM Runtime、工具治理、记忆治理、评测发布——Agent 平台本质上就是一个面向&quot;智能体开发者&quot;的 IDP，黄金路径就是&quot;标准 Agent 脚手架 + 受控发布流水线&quot;。你在本卷学到的&quot;平台即产品、黄金路径、认知负担&quot;三个概念，会在那时原样复用，只是服务对象从&quot;跑 HTTP 服务的开发&quot;变成&quot;跑 Agent 的开发&quot;。<strong>卷05 的架构评审</strong>：平台要不要自建、边界划在哪，正是 ADR 和 ATAM 评估的典型题材。</p>
 <hr>
 <h2 id="8-本卷实战-下-容器化-送上-k8s-并接入可观测">8. 本卷实战（下）：容器化、送上 K8s 并接入可观测</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m4-traffic-observability.zip">下载 retailhub-m4-traffic-observability.zip</a>，解压后 <code>cd m4-traffic-observability &amp;&amp; bash run.sh</code> 可跑通其中可观测调用链部分（K8s 部署请按本页 §6 手工演练；首次运行先完成<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <h3 id="8-1-背景">8.1 背景</h3>
 <p>本步是卷04 实战的最后两步（前三步见卷04-1、卷04-2）：把订单服务容器化并送上 K8s（对应本页 §6），再接入 OpenTelemetry 打通&quot;网关→订单→库存&quot;链路（对应本页 §5）。</p>
 <h3 id="8-2-任务清单-本页两步">8.2 任务清单（本页两步）</h3>

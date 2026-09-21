@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -230,6 +231,9 @@ P99 ≤ 300ms、可用性 99.95%。
 <p>一句话：<strong>本卷学的是&quot;如何对复杂系统做出、记录、评审决策&quot;，Agent 只是让这个能力更稀缺，不是让它过时</strong>。</p>
 <hr>
 <h2 id="10-本卷实战-retailhub-演进第-5-步-产出完整架构文档包">10. 本卷实战：RetailHub 演进第 5 步——产出完整架构文档包</h2>
+<blockquote>
+<p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m5-architecture-docs.zip">下载 retailhub-m5-architecture-docs.zip</a>（文档模板，无代码），解压后按 <code>m5-architecture-docs/README.md</code> 填写 <code>docs/</code> 下的 4+1 视图 / 质量属性场景 / ADR / 评审纪要模板（使用说明见<a href="labs.html">环境与一键准备</a>）。</p>
+</blockquote>
 <h3 id="10-1-背景">10.1 背景</h3>
 <p>RetailHub 当前形态（卷04 末态）：网关 + 订单/库存/报表三个服务，K8s 部署（3 副本滚动更新），outbox 异步链路，OTel 全链路 Trace，租户级限流与熔断。文档现状：只有卷03 的数据架构设计文档，散落各处。本步要把它升级为一份<strong>可参评的架构文档包</strong>——既是你软考案例分析/论文的素材，也是真实团队 onboarding 的入口。</p>
 <h3 id="10-2-递进任务步骤">10.2 递进任务步骤</h3>
