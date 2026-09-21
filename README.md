@@ -2,6 +2,20 @@
 
 一套从小白到 AI 全栈架构师的自学教程，覆盖完整成长路径：**服务端筑基 → 分布式架构 → DDIA 数据密集型系统 → AI Infra → SRE 可靠性工程 → Agent 工程化 → AI FDE 交付实战**，内含贯穿全程的实战项目 **RetailHub / DataAgent** 源码与 **37 个交互 Demo**。
 
+## ☁️ 云端运行（免安装）
+
+无需本地安装任何环境，点击下面的按钮即可在 **GitHub Codespaces** 云端虚拟机中打开本仓库，9 个里程碑实操源码（`labs/`）和全部 Python 依赖会**自动装好**：
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/soloproc/ai-architect-path)
+
+开机后等待 1-2 分钟（`postCreateCommand` 会自动执行 `pip install -r labs/requirements-all.txt`），然后在终端运行第一个里程碑实验：
+
+```bash
+cd labs/m1-monolith && bash run.sh
+```
+
+其余里程碑（`labs/m2-cache-mq` … `labs/m9-eval-ops`）用同样方式运行，各目录内均有 `run.sh` 与说明，详见 [labs/README.md](labs/README.md)。
+
 ## 在线阅读
 
 - 主站（GitHub Pages）：https://soloproc.github.io/ai-architect-path/
@@ -21,6 +35,16 @@ tutorial/     教程正文（46 页 Markdown + 参考资料存档 + 课程大纲
   ├── 附录-术语表.md       全书术语速查
   ├── 资料01-服务端架构演进14次.md ～ 资料07-BuildingEffectiveAgents.md
   └── 课程大纲原文.txt
+labs/         里程碑实操源码（M1-M9，可在 Codespaces 一键运行，见上方「云端运行」）
+  ├── m1-monolith/              M1 单体应用
+  ├── m2-cache-mq/              M2 缓存与消息队列
+  ├── m3-oversell-lab/          M3 超卖实验
+  ├── m4-traffic-observability/ M4 流量治理与可观测
+  ├── m5-architecture-docs/     M5 架构文档与评审
+  ├── m6-inference-bench/       M6 推理压测与容量规划
+  ├── m7-agent-runtime/         M7 Agent Runtime / DataAgent
+  ├── m8-context-memory/        M8 上下文与记忆工程
+  └── m9-eval-ops/              M9 评测与受控进化
 retailhub/    贯穿实战项目源码（M1-M9 里程碑）
   ├── m1-monolith/              M1 单体应用
   ├── m2-cache-mq/              M2 缓存与消息队列
