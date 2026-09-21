@@ -378,8 +378,91 @@ git log --oneline --graph                 # 看懂自己的历史
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m1-monolith.zip">下载 retailhub-m1-monolith.zip</a> 本地跑（解压后 <code>cd m1-monolith &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m1"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="8-1-命题-先合上教程">8.1 命题（先合上教程）</h3>
+<p>周五下班前，老板把你叫住：</p>
+<blockquote>
+<p>&quot;小李，咱们 RetailHub 上线三个月了，我到现在还得让运营每天手工导订单 Excel 加总，才知道昨天卖了多少。你搞个能随时看经营数据的东西——订单列表要能翻页、点进去能看到买了什么，再来个按天的销售额汇总。下周就要。对了，别整贵的，预算为零，就用市场部那台闲置云主机。数据可别搞错，董事会要看数的。&quot;</p>
+</blockquote>
+<p>约束摊开：工程师只有你 1 个、工期 1 周、预算 0 元、一台 2C4G 闲置云主机、数据不出公司内网。需求本身含糊——&quot;随时看&quot;是多快？&quot;销售额&quot;含不含退款？老板没说，而这恰恰是你的工作。</p>
+<blockquote>
+<p>⚠️ <strong>先别往下翻。</strong> 合上教程，拿一张纸写 10 分钟：你会追问老板哪几个问题？你估的量级是多少？你选什么技术栈、不选什么？写完再对照 8.2–8.4——对照出来的差距，比下面的代码值钱。</p>
+</blockquote>
+<h3 id="8-2-架构师的澄清提问">8.2 架构师的澄清提问</h3>
+<p>架构师拿到命题的第一反应不是动手，是提问。以下 7 个问题，每个都直接决定架构形态：</p>
+<ol>
+<li><strong>每天多少订单？增长多快？</strong> —— 量级决定单机够不够、数据库选什么。日千级和日百万级是两个物种。</li>
+<li><strong>谁在用？多少人同时看？</strong> —— 并发决定要不要缓存、要不要多实例。20 个运营和 20 万 C 端用户是两回事。</li>
+<li><strong>&quot;随时看&quot;能容忍多大延迟？</strong> —— 秒级实时要流式聚合；分钟级容忍让&quot;直接查库&quot;成为合法选项。</li>
+<li><strong>&quot;销售额&quot;的口径是什么？退款算不算？算错了代价多大？</strong> —— 错数代价决定要不要口径 ADR、要不要支持手工核算对账。董事会看数，错了就是事故。</li>
+<li><strong>数据从哪来、谁在写？查询会不会拖慢下单？</strong> —— 决定查询服务和写入链路要不要隔离。</li>
+<li><strong>挂了的代价是什么？</strong> —— 可用性目标决定要不要高可用。内部报表挂一小时和交易挂一小时，不是一个事故等级。</li>
+<li><strong>一周后要什么，三个月后呢？</strong> —— 交付范围决定架构的&quot;最小可演进形态&quot;：不是选最强的，是选&quot;现在够用、长得出下一步&quot;的。</li>
+</ol>
+<p><strong>假想业务方回答</strong>（后续估算以这组数字为锚）：</p>
+<blockquote>
+<p>日订单约 5 千，客单价 200 元上下，老板期望一年内单量翻 10 倍；使用人是 20 个运营和管理层，峰值同时在线 &lt; 20 人；报表延迟容忍 5 分钟；口径：退款订单不计入销售额，数字必须能用 SQL 手工核算对上；订单由小程序后端写入，查询服务只读、绝不能拖慢下单；内部工具挂 1 小时可接受，挂一天不行；下周先跑起来，三个月后要大促。</p>
+</blockquote>
+<h3 id="8-3-容量估算与约束推导">8.3 容量估算与约束推导</h3>
+<p>back-of-envelope 三分钟账：</p>
+<ul>
+<li><strong>存储</strong>：5 千单/日 × 约 1KB/单 ≈ 5MB/日，一年 &lt; 2GB。单文件数据库绰绰有余，十年也塞不满那台 2C4G。</li>
+<li><strong>查询 QPS</strong>：20 个用户 × 每天几十次点击 ≈ 峰值远低于 1 QPS；即使单量翻 10 倍、人手翻 5 倍，仍在个位数 QPS。任何单机 Web 框架都扛得住。</li>
+<li><strong>写入</strong>：5 千单/日 ≈ 0.06 单/秒。SQLite 的单写锁在这个量级完全不是瓶颈——用 SQLite 是这个量级的结论，不是信仰（见本卷误区 3）。</li>
+<li><strong>结论</strong>：单机 SQLite + FastAPI 查询服务即可满足全部约束，且 1 人 1 周能交付。</li>
+</ul>
+<p><strong>失效边界</strong>（结论在什么规模下被推翻）：日订单过 2 万且报表查询开始拖慢写入、并发用户过百、或&quot;挂 1 小时可接受&quot;变成&quot;7×24 不许挂&quot;——任一发生，单机形态终结，向 MySQL 主从 + 缓存演进。<strong>这正是卷02 第 2 步要干的事</strong>：命题里的&quot;一年后翻 10 倍&quot;兑现时，你会亲手撞上这堵墙。</p>
+<h3 id="8-4-方案空间与取舍">8.4 方案空间与取舍</h3>
+<p>同一个命题，至少四条路：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 零开发：运营继续 Excel 手工加总 + 数据透视表</td>
+<td>0 天</td>
+<td>0 元</td>
+<td>人为错数无护栏；老板体验差</td>
+<td>无</td>
+<td>极低</td>
+</tr>
+<tr>
+<td>B. SQLite + FastAPI 单机查询服务（本步方案）</td>
+<td>3-5 天</td>
+<td>0 元（闲置主机）</td>
+<td>单机故障即不可用（内部工具可接受）</td>
+<td>好：接口与口径沉淀为契约，换库不换 API</td>
+<td>低</td>
+</tr>
+<tr>
+<td>C. MySQL + Redis + 前端管理后台</td>
+<td>2-3 周</td>
+<td>需采购/装运维</td>
+<td>超工期风险高</td>
+<td>好但当前用不上</td>
+<td>中</td>
+</tr>
+<tr>
+<td>D. K8s 集群 + 微服务 + 数仓（过度设计样板）</td>
+<td>2 个月起</td>
+<td>高</td>
+<td>1 个人根本交付不了</td>
+<td>&quot;好&quot;到你用不上</td>
+<td>极高</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：B。</strong> 一句话理由：已知量级下用最小架构满足验收，同时把接口、日志、口径决策沉淀为工程资产，让下一步演进有抓手。其中&quot;GMV 不含退款&quot;这条口径会落成你的第一条 ADR——<code>docs/adr/0001</code>，这种&quot;决策留痕&quot;的习惯在卷05 会成为正式交付物。</p>
 <p><strong>背景</strong>：零售品牌&quot;RetailHub&quot;需要最基础的经营查询能力。你是唯一的工程师，交付一个单机查询服务。</p>
 <p>按下面的递进步骤做，每一步都有独立的验收标准——<strong>任何一步验收不过，不进入下一步</strong>。</p>
+<p><strong>想清楚再动手</strong>——以下是把上面决策落地的递进步骤：</p>
 <p><strong>步骤 1：建库与种子数据</strong></p>
 <ul>
 <li>目标：有 <code>retailhub.db</code>，含 <code>items</code>/<code>orders</code> 两张表和够用的演示数据。</li>
@@ -469,6 +552,14 @@ ORDER BY date;
 <li class="task-item"><input type="checkbox"> README 里的启动步骤在一台干净虚拟环境中可原样跑通</li>
 <li class="task-item"><input type="checkbox"> <code>docs/adr/0001</code> 记录了 GMV 口径决策</li>
 </ul>
+<h3 id="8-5-复盘追问">8.5 复盘追问</h3>
+<p>验收全绿不是终点。用下面四个变体逼自己把结论再打一遍——每条只给方向，不给答案：</p>
+<ol>
+<li><strong>日订单翻 10 倍到 5 万，200 人同时看报表？</strong> 单机最先爆的是哪个指标——提示：不是 CPU，是慢查询拖垮写入与磁盘 IO。这正是卷02 第 2 步要解决的问题。</li>
+<li><strong>老板升级要求：&quot;数字必须和财务系统分毫不差&quot;？</strong> 口径只有一条 ADR 不够了——提示：想想对账机制与口径版本化。这正是卷03 事务一致性问题域的入口。</li>
+<li><strong>另一个团队说&quot;别做接口了，直接让我连你的库取数&quot;？</strong> 数据库当集成点的后果——提示：你的表结构从此不再是你的。这正是卷03 数据架构文档和卷04 服务化要回答的。</li>
+<li><strong>老板要双十一实时大屏，延迟 5 分钟变 5 秒？</strong> 查库聚合的路线到头了——提示：流式聚合与批流分工。这正是卷03「批处理与流处理」一章要回答的。</li>
+</ol>
 <hr>
 <h2 id="9-常见误区">9. 常见误区</h2>
 <ol>
@@ -525,7 +616,12 @@ ORDER BY date;
     <a class="toc-h2" href="#6-git-协作基本功">6. Git 协作基本功</a>
     <a class="toc-h2" href="#7-linux-部署最小集-概念级">7. Linux 部署最小集（概念级）</a>
     <a class="toc-h2" href="#8-本卷实战-retailhub-演进第-1-步">8. 本卷实战：RetailHub 演进第 1 步</a>
+    <a class="toc-h3" href="#8-1-命题-先合上教程">8.1 命题（先合上教程）</a>
+    <a class="toc-h3" href="#8-2-架构师的澄清提问">8.2 架构师的澄清提问</a>
+    <a class="toc-h3" href="#8-3-容量估算与约束推导">8.3 容量估算与约束推导</a>
+    <a class="toc-h3" href="#8-4-方案空间与取舍">8.4 方案空间与取舍</a>
     <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
+    <a class="toc-h3" href="#8-5-复盘追问">8.5 复盘追问</a>
     <a class="toc-h2" href="#9-常见误区">9. 常见误区</a>
     <a class="toc-h2" href="#10-自测清单">10. 自测清单</a>
     <a class="toc-h2" href="#参考与脚注">参考与脚注</a>

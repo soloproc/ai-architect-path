@@ -284,10 +284,90 @@
 <blockquote>
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m2-cache-mq.zip">下载 retailhub-m2-cache-mq.zip</a> 本地跑（解压后 <code>cd m2-cache-mq &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
-<h3 id="7-1-背景">7.1 背景</h3>
+<h3 id="7-1-命题-先合上教程">7.1 命题（先合上教程）</h3>
+<p>一年过去，&quot;翻 10 倍&quot;兑现了。周一早会，老板脸色不好看：</p>
+<blockquote>
+<p>&quot;小李，大促定在下个月 18 号，三天，运营预估单日冲 50 万单。上个月做了一次预热直播，详情页卡死、运营跑个日报把下单拖慢了三倍，客服电话被打爆。大促再出这种事，咱俩都别干了。给你两周——可以新开几台云主机，但没有新人。还有，财务要日报准点出，别像上次一样等到半夜。&quot;</p>
+</blockquote>
+<p>约束：还是你 1 个工程师、工期 2 周、预算够 3-4 台云主机、不许停服改造、日报每天 9 点前出。&quot;卡死&quot;&quot;拖慢三倍&quot;都是症状描述，没有一个数字——量化它们是你的事。</p>
+<blockquote>
+<p>⚠️ <strong>先别往下翻。</strong> 合上教程写 10 分钟：上次预热到底是哪几个指标先爆的？你会问运营/老板哪几个问题？缓存、主从、MQ 这三味药，你打算按什么顺序下、各自治什么？写完再对照 7.2–7.4。</p>
+</blockquote>
+<h3 id="7-2-架构师的澄清提问">7.2 架构师的澄清提问</h3>
+<ol>
+<li><strong>峰值流量到底多大？读和写各占多少？</strong> —— 读写比决定缓存收益和主从形态。读 20:1 写和读 2:1 写是两种架构。</li>
+<li><strong>哪条链路绝不能慢，哪条可以慢？</strong> —— 下单 P99 是红线、日报是异步候选，这个分级决定读写分离与 MQ 的边界画在哪。</li>
+<li><strong>日报/报表能容忍多大延迟？</strong> —— 容忍 5 分钟，MQ 异步聚合才合法；要求秒级，方案整个换赛道。</li>
+<li><strong>缓存和库里的数短暂不一致，业务能接受吗？</strong> —— 决定 Cache-Aside&quot;写后删缓存&quot;是否够用，还是要更强的同步策略。</li>
+<li><strong>大促期间哪些功能可以降级？</strong> —— 决定要不要留降级开关；没有分级表，出事时不知道能关什么。</li>
+<li><strong>上次预热卡死，监控里最先爆的是什么？</strong> —— 演进顺序由症状决定：先治最疼的地方，不是先上最火的组件。</li>
+<li><strong>大促之后流量回落到什么水平？</strong> —— 决定方案是&quot;大促专用扩容&quot;还是&quot;常态化架构&quot;，影响成本取舍。</li>
+</ol>
+<p><strong>假想业务方回答</strong>（锚定数字）：</p>
+<blockquote>
+<p>平日 5 万单/日，大促单日冲 50 万；下单写入峰值约 200/s（晚 8-10 点集中七成单量），商品详情与订单查询峰值约 2000 QPS，读写比约 20:1；下单接口 P99 &lt; 500ms 是红线；日报延迟 5 分钟可接受，但 9 点前必须出；缓存秒级不一致可接受，丢单、错数不可接受；大促 3 天，之后回落到平日水平；上次预热最先爆的是数据库磁盘 IO 和锁等待。</p>
+</blockquote>
+<h3 id="7-3-容量估算与约束推导">7.3 容量估算与约束推导</h3>
+<ul>
+<li><strong>写入</strong>：50 万单/日 ÷ 86400 ≈ 6 单/s 均值；峰值按&quot;2 小时集中 70%&quot;算 ≈ 50 万 × 0.7 ÷ 7200 ≈ 50/s，秒杀脉冲再乘 4 ≈ <strong>200/s</strong>。MySQL 单主写入扛得住，真正的风险是慢查询与报表大查询抢连接、抢 IO。</li>
+<li><strong>读</strong>：2000 QPS 查询，按二八分布热点集中——缓存命中率做到 90%+，回源 &lt; 200 QPS，单主从够用。这就是 Cache-Aside 的定量理由，不是&quot;大家都用&quot;。</li>
+<li><strong>报表</strong>：订单表此时约 1800 万行，日报全表聚合扫主库 = 拿下单链路的命换报表——读写分离（报表走从库）+ MQ 异步聚合是必然结论。</li>
+<li><strong>结论</strong>：MySQL 主从 + Redis 缓存 + RocketMQ 异步日报 + 读写分离，四个组件各自对应一个算出来的瓶颈。</li>
+</ul>
+<p><strong>失效边界</strong>：单表过 5000 万行（备份、索引维护、改表全面恶化）、写入峰值过千 QPS、或多个团队要直连这个库——任一发生，本步形态终结，向分区、数据架构文档化、服务化演进。<strong>这正是卷03 的起点</strong>（卷03 命题里&quot;订单表一年过 5000 万行&quot;就是这条边界被撞上的时刻）；而大促中&quot;缓存/MQ 自己挂了怎么办&quot;，则是卷04 流量治理的入口。</p>
+<h3 id="7-4-方案空间与取舍">7.4 方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 零开发：大促三天关掉报表、运营手工导数</td>
+<td>0 天</td>
+<td>0 元</td>
+<td>业务失明三天；老板体验崩盘</td>
+<td>无</td>
+<td>极低</td>
+</tr>
+<tr>
+<td>B. 垂直升级：单机换 16C64G + 高配 SSD</td>
+<td>1 天</td>
+<td>一次性采购</td>
+<td>只续命，不治本；读写仍互相拖</td>
+<td>差，到头就是到头</td>
+<td>低</td>
+</tr>
+<tr>
+<td>C. 主从 + 缓存 + MQ + 读写分离（本步方案）</td>
+<td>2 周</td>
+<td>3-4 台云主机常态成本</td>
+<td>组件多、配置杂，每步必须验收兜底</td>
+<td>好：每个组件都是下一阶段的底座</td>
+<td>中</td>
+</tr>
+<tr>
+<td>D. 过度设计：直接分库分表 16 片 + 10 个微服务 + 异地多活</td>
+<td>2 个月起</td>
+<td>高</td>
+<td>1 人 2 周必死；提前引入分布式事务</td>
+<td>&quot;好&quot;到你用不上</td>
+<td>极高</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：C。</strong> 一句话理由：四个组件各治一个算出来的瓶颈，且 2 周 1 人可按&quot;每步验收&quot;的节奏交付——B 治标、D 自杀、A 弃疗。其中&quot;报表生成 MQ 异步化&quot;会落成一条正式 ADR（正是卷05-2 文档包实战里 ADR-004 的原型），演进史上的每次手术都要留病历。</p>
+<h3 id="7-5-背景">7.5 背景</h3>
 <p>承接卷01 末状态：FastAPI + SQLite 单体，3 个查询端点。本步把它演进为：<strong>MySQL 主从 + Redis 缓存 + RocketMQ 异步日报 + 订单/报表两服务</strong>。全部用 docker-compose 在本机编排，可一键起停、可压测验证。</p>
 <p>按递进步骤做，每步有独立验收标准——<strong>任何一步验收不过，不进入下一步</strong>。</p>
-<h3 id="7-2-步骤-1-基础设施编排">7.2 步骤 1：基础设施编排</h3>
+<p><strong>想清楚再动手</strong>——以下是把上面决策落地的递进步骤：</p>
+<h3 id="7-6-步骤-1-基础设施编排">7.6 步骤 1：基础设施编排</h3>
 <ul>
 <li>目标：一份 <code>docker-compose.yml</code> 拉起全部组件（MySQL 主从、Redis、RocketMQ、两个服务）。</li>
 <li>操作：以如下骨架为起点补全（healthcheck、volume 持久化、两个服务的 Dockerfile）：</li>
@@ -337,37 +417,37 @@ services:
 <ul>
 <li>验收标准：<code>docker compose up -d</code> 一条命令拉起全部 7 个容器，健康检查通过。</li>
 </ul>
-<h3 id="7-3-步骤-2-mysql-主从复制">7.3 步骤 2：MySQL 主从复制</h3>
+<h3 id="7-7-步骤-2-mysql-主从复制">7.7 步骤 2：MySQL 主从复制</h3>
 <ul>
 <li>目标：主库开启 binlog，从库完成复制接入并稳定追平。</li>
 <li>操作：编写 <code>scripts/setup_replication.sql</code>——主库创建复制账号，从库执行 <code>CHANGE REPLICATION SOURCE TO ...</code> 并 <code>START REPLICA</code>；用 <code>SHOW REPLICA STATUS\G</code> 观察状态。</li>
 <li>验收标准：正常流量下从库 <code>Seconds_Behind_Source</code> 收敛到 &lt; 1s。</li>
 </ul>
-<h3 id="7-4-步骤-3-缓存化改造-cache-aside">7.4 步骤 3：缓存化改造（Cache-Aside）</h3>
+<h3 id="7-8-步骤-3-缓存化改造-cache-aside">7.8 步骤 3：缓存化改造（Cache-Aside）</h3>
 <ul>
 <li>目标：<code>GET /orders/{id}</code> 走 Cache-Aside，三事故有对策。</li>
 <li>操作：按第 2 节骨架实现——空值缓存防穿透（短 TTL）、TTL 加抖动防雪崩（300±60s）、写后删缓存。</li>
 <li>验收标准：查询不存在的订单号 1000 次，数据库查询次数 ≤ 10。</li>
 </ul>
-<h3 id="7-5-步骤-4-mq-异步日报">7.5 步骤 4：MQ 异步日报</h3>
+<h3 id="7-9-步骤-4-mq-异步日报">7.9 步骤 4：MQ 异步日报</h3>
 <ul>
 <li>目标：下单链路摘掉日报统计，报表服务异步聚合。</li>
 <li>操作：下单成功发 <code>order_created</code> 事务消息（按 4.2 节骨架）；report-service 消费后幂等聚合写入 <code>daily_report</code> 表（<code>ON DUPLICATE KEY UPDATE gmv = gmv + VALUES(gmv)</code>）。</li>
 <li>验收标准：连续下单 100 笔后，日报表 GMV 与订单表汇总值在 5 分钟内一致；向 MQ 重复投递同一订单消息 3 次，日报表不重复计数。</li>
 </ul>
-<h3 id="7-6-步骤-5-读写分离">7.6 步骤 5：读写分离</h3>
+<h3 id="7-10-步骤-5-读写分离">7.10 步骤 5：读写分离</h3>
 <ul>
 <li>目标：写与写后读走主库，报表全部走从库，互不拖慢。</li>
 <li>操作：order-service 写走主库、写后 3 秒内读走主库；report-service 全部走从库。验证方式：在从库上执行一条 <code>SLEEP</code> 大查询，同时压下单接口。</li>
 <li>验收标准：从库执行 30 秒大查询期间，下单接口 P99 增幅 &lt; 20%；report-service 代码中无任何指向主库的连接串。</li>
 </ul>
-<h3 id="7-7-步骤-6-压测对比">7.7 步骤 6：压测对比</h3>
+<h3 id="7-11-步骤-6-压测对比">7.11 步骤 6：压测对比</h3>
 <ul>
 <li>目标：用数据证明缓存这刀没白挨。</li>
 <li>操作：用 <code>wrk</code> 或 <code>vegeta</code> 压 <code>GET /orders/{id}</code>，产出缓存前/后两组数据，连同命令一起贴进 README。</li>
 <li>验收标准：缓存开启后 QPS 提升 ≥ 5 倍，P99 下降 ≥ 50%。</li>
 </ul>
-<h3 id="7-8-ai-coding-实操模式">7.8 AI Coding 实操模式</h3>
+<h3 id="7-12-ai-coding-实操模式">7.12 AI Coding 实操模式</h3>
 <p>本卷组件多、配置杂，最适合&quot;AI 起草 + 你评审 + 每步验收&quot;的节奏。可直接复制的提示词模板：</p>
 <pre><code class="language-plaintext">你是一名资深后端架构师。我在完成学习项目 RetailHub 演进第 2 步
 （FastAPI + MySQL 8.0 主从 + Redis 7 + RocketMQ 5.1 + docker-compose）。
@@ -389,8 +469,8 @@ services:
 <li>要求 AI 为每条验证命令写出<strong>预期输出</strong>；实际不符时先怀疑环境（容器起全了吗？复制追平了吗？），再怀疑代码。</li>
 <li>事务消息的回查函数查的是什么、什么时候会被 Broker 调用？让 AI 答，答错就回 §4.2。</li>
 </ol>
-<p><strong>AI Coding 验收标准</strong>：7.9 总验收 checklist 全部打勾，且你能用三组数字向外人讲清本次演进（压测前后 QPS/P99、复制延迟、最终一致耗时）——讲不出的数字就是没有验收。</p>
-<h3 id="7-9-总验收标准-checkbox-全部满足才算过">7.9 总验收标准（checkbox，全部满足才算过）</h3>
+<p><strong>AI Coding 验收标准</strong>：7.13 总验收 checklist 全部打勾，且你能用三组数字向外人讲清本次演进（压测前后 QPS/P99、复制延迟、最终一致耗时）——讲不出的数字就是没有验收。</p>
+<h3 id="7-13-总验收标准-checkbox-全部满足才算过">7.13 总验收标准（checkbox，全部满足才算过）</h3>
 <ul>
 <li class="task-item"><input type="checkbox"> <code>docker compose up -d</code> 一条命令拉起全部 7 个容器，健康检查通过</li>
 <li class="task-item"><input type="checkbox"> 从库 <code>Seconds_Behind_Source</code> 在正常流量下 &lt; 1s</li>
@@ -401,6 +481,15 @@ services:
 <li class="task-item"><input type="checkbox"> 从库执行 30 秒大查询期间，下单接口 P99 增幅 &lt; 20%（读写隔离生效）</li>
 <li class="task-item"><input type="checkbox"> report-service 代码中无任何指向主库的连接串（拆分纪律）</li>
 </ul>
+<h3 id="7-14-复盘追问">7.14 复盘追问</h3>
+<p>验收全绿之后，把下面五个变体各想 5 分钟——每条只给方向，不给答案：</p>
+<ol>
+<li><strong>量再翻 10 倍，日订单 500 万？</strong> 单主写入与单表体积同时到顶——提示：分区键怎么选、热点怎么防。这正是卷03 存储复制与分区要解决的问题。</li>
+<li><strong>大促秒杀要求&quot;一单都不许超卖&quot;？</strong> 缓存与异步帮不上正确性的忙——提示：把竞争收敛到一行，原子操作与锁的代价差。这正是卷03-2 防超卖实验要解决的。</li>
+<li><strong>缓存集群自己挂了、MQ 自己挂了？</strong> 给系统装的组件本身成了新故障源——提示：超时、熔断、降级。这正是卷04-1 流量治理要解决的。</li>
+<li><strong>别的团队要接这个库直接取数？</strong> 你的表结构从此是别人的依赖——提示：数据架构文档化与服务边界的谈判。这正是卷03-2 任务一的文档要兜底的。</li>
+<li><strong>老板要实时经营大屏，日报延迟 5 分钟变 5 秒？</strong> MQ 批聚合的路线到头——提示：批流分工与&quot;以谁为准绳&quot;。这正是卷03「批处理与流处理」一章要回答的。</li>
+</ol>
 <hr>
 <h2 id="8-常见误区">8. 常见误区</h2>
 <ol>
@@ -466,15 +555,20 @@ services:
     <a class="toc-h3" href="#6-4-时代差异-2020-年代起步的项目-起点在哪里">6.4 时代差异：2020 年代起步的项目，起点在哪里</a>
     <a class="toc-h3" href="#6-5-另一个样本-wps-云服务的四时代演化">6.5 另一个样本：WPS 云服务的四时代演化</a>
     <a class="toc-h2" href="#7-本卷实战-retailhub-演进第-2-步">7. 本卷实战：RetailHub 演进第 2 步</a>
-    <a class="toc-h3" href="#7-1-背景">7.1 背景</a>
-    <a class="toc-h3" href="#7-2-步骤-1-基础设施编排">7.2 步骤 1：基础设施编排</a>
-    <a class="toc-h3" href="#7-3-步骤-2-mysql-主从复制">7.3 步骤 2：MySQL 主从复制</a>
-    <a class="toc-h3" href="#7-4-步骤-3-缓存化改造-cache-aside">7.4 步骤 3：缓存化改造（Cache-Aside）</a>
-    <a class="toc-h3" href="#7-5-步骤-4-mq-异步日报">7.5 步骤 4：MQ 异步日报</a>
-    <a class="toc-h3" href="#7-6-步骤-5-读写分离">7.6 步骤 5：读写分离</a>
-    <a class="toc-h3" href="#7-7-步骤-6-压测对比">7.7 步骤 6：压测对比</a>
-    <a class="toc-h3" href="#7-8-ai-coding-实操模式">7.8 AI Coding 实操模式</a>
-    <a class="toc-h3" href="#7-9-总验收标准-checkbox-全部满足才算过">7.9 总验收标准（checkbox，全部满足才算过）</a>
+    <a class="toc-h3" href="#7-1-命题-先合上教程">7.1 命题（先合上教程）</a>
+    <a class="toc-h3" href="#7-2-架构师的澄清提问">7.2 架构师的澄清提问</a>
+    <a class="toc-h3" href="#7-3-容量估算与约束推导">7.3 容量估算与约束推导</a>
+    <a class="toc-h3" href="#7-4-方案空间与取舍">7.4 方案空间与取舍</a>
+    <a class="toc-h3" href="#7-5-背景">7.5 背景</a>
+    <a class="toc-h3" href="#7-6-步骤-1-基础设施编排">7.6 步骤 1：基础设施编排</a>
+    <a class="toc-h3" href="#7-7-步骤-2-mysql-主从复制">7.7 步骤 2：MySQL 主从复制</a>
+    <a class="toc-h3" href="#7-8-步骤-3-缓存化改造-cache-aside">7.8 步骤 3：缓存化改造（Cache-Aside）</a>
+    <a class="toc-h3" href="#7-9-步骤-4-mq-异步日报">7.9 步骤 4：MQ 异步日报</a>
+    <a class="toc-h3" href="#7-10-步骤-5-读写分离">7.10 步骤 5：读写分离</a>
+    <a class="toc-h3" href="#7-11-步骤-6-压测对比">7.11 步骤 6：压测对比</a>
+    <a class="toc-h3" href="#7-12-ai-coding-实操模式">7.12 AI Coding 实操模式</a>
+    <a class="toc-h3" href="#7-13-总验收标准-checkbox-全部满足才算过">7.13 总验收标准（checkbox，全部满足才算过）</a>
+    <a class="toc-h3" href="#7-14-复盘追问">7.14 复盘追问</a>
     <a class="toc-h2" href="#8-常见误区">8. 常见误区</a>
     <a class="toc-h2" href="#9-自测清单-10-项">9. 自测清单（10 项）</a>
     <a class="toc-h2" href="#参考与脚注">参考与脚注</a>

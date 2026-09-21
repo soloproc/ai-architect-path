@@ -234,6 +234,81 @@ P99 ≤ 300ms、可用性 99.95%。
 <blockquote>
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m5-architecture-docs.zip">下载 retailhub-m5-architecture-docs.zip</a> 本地跑（文档模板，无代码；解压后按 <code>m5-architecture-docs/README.md</code> 填写 <code>docs/</code> 下的 4+1 视图 / 质量属性场景 / ADR / 评审纪要模板，使用说明见<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
+<h3 id="命题-先合上教程">命题（先合上教程）</h3>
+<p>大促刚结束，CEO 把你叫进办公室：</p>
+<blockquote>
+<p>&quot;两件事并一件办。第一，投资人尽调下周开始，对方技术顾问要我们的<strong>架构文档</strong>，清单发了 23 项。第二，你不是说团队半年内要扩到 20 人吗，新人来了得能自己看懂系统。对了你今年考架构师，正好一起弄了——别耽误开发啊。&quot;</p>
+</blockquote>
+<p>业务约束：6 人团队主力开发不能停；尽调版下周要，完整版只有 4 周。最大的坑藏在&quot;一起弄了&quot;里——<strong>尽调、onboarding、软考是三种读者三种口径</strong>，一份文档想打天下，结果就是三份都不及格。</p>
+<blockquote>
+<p>⚠️ <strong>先合上教程</strong>。10 分钟写下：文档包给谁看、包含哪几件、什么不写、怎么保证写完不变成死文档。写完再往下对照。</p>
+</blockquote>
+<h3 id="架构师的澄清提问">架构师的澄清提问</h3>
+<ol>
+<li><strong>尽调方到底想看什么——技术先进性还是风险可控性？</strong>——决定文档包的叙述重心与质量属性场景的选择。<em>假想回答</em>：对方 23 项清单集中在可用性承诺、数据安全、扩容能力——质量属性场景就按这三类优先写。</li>
+<li><strong>新人&quot;看懂系统&quot;的验收标准是什么？</strong>——决定导览与视图分层。<em>假想回答</em>：下周入职的新后端按文档 30 分钟讲清下单链路，讲不清就改文档，不许口头补课。</li>
+<li><strong>文档放哪、谁更新、什么时候算失效？</strong>——决定&quot;文档与代码同仓 + owner + 最近验证日期&quot;的纪律。<em>假想回答</em>：随代码仓走，每份文档有 owner，超过 90 天未验证的页面标灰。</li>
+<li><strong>哪些历史决策必须落成 ADR？</strong>——决定从卷01-04 里挖哪几个。<em>假想回答</em>：至少覆盖一次有争议的否决——&quot;为什么不用 TCC&quot;&quot;为什么不上 gRPC&quot;这种，评审一定会被问。</li>
+<li><strong>大促 50 万单/日是实测还是预测？</strong>——决定数字口径的标注纪律。<em>假想回答</em>：实测 32 万，50 万是预测峰值——尽调材料里两种口径必须分开标注，吹牛是法律风险。</li>
+<li><strong>评审是真开还是走过场？</strong>——决定评审纪要是实录还是摆设。<em>假想回答</em>：尽调前内部真评一次，质询与答复全部留档——这也是软考论文的现成素材。</li>
+</ol>
+<h3 id="容量估算与约束推导">容量估算与约束推导</h3>
+<p>文档包也有容量账——它的&quot;负载&quot;是读者数量与更新频率：</p>
+<ul>
+<li><strong>规模账</strong>：RetailHub 卷04 末态 = 网关 + 4 个服务 + 3 类存储 + MQ。4+1 视图 5 张图共 60-80 个节点/连线，大约是&quot;一个人一周画完、评审 40 分钟讲完&quot;的上限；服务数翻倍就必须先画系统上下文图再画服务图，分层表达。</li>
+<li><strong>维护账</strong>：每条质量属性场景每季度至少验证一次 ≈ 0.3 人日，6 条 ≈ 2 人日/季；写 20 条就是 7 人日/季，团队会偷偷放弃验证——<strong>场景数量按&quot;愿意花成本验证&quot;来定，不是越多越好</strong>。</li>
+<li><strong>失效边界</strong>：团队 20 人、服务 15+ 时，单仓 docs/ + 手工维护会失效（没人敢改、改了没人审）——演进方向是 docs-as-code + 视图自动生成 + ADR 索引化，本页 §9 已预告这条路在阶段九的全部复用。</li>
+</ul>
+<h3 id="方案空间与取舍">方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 外包/套模板生成&quot;看起来很全&quot;的文档包</td>
+<td>3 天</td>
+<td>高（外包费）</td>
+<td>高：尽调顾问两条质询就穿帮，信任损失不可逆</td>
+<td>无：没人改得动</td>
+<td>低（一次性）</td>
+</tr>
+<tr>
+<td>B. 4+1 视图 + 六要素场景 + ADR + 评审纪要，手工产出（本步采用，对应 m5 模板）</td>
+<td>4 周（尽调版 1 周）</td>
+<td>中：约 10 人日</td>
+<td>低：每条承诺有验证手段</td>
+<td>好：模板可复制到下一个系统</td>
+<td>中</td>
+</tr>
+<tr>
+<td>C. 重度工具项：上 C4 工具链 + 架构图谱自动生成平台</td>
+<td>6 周+</td>
+<td>高</td>
+<td>中：工具先行、内容空心</td>
+<td>好，但 6 人团队用不满</td>
+<td>高</td>
+</tr>
+<tr>
+<td>D. 不做：尽调现场口头讲 + 白板手绘（零开发项）</td>
+<td>0</td>
+<td>0</td>
+<td>高：尽调过不了，onboarding 靠口口相传</td>
+<td>无</td>
+<td>0</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：B</strong>。一句话理由：它是唯一&quot;尽调版一周能出、长期维护成本团队扛得住、评审质询扛得住问&quot;的组合。</p>
+<p><strong>把决策本身写进 m5 模板</strong>：打开 <code>docs/adr/0000-adr-template.md</code>，把&quot;文档包采用 4+1 + 六要素场景 + ADR 组合，而非工具化平台&quot;写成一份新 ADR（编号顺延，如 ADR-012）——背景栏填你在上面澄清到的三种读者与三种口径，被否决方案栏抄 A/C/D 及否决理由。这就是你文档包里最新的一份 ADR。</p>
+<p>想清楚再动手——以下是把决策落地的递进步骤。</p>
 <h3 id="10-1-背景">10.1 背景</h3>
 <p>RetailHub 当前形态（卷04 末态）：网关 + 订单/库存/报表三个服务，K8s 部署（3 副本滚动更新），outbox 异步链路，OTel 全链路 Trace，租户级限流与熔断。文档现状：只有卷03 的数据架构设计文档，散落各处。本步要把它升级为一份<strong>可参评的架构文档包</strong>——既是你软考案例分析/论文的素材，也是真实团队 onboarding 的入口。</p>
 <h3 id="10-2-递进任务步骤">10.2 递进任务步骤</h3>
@@ -487,6 +562,14 @@ PostgreSQL 主从 + Redis + MQ（outbox 模式），OTel 全链路追踪。
 <li class="task-item"><input type="checkbox"> 文档包全部入库（docs/ 目录，结构对照 7.4 节），README 中有导览索引，新同事按索引 30 分钟能讲清系统架构</li>
 <li class="task-item"><input type="checkbox"> 用本卷文档包素材，按论文万能骨架写出 1 篇 2500 字软考论文初稿</li>
 </ul>
+<h3 id="复盘追问">复盘追问</h3>
+<ol>
+<li><strong>尽调方追加要求：SOC2/等保合规条款与架构的映射表？</strong>——方向：把质量属性场景按合规条款建索引；这正是卷08-1 把承诺落成 SLO 文档时要复用的场景库。</li>
+<li><strong>服务数翻倍到 10 个，视图没人维护了？</strong>——方向：视图分层 + docs-as-code 自动生成；这正是本页 §9 预告的阶段九演进路线。</li>
+<li><strong>软考论文抽到的不是架构风格，而是&quot;论 NoSQL 应用&quot;或&quot;论微服务治理&quot;？</strong>——方向：同一套 RetailHub 素材换万能骨架重组；这正是本页 §8.3 论文骨架的用法。</li>
+<li><strong>投资人问&quot;50 万单/日的容量依据是什么&quot;？</strong>——方向：把卷04 的容量估算与压测证据链挂进文档包；这正是卷08-3 容量规划要解决的。</li>
+<li><strong>团队扩到 20 人后没人写 ADR 了？</strong>——方向：ADR 进 DoD（完成的定义）与评审 checklist；这正是篇02 把工程纪律写进流程的玩法。</li>
+</ol>
 <hr>
 <h2 id="11-常见误区">11. 常见误区</h2>
 <ol>
@@ -547,6 +630,10 @@ PostgreSQL 主从 + Redis + MQ（outbox 模式），OTel 全链路追踪。
     <a class="toc-h3" href="#8-4-三个月备考计划">8.4 三个月备考计划</a>
     <a class="toc-h2" href="#9-这套方法论在阶段九如何全部复用">9. 这套方法论在阶段九如何全部复用</a>
     <a class="toc-h2" href="#10-本卷实战-retailhub-演进第-5-步-产出完整架构文档包">10. 本卷实战：RetailHub 演进第 5 步——产出完整架构文档包</a>
+    <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
+    <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
+    <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>
+    <a class="toc-h3" href="#方案空间与取舍">方案空间与取舍</a>
     <a class="toc-h3" href="#10-1-背景">10.1 背景</a>
     <a class="toc-h3" href="#10-2-递进任务步骤">10.2 递进任务步骤</a>
     <a class="toc-h3" href="#10-3-交付物-1-参考骨架-4-1-视图图集">10.3 交付物 1 参考骨架：4+1 视图图集</a>
@@ -555,6 +642,7 @@ PostgreSQL 主从 + Redis + MQ（outbox 模式），OTel 全链路追踪。
     <a class="toc-h3" href="#10-6-交付物-4-参考骨架-模拟架构评审纪要-精简示例">10.6 交付物 4 参考骨架：模拟架构评审纪要（精简示例）</a>
     <a class="toc-h3" href="#10-7-ai-coding-实操模式">10.7 AI Coding 实操模式</a>
     <a class="toc-h3" href="#10-8-总验收标准">10.8 总验收标准</a>
+    <a class="toc-h3" href="#复盘追问">复盘追问</a>
     <a class="toc-h2" href="#11-常见误区">11. 常见误区</a>
     <a class="toc-h2" href="#12-自测清单">12. 自测清单</a>
     <a class="toc-h2" href="#下卷预告">下卷预告</a>

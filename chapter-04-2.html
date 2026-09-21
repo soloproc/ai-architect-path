@@ -334,6 +334,79 @@ class ReliableExecutor:
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m7-agent-runtime.zip">下载 retailhub-m7-agent-runtime.zip</a> 本地跑（解压后 <code>cd m7-agent-runtime &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m7"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="命题-先合上教程">命题（先合上教程）</h3>
+<blockquote>
+<p>&quot;咱们的数据平台不是做完了吗？给客户加个 AI 问答吧——直接问『上周 GMV 为什么跌』就能出答案的那种。demo 下周五要给两个潜在客户看，先接零售这块的库。对了，财务说对外报的数字一个都不能错。&quot;</p>
+</blockquote>
+<p>需求只有三句话，坑至少五个：&quot;能出答案&quot;是文字还是数字？数字错了谁负责？demo 之后每天多少人用？先别往下翻，拿张纸自己写 10 分钟方案，再对照下面架构师的追问——看看你漏问了哪几条。</p>
+<h3 id="架构师的澄清提问">架构师的澄清提问</h3>
+<ol>
+<li><strong>答错一个数字的代价是什么？</strong> 给客户 demo 报错 GMV，是丢脸还是丢单？——错误代价决定 Output Contract 三道防线要全上，还是裸 Prompt 加人工复核就够。</li>
+<li><strong>日均调用量多少、集中在什么时段？</strong> 50 问/日和 5000 问/日是两个物种：前者单进程都嫌浪费，后者才谈得上并发与限流——这决定 token 成本账怎么算。</li>
+<li><strong>&quot;下周五 demo&quot;之后呢？</strong> 一次性演示还是要长成产品？——决定这次写的执行器是&quot;可抛弃原型&quot;还是&quot;要演进的底座&quot;，直接影响契约设计要不要认真。</li>
+<li><strong>数据能出内网吗？</strong> 经营数据送外部 API 合规吗？——答案决定调公有云模型还是私有化部署，这比一切技术选型都优先。</li>
+<li><strong>可接受的延迟是多少？</strong> 客户现场等 3 秒和等 30 秒，对&quot;要不要流式、要不要重试&quot;的结论完全不同。</li>
+<li><strong>模型供应商绑死吗？</strong> 今天用 A 家，明年集采换 B 家怎么办？——决定现在就做 ProviderAdapter 抽象，还是先硬编码再说。</li>
+</ol>
+<p>假想业务方回答（锚定数字）：demo 后预计<strong>日均 500 问</strong>，集中在工作时间；<strong>单次问答可接受 P95 延迟 8 秒</strong>；数字准确率底线是&quot;对外口径 100% 一致&quot;；数据可出内网但调用要留痕可审；demo 后<strong>确定产品化</strong>，半年内不排除换模型供应商。</p>
+<h3 id="容量估算与约束推导">容量估算与约束推导</h3>
+<p>三本账，信封背面就算得完：</p>
+<ul>
+<li><strong>Token 成本账</strong>：一次问答 ≈ 2 次 Logical Call（SQL 生成 + 回答生成），每次约 6K 输入 + 800 输出 token，即每问约 13.6K token。日均 500 问 ≈ 6.8M token/日、约 200M token/月；按旗舰模型 $2/百万输入、$8/百万输出估算，月成本约 $550（¥4,000 上下）——<strong>成本不是瓶颈，一个月烧不掉一台云主机</strong>。</li>
+<li><strong>并发账</strong>：500 问摊在 8 小时工作时段 ≈ 0.02 QPS，峰值放大 10 倍也才 0.2 QPS——<strong>并发完全不是问题，单机协程绰绰有余</strong>。</li>
+<li><strong>可靠性账</strong>：假设裸调用的&quot;输出不可用率&quot;（超时 + 限流 + 格式错误）为 5%，则每天 25 个问答失败或出错；而&quot;数字 100% 不能错&quot;的底线意味着每一次输出都必须过校验。<strong>可靠性是唯一真正的约束——这正是本篇执行器存在的原因。</strong></li>
+</ul>
+<p>推导结论：本步形态 = 单进程、异步、带 Fallback 链与修复重问的执行器，不上任何分布式组件。</p>
+<p><strong>失效边界</strong>：当日均调用涨到 5000 问以上、且出现&quot;退款率诊断&quot;这种半小时级长任务时，&quot;单进程内重试&quot;就不再够用——崩溃恢复与任务接管会成为主矛盾，这正是篇05-2 要解决的。</p>
+<h3 id="方案空间与取舍">方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>候选方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 土办法：while 循环 + Prompt 里写&quot;请返回 JSON&quot;</td>
+<td>半天</td>
+<td>最低</td>
+<td>输出格式裸奔、超时不设防，demo 现场翻车风险</td>
+<td>几乎为零，推倒重来</td>
+<td>低</td>
+</tr>
+<tr>
+<td>B. 迷你 ReliableExecutor（契约 + 重试 + 校验）</td>
+<td>2-3 天</td>
+<td>低（纯 Python 无依赖）</td>
+<td>自研代码的 bug 风险，但可用故障注入证明</td>
+<td>契约先行，框架可后换</td>
+<td>中</td>
+</tr>
+<tr>
+<td>C. 直接上 LangChain/LlamaIndex 全家桶</td>
+<td>1 天接入</td>
+<td>低</td>
+<td>黑盒行为不可控，故障语义被框架吞掉</td>
+<td>被框架范式锁定</td>
+<td>高（要学框架）</td>
+</tr>
+<tr>
+<td>D. 过度工程：自研分布式模型网关 + 多活调度</td>
+<td>2 个月</td>
+<td>高</td>
+<td>500 问/日根本用不上，还引入分布式故障面</td>
+<td>过度抽象反噬演进</td>
+<td>极高</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：选 B。</strong> 一句话理由：500 问/日的规模配不上 D 的复杂度，A 守不住&quot;数字不能错&quot;的底线，C 把本篇要练的核心机制藏进黑盒——B 是&quot;最小但认真&quot;的形态。落成 ADR：《ADR-001 采用自研迷你 ReliableExecutor 而非框架全家桶》，把上表与失效边界写进 ADR 的&quot;备选方案&quot;与&quot;后果&quot;两节。</p>
+<p>想清楚再动手——以下是把决策落地的递进步骤。</p>
 <p>目标：不依赖任何框架，用 Python 实现一个支持&quot;Fallback 链 + 指数退避 + Schema 修复重问&quot;的迷你执行器，并用故障注入证明它有效。</p>
 <p><strong>Step 1：定义契约与故障语义（约 30 分钟）</strong></p>
 <ul>
@@ -359,6 +432,13 @@ class ReliableExecutor:
 <li>操作：给 FakeAdapter 加&quot;首次必返回缺字段 JSON&quot;模式；执行器校验失败后把错误详情追加进 messages 重问，最多 2 次。</li>
 <li>验收标准：缺字段场景最终 COMMITTED 且 <code>attempts</code> 计数正确；修复耗尽场景抛出聚合异常，坏 JSON 不出现在返回值里。</li>
 </ul>
+<h3 id="复盘追问">复盘追问</h3>
+<ol>
+<li><strong>日均调用量翻 100 倍到 5 万问，哪里先撑不住？</strong> 方向提示：不是 QPS——是 token 成本账和故障绝对数先爆，事前/事中成本闸门（4.2 节）从&quot;可有可无&quot;变成&quot;准入门槛&quot;。</li>
+<li><strong>出现&quot;退款率异常诊断&quot;这种半小时级长任务，执行器还够用吗？</strong> 方向提示：进程一崩，半小时进度全废——这正是篇05-2 要用可恢复 Run 解决的。</li>
+<li><strong>监管要求&quot;每次模型调用可回放、可审计&quot;，要补什么？</strong> 方向提示：<code>raw_ref</code> 落盘 + Trace 全留痕（4.1/4.3 节），审计从加分项变准入门槛。</li>
+<li><strong>集采要求把模型从 A 家换成 B 家，多久能切完？</strong> 方向提示：ProviderAdapter 认真做了，答案是一周；if-else 硬编码，答案是重写——换供应商是篇09 评测与受控进化的典型触发场景。</li>
+</ol>
 <h3 id="ai-coding-实操模式">AI Coding 实操模式</h3>
 <p>上面每一步都适合与 AI 结对完成。推荐姿势：</p>
 <p><strong>① 可复制的 AI 提示词模板</strong></p>
@@ -442,6 +522,11 @@ class ReliableExecutor:
     <a class="toc-h3" href="#4-4-租户隔离与审计">4.4 租户隔离与审计</a>
     <a class="toc-h2" href="#常见误区">常见误区</a>
     <a class="toc-h2" href="#本篇实战-给-dataagent-写一个迷你-reliableexecutor">本篇实战：给 DataAgent 写一个迷你 ReliableExecutor</a>
+    <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
+    <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
+    <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>
+    <a class="toc-h3" href="#方案空间与取舍">方案空间与取舍</a>
+    <a class="toc-h3" href="#复盘追问">复盘追问</a>
     <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
     <a class="toc-h2" href="#动手练习">动手练习</a>
     <a class="toc-h2" href="#自测清单">自测清单</a>

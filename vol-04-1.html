@@ -235,7 +235,7 @@
 <li>保持容量不变，把速率调高再重放同样的突发：稳态时被拒绝的请求数怎么变？验证课文那句&quot;速率决定稳态吞吐、容量决定突发容忍&quot;。</li>
 <li>连续点两次&quot;突发流量 ×30&quot;（中间不停）：第二次突发被拒的比例为什么比第一次高？令牌桶&quot;攒令牌&quot;需要多长时间？</li>
 <li>观察右侧&quot;无限制&quot;车道的水位线：如果那是库存服务，接下来会发生课文 §2.1 描述的哪种故障传导？</li>
-<li>结合 §8.4 代码骨架回答：<code>TokenBucket.allow()</code> 里的&quot;惰性补充&quot;为什么不需后台线程？多租户场景下这个实现还有什么要改的（提示：字典会无限增长吗）？</li>
+<li>结合 §8.8 代码骨架回答：<code>TokenBucket.allow()</code> 里的&quot;惰性补充&quot;为什么不需后台线程？多租户场景下这个实现还有什么要改的（提示：字典会无限增长吗）？</li>
 </ol>
 <h3 id="2-5-降级-degradation-防的是-非核心功能拖死核心功能">2.5 降级（Degradation）：防的是&quot;非核心功能拖死核心功能&quot;</h3>
 <p>降级是主动的、有计划的功能牺牲：大促期间关掉&quot;经营周报生成&quot;、关闭库存的实时同步改为 5 分钟延迟同步，把资源让给下单主链路。降级和熔断常被混淆，一句话区分：<strong>熔断是系统自动的自我保护，降级是人事先设计好的弃车保帅</strong>，通常由配置中心下发开关触发。降级的前提是你对功能做过分级——P0（下单/支付）永不降级，P1（实时库存展示）可延迟，P2（报表/周报）可直接关闭。这个功能分级表本身就是架构文档的一部分，卷05 会要求你写进文档包。</p>
@@ -308,22 +308,101 @@
 <blockquote>
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m4-traffic-observability.zip">下载 retailhub-m4-traffic-observability.zip</a> 本地跑（解压后 <code>cd m4-traffic-observability &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
-<h3 id="8-1-背景">8.1 背景</h3>
+<h3 id="8-1-命题-先合上教程">8.1 命题（先合上教程）</h3>
+<p>服务化改造刚上线一个月，老板转发来一封大客户的投诉邮件，只加了一句&quot;解释&quot;：</p>
+<blockquote>
+<p>邮件写道：上周二下午系统全面卡死 40 分钟，200 家租户全部下不了单。事后你们自己查的原因是&quot;库存服务发布翻车&quot;——一个非核心服务翻车，凭什么拖死全站？另有客户反映，某 enterprise 租户上周做批量商品导入时，同时间其他租户的请求大面积超时。大促还有一个月，请给出书面保证。</p>
+</blockquote>
+<p>约束：不增加人力、不许停服改造、大促前两周冻结新功能——你能动的只有&quot;调用治理&quot;这一层。&quot;书面保证&quot;的意思是：每个机制都要有可演示的验收证据，不是态度。</p>
+<blockquote>
+<p>⚠️ <strong>先别往下翻。</strong> 合上教程写 10 分钟：库存服务挂掉，是怎么一步步拖死订单服务的（画出故障传导链）？超时、重试、熔断、限流、降级五件套，各自防的是链条上的哪一环？阈值你打算怎么定？写完再对照 8.2–8.4。</p>
+</blockquote>
+<h3 id="8-2-架构师的澄清提问">8.2 架构师的澄清提问</h3>
+<ol>
+<li><strong>库存服务故障的频率和恢复时长？</strong> —— 月均 2 次抖动和一年 1 次，熔断阈值与冷却时长完全不同。</li>
+<li><strong>下游&quot;变慢&quot;和下游&quot;挂掉&quot;，哪个更常见？</strong> —— 慢比挂更危险（挂会快速失败，慢会耗尽线程池），这决定超时是一切治理的前提。</li>
+<li><strong>各租户的流量画像和付费等级？</strong> —— 决定限流的分档和&quot;限谁&quot;；不分租户的限流等于让大客户替全站决定生死。</li>
+<li><strong>下单接口幂等吗？</strong> —— 不幂等的写接口禁止重试，这一条不过，重试机制直接出局。</li>
+<li><strong>降级时业务能接受到什么程度？</strong> —— &quot;扣减请求进补偿队列、稍后补执行&quot;和&quot;直接拒绝下单&quot;是两个产品决策，不是技术决策。</li>
+<li><strong>阈值谁来定、出事谁来改？</strong> —— 决定参数写死、配置文件还是配置中心；治理参数是架构决策，要留痕。</li>
+<li><strong>&quot;全面卡死 40 分钟&quot;里，有没有重试放大故障的成分？</strong> —— 无退避重试会把下游从&quot;生病&quot;打成&quot;病危&quot;，复盘时要量化。</li>
+</ol>
+<p><strong>假想业务方回答</strong>（锚定数字）：</p>
+<blockquote>
+<p>租户 200 家（free 150 / pro 45 / enterprise 5）；库存服务月均抖动 2 次、平均 5 分钟恢复，&quot;变慢&quot;（P99 从 50ms 飙到 2s+）比&quot;挂掉&quot;多 3 倍；enterprise 租户批量导入瞬时可达 3000 QPS，全站正常容量约 2000 QPS；下单接口已带 request_id 幂等，可安全重试 1 次；熔断后接受&quot;扣减进补偿队列、5 分钟内补执行&quot;；阈值由你定，写进配置并留评审记录；大促峰值下单约 200 QPS。</p>
+</blockquote>
+<h3 id="8-3-容量估算与约束推导">8.3 容量估算与约束推导</h3>
+<ul>
+<li><strong>线程池账（为什么要超时+熔断）</strong>：订单服务按 200 个工作线程估，下游 P99 为 50ms 时吞吐上限 ≈ 200 ÷ 0.05 = 4000 QPS；下游恶化到 2s，吞吐塌到 100 QPS——大促峰值 200 QPS 的下单流量瞬间排队雪崩，200 家租户陪葬。超时 2s 把单次占用封顶，熔断把&quot;持续失败的调用&quot;变成&quot;快速失败&quot;，线程池才保得住。</li>
+<li><strong>限流账（为什么要租户级）</strong>：单租户突发 3000 QPS &gt; 全站容量 2000 QPS——不限租户，一个客户的批量任务就能挤死其余 199 家。令牌桶分档 free 10 / pro 100 / enterprise 1000 QPS 是&quot;防单租户 burst&quot;，不是总量承诺。</li>
+<li><strong>结论</strong>：超时 + 熔断（防下游故障传导）与租户级令牌桶限流（防入口流量超容）是本步必选项，降级开关随之落地。</li>
+</ul>
+<p><strong>失效边界</strong>：熔断后补偿队列里的扣减请求&quot;不丢不重&quot;超出本页机制的能力——<strong>这正是卷04-2 本地消息表（Outbox）与消费幂等要解决的</strong>（见实战（中）骨架 3）；阈值合不合理、故障在哪一环，没有数据就全靠猜——<strong>这正是卷04-3 可观测性要解决的</strong>；流量再翻 10 倍，单机令牌桶与静态分档失效，限流上收到网关层（§2.4 已给出升级路径）。</p>
+<h3 id="8-4-方案空间与取舍">8.4 方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 零开发：冻结库存服务发布 + 值班盯屏、出事手动重启</td>
+<td>0 天</td>
+<td>人力排班</td>
+<td>恢复靠手速，MTTR 不可控</td>
+<td>无</td>
+<td>低</td>
+</tr>
+<tr>
+<td>B. 手写迷你熔断器 + 令牌桶教学版（本步方案）</td>
+<td>2-3 天</td>
+<td>0 元</td>
+<td>自研组件有 bug 风险，靠验收脚本兜底</td>
+<td>好：状态机理刻进脑子，换库只是换实现</td>
+<td>中</td>
+</tr>
+<tr>
+<td>C. 成熟组件：pybreaker / 网关层（Kong、APISIX）配置化</td>
+<td>1-2 天</td>
+<td>网关部署成本</td>
+<td>黑盒参数不理解，出事不会调</td>
+<td>好，生产推荐</td>
+<td>低</td>
+</tr>
+<tr>
+<td>D. 过度设计：Service Mesh（Istio）全量接管 + 自适应限流</td>
+<td>1 个月起</td>
+<td>高</td>
+<td>1 个人运维不了控制面</td>
+<td>&quot;好&quot;到你用不上</td>
+<td>极高</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：教学用 B、生产演进向 C。</strong> 一句话理由：先把状态机和令牌桶亲手写对（50 行以内），再迁到成熟组件时才知道每个参数在防什么；熔断阈值（连续 5 次失败断开、冷却 30s）与限流分档是典型的架构决策，落成 ADR 并入卷05 文档包。</p>
+<h3 id="8-5-背景">8.5 背景</h3>
 <p>卷03 末态：RetailHub 有网关 + 订单服务 + 库存服务（REST 互调）、PostgreSQL 主从、Redis 缓存、MQ 异步报表，完成了数据架构文档与防超卖实验。卷04 的实战按主题拆到三个子页，本页完成前两步：给跨服务调用装上超时与熔断、加上租户级限流——先让订单服务在下游故障与流量尖峰面前不被拖死。</p>
-<h3 id="8-2-任务清单-本页两步-验收通过再进下一步">8.2 任务清单（本页两步，验收通过再进下一步）</h3>
+<p><strong>想清楚再动手</strong>——以下是把上面决策落地的递进步骤：</p>
+<h3 id="8-6-任务清单-本页两步-验收通过再进下一步">8.6 任务清单（本页两步，验收通过再进下一步）</h3>
 <p><strong>第 1 步：给跨服务调用装上超时与熔断</strong></p>
 <ul>
 <li>目标：库存服务挂掉时，订单服务不被拖死。</li>
-<li>操作：按 §8.3 代码骨架实现迷你熔断器，包裹订单服务调用库存服务的 httpx 调用；显式设置 <code>timeout=2.0</code>。</li>
+<li>操作：按 §8.7 代码骨架实现迷你熔断器，包裹订单服务调用库存服务的 httpx 调用；显式设置 <code>timeout=2.0</code>。</li>
 <li>验收：停掉库存服务连调 10 次下单，前 5 次真实失败（≈2s 超时），第 6 次起快速返回 fallback（&lt;50ms），日志出现 <code>circuit OPEN</code>。</li>
 </ul>
 <p><strong>第 2 步：租户级限流中间件</strong></p>
 <ul>
 <li>目标：单个大客户的流量尖峰挤不死其他租户。</li>
-<li>操作：按 §8.4 骨架实现 <code>TokenBucket</code> + <code>TenantRateLimiter</code>，挂成 FastAPI 中间件，按 <code>X-Tenant-Plan</code> 分档。</li>
+<li>操作：按 §8.8 骨架实现 <code>TokenBucket</code> + <code>TenantRateLimiter</code>，挂成 FastAPI 中间件，按 <code>X-Tenant-Plan</code> 分档。</li>
 <li>验收：脚本对 free 租户打 30 QPS 持续 5 秒出现 429（带 <code>Retry-After</code> 头）；同压下 pro 租户不受影响。</li>
 </ul>
-<h3 id="8-3-代码骨架-1-迷你熔断器-50-行讲清原理">8.3 代码骨架 1：迷你熔断器（50 行讲清原理）</h3>
+<h3 id="8-7-代码骨架-1-迷你熔断器-50-行讲清原理">8.7 代码骨架 1：迷你熔断器（50 行讲清原理）</h3>
 <pre><code class="language-python"># retailhub/common/circuit_breaker.py
 import time
 from enum import Enum
@@ -397,7 +476,7 @@ def deduct_stock(sku: str, qty: int) -&gt; dict:
 <blockquote>
 <p>说明：生产环境可直接用成熟的 <code>pybreaker</code> 库或在网关层（如 Kong/APISIX）配置熔断，这里手写是为了让状态机刻进脑子。Sentinel/resilience4j 的核心逻辑与此相同，只是增加了滑动窗口统计、慢调用比例等更细的指标。</p>
 </blockquote>
-<h3 id="8-4-代码骨架-2-租户级令牌桶限流-fastapi-中间件">8.4 代码骨架 2：租户级令牌桶限流（FastAPI 中间件）</h3>
+<h3 id="8-8-代码骨架-2-租户级令牌桶限流-fastapi-中间件">8.8 代码骨架 2：租户级令牌桶限流（FastAPI 中间件）</h3>
 <pre><code class="language-python"># retailhub/common/rate_limit.py
 import time
 from fastapi import Request
@@ -450,7 +529,7 @@ async def rate_limit_middleware(request: Request, call_next):
         )
     return await call_next(request)
 </code></pre>
-<h3 id="8-7-ai-coding-实操模式">8.7 AI Coding 实操模式</h3>
+<h3 id="8-9-ai-coding-实操模式">8.9 AI Coding 实操模式</h3>
 <p>本卷的五步任务里有大量&quot;模式固定、细节易错&quot;的代码（熔断状态机、令牌桶、K8s 清单），正是 AI Coding 的最佳战场：<strong>模式让 AI 生成，判断由人把关</strong>。</p>
 <p><strong>① 可直接复制的提示词模板</strong></p>
 <pre><code class="language-text">背景：FastAPI + httpx 的多租户零售系统，Python 3.12。
@@ -477,12 +556,21 @@ async def rate_limit_middleware(request: Request, call_next):
 <li class="task-item"><input type="checkbox"> 评审清单中发现的问题全部回归修复，并把&quot;AI 犯了什么错、为什么&quot;记录进实验报告——这是比代码本身更值钱的产出</li>
 <li class="task-item"><input type="checkbox"> K8s 清单类配置由 AI 生成后，必须用 <code>kubectl apply --dry-run=server</code> 或 <code>kubeval</code> 校验通过才算数</li>
 </ul>
-<h3 id="8-8-验收标准-本页部分">8.8 验收标准（本页部分）</h3>
+<h3 id="8-10-验收标准-本页部分">8.10 验收标准（本页部分）</h3>
 <ul>
 <li class="task-item"><input type="checkbox"> 停掉库存服务后，连续调用下单接口 10 次：前 5 次真实失败（耗时≈2s 超时），第 6 次起熔断打开，快速返回 fallback（耗时&lt;50ms），日志中出现 <code>circuit OPEN</code></li>
 <li class="task-item"><input type="checkbox"> 恢复库存服务并等待冷却时间后，调用自动恢复正常（HalfOpen→Closed）</li>
 <li class="task-item"><input type="checkbox"> 用脚本对 free 租户打 30 QPS 持续 5 秒，出现 429 响应且带 <code>Retry-After</code> 头；pro 租户同压下不受影响</li>
 </ul>
+<h3 id="8-11-复盘追问">8.11 复盘追问</h3>
+<p>两步验收全绿之后，用五个变体把&quot;安全气囊&quot;再压测一遍——每条只给方向，不给答案：</p>
+<ol>
+<li><strong>大促流量再翻 10 倍，单机令牌桶和静态分档还够吗？</strong> 提示：集群限流的静态分配与集中式计数两档（§2.4 末段已埋伏笔），再往上是网关层与自适应限流。这正是卷04-3 与卷08 要解决的。</li>
+<li><strong>熔断后补偿队列里的扣减请求，怎么保证不丢、不重、不错序？</strong> 提示：内存队列一重启就失忆——消息要先落库再投递。这正是卷04-2 本地消息表（Outbox）要解决的（实战（中）见）。</li>
+<li><strong>别的团队的服务也想要这套治理，每个服务各写一份？</strong> 提示：治理逻辑下沉为平台能力，阈值统一评审。这正是卷04-3 平台工程（IDP）要解决的。</li>
+<li><strong>老板问&quot;上周每个租户各被限了多少次、熔断开过几次&quot;，你答得上吗？</strong> 提示：没有指标的治理是盲飞。这正是卷04-3 可观测与卷08 SLO 要解决的。</li>
+<li><strong>业务方说&quot;下单不许降级，必须强一致&quot;？</strong> 提示：可用性与一致性不可兼得时回到 CAP 重新谈判——降级不是技术妥协，是业务分级。这正是卷03 第 4 节与卷05 质量属性场景要训练的判断。</li>
+</ol>
 <hr>
 <h2 id="参考与脚注">参考与脚注</h2>
 <hr>
@@ -517,12 +605,17 @@ async def rate_limit_middleware(request: Request, call_next):
     <a class="toc-h3" href="#2-6-对比总表">2.6 对比总表</a>
     <a class="toc-h3" href="#2-7-延伸-更大尺度的容灾-异地多活与单元化">2.7 延伸：更大尺度的容灾——异地多活与单元化</a>
     <a class="toc-h2" href="#8-本卷实战-上-给订单服务装上-安全气囊">8. 本卷实战（上）：给订单服务装上"安全气囊"</a>
-    <a class="toc-h3" href="#8-1-背景">8.1 背景</a>
-    <a class="toc-h3" href="#8-2-任务清单-本页两步-验收通过再进下一步">8.2 任务清单（本页两步，验收通过再进下一步）</a>
-    <a class="toc-h3" href="#8-3-代码骨架-1-迷你熔断器-50-行讲清原理">8.3 代码骨架 1：迷你熔断器（50 行讲清原理）</a>
-    <a class="toc-h3" href="#8-4-代码骨架-2-租户级令牌桶限流-fastapi-中间件">8.4 代码骨架 2：租户级令牌桶限流（FastAPI 中间件）</a>
-    <a class="toc-h3" href="#8-7-ai-coding-实操模式">8.7 AI Coding 实操模式</a>
-    <a class="toc-h3" href="#8-8-验收标准-本页部分">8.8 验收标准（本页部分）</a>
+    <a class="toc-h3" href="#8-1-命题-先合上教程">8.1 命题（先合上教程）</a>
+    <a class="toc-h3" href="#8-2-架构师的澄清提问">8.2 架构师的澄清提问</a>
+    <a class="toc-h3" href="#8-3-容量估算与约束推导">8.3 容量估算与约束推导</a>
+    <a class="toc-h3" href="#8-4-方案空间与取舍">8.4 方案空间与取舍</a>
+    <a class="toc-h3" href="#8-5-背景">8.5 背景</a>
+    <a class="toc-h3" href="#8-6-任务清单-本页两步-验收通过再进下一步">8.6 任务清单（本页两步，验收通过再进下一步）</a>
+    <a class="toc-h3" href="#8-7-代码骨架-1-迷你熔断器-50-行讲清原理">8.7 代码骨架 1：迷你熔断器（50 行讲清原理）</a>
+    <a class="toc-h3" href="#8-8-代码骨架-2-租户级令牌桶限流-fastapi-中间件">8.8 代码骨架 2：租户级令牌桶限流（FastAPI 中间件）</a>
+    <a class="toc-h3" href="#8-9-ai-coding-实操模式">8.9 AI Coding 实操模式</a>
+    <a class="toc-h3" href="#8-10-验收标准-本页部分">8.10 验收标准（本页部分）</a>
+    <a class="toc-h3" href="#8-11-复盘追问">8.11 复盘追问</a>
     <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
   </nav>
 </aside>

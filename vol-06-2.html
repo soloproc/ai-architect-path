@@ -371,6 +371,80 @@ if __name__ == &quot;__main__&quot;:
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m6-inference-bench.zip">下载 retailhub-m6-inference-bench.zip</a> 本地跑（解压后 <code>cd m6-inference-bench &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m6"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="命题-先合上教程">命题（先合上教程）</h3>
+<p>季度经营会上，老板连珠炮：</p>
+<blockquote>
+<p>&quot;最大客户放话了：经营数据不出他们的域，不然明年不续约——那是我们三成的收入。财务也炸了：上个月云 API 账单占了那个租户收入的 31%，再涨就白干了。你搞个'私有化 AI'，智能客服、商品推荐都给我本地跑起来。预算有限，别跟我提买 H100。&quot;</p>
+</blockquote>
+<p>业务约束：数据不出域是硬合规；团队没有专职算法工程师；&quot;客服和推荐都本地跑&quot;是范围坑——推荐系统的召回排序不是 RAG 能顺手捎带的；&quot;预算有限&quot;没有数字——<strong>不问出数字不许动手</strong>。</p>
+<blockquote>
+<p>⚠️ <strong>先合上教程</strong>。10 分钟，写下你的方案：哪些任务私有化、买什么卡、怎么向老板证明划算。写完再往下对照。</p>
+</blockquote>
+<h3 id="架构师的澄清提问">架构师的澄清提问</h3>
+<ol>
+<li><strong>&quot;数据不出域&quot;的边界到底包什么？</strong>——决定私有化范围是仅推理，还是 Embedding、向量库、日志全包。<em>假想回答</em>：chunk 文本与向量都算经营数据，全部不出域；日志脱敏后可出域。</li>
+<li><strong>哪些任务必须私有化，哪些可以继续走云？</strong>——决定路由边界。<em>假想回答</em>：涉及租户经营数据的问答私有化；通用文案、报告生成走云 API。</li>
+<li><strong>客服问答的并发与延迟目标是多少？</strong>——决定 GPU 规格与实例数。<em>假想回答</em>：峰值 20 个并发会话，TTFT ≤2 秒；商品推荐问答是异步批量任务，不进实时链路。</li>
+<li><strong>GPU 预算的具体数字与采购周期？</strong>——决定买卡还是租云 GPU。<em>假想回答</em>：一次性采购 ≤5 万元，或云 GPU 月租 ≤8000 元；采购周期 4 周。</li>
+<li><strong>本地 7B 模型效果不如云 API 怎么办？底线在哪？</strong>——决定效果基线与降级路由。<em>假想回答</em>：数据问答准确率不得低于云 API 的九成，达不到的类目继续走云（合规允许脱敏的任务）。</li>
+<li><strong>检索质量谁验收？</strong>——决定评测集与 Recall 基线。<em>假想回答</em>：运营出 30 条&quot;问题→应命中文档&quot;评测对，Recall@5 ≥0.8 才准上线。</li>
+</ol>
+<h3 id="容量估算与约束推导-显存-并发-成本三本账">容量估算与约束推导（显存 / 并发 / 成本三本账）</h3>
+<ul>
+<li><strong>显存账</strong>：Qwen2.5-7B 的 FP16 权重 ≈14GB；KV Cache 按本页常见误区 1 的口径另算——16 并发 × 4K 上下文约再吃 8-16GB。24GB 卡上 FP16 全量<strong>装不下</strong>；INT4 量化把权重压到 ~4.5GB，但<strong>量化的是权重不是 KV Cache</strong>——并发槽位仍被 KV Cache 卡脖子。结论：24GB 卡 + INT4 + <code>max-num-seqs=16</code> 是候选配置，用 kv-cache 计算器逐项验算后再下单。</li>
+<li><strong>并发账</strong>：峰值 20 并发会话 × 平均 2K 输入 + 500 输出 token；7B INT4 在 24GB 卡上的单流 decode 速率与聚合吞吐<strong>必须实测</strong>（本页压测方法）。按 §4.2 公式反推：若实测单实例安全并发 = 12，则 20 并发要 2 个实例，或者接受排队、让 TTFT 贴近 2 秒上限——容量曲线的拐点就是采购单的签字依据。</li>
+<li><strong>成本账</strong>：云侧现状是月账单 ≈ 该租户收入 × 31%；自建侧每百万 token 成本 = 实例价格 ÷（实测吞吐 × 利用率）。客服流量集中在白天 10 小时，夜间空转——利用率按 40% 估，代入公式求盈亏平衡点：月调用量低于平衡点时云更便宜，高于才自建。<strong>这就是备忘录必须写实测数字、不许写&quot;感觉划算&quot;的原因。</strong></li>
+<li><strong>失效边界</strong>：并发翻 10 倍（200 会话）→ 单卡出局，多实例 + continuous batching 调优；模型升级到 32B/70B → 显存账重算，24GB 卡直接淘汰。演进路径（多卡、量化、路由降级）写进备忘录的&quot;未来扩展&quot;一节。</li>
+</ul>
+<h3 id="方案空间与取舍">方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 全私有化：7B 客服 + 70B 推荐 + 双卡服务器（过度设计项）</td>
+<td>8 周+</td>
+<td>远超 5 万预算（70B FP16 ≈140GB 显存，单此项即出局）</td>
+<td>高：无算法团队维护 70B 推理</td>
+<td>好，但用不上</td>
+<td>极高</td>
+</tr>
+<tr>
+<td>B. 分级路由：数据问答走 7B 私有化，复杂任务走云（本步采用）</td>
+<td>2-3 周</td>
+<td>预算内</td>
+<td>中：效果基线不达标要降级回云</td>
+<td>好：路由表天然支持扩展 Provider</td>
+<td>中</td>
+</tr>
+<tr>
+<td>C. 零开发项：维持全云 API + 与客户签数据处理协议</td>
+<td>0</td>
+<td>0（但 30% 收入续约风险 + 账单占比继续涨）</td>
+<td>高：客户已明说&quot;出域不续约&quot;</td>
+<td>无</td>
+<td>0</td>
+</tr>
+<tr>
+<td>D. 云厂商&quot;专属实例/私有化版&quot;API</td>
+<td>1 周</td>
+<td>高：专属实例月租超 8000 元</td>
+<td>中：部分客户仍认定&quot;出域&quot;</td>
+<td>中</td>
+<td>低</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：B</strong>。一句话理由：合规线（数据不出域）划定的最小私有化范围，与成本线（盈亏平衡点）划定的最大云保留范围，两条线的交集就是&quot;问答私有化、其余走云&quot;——两个约束各自独立地指向同一个答案。</p>
+<p>想清楚再动手——以下是把决策落地的递进步骤。</p>
 <p><strong>背景</strong>：RetailHub 的最大客户提出&quot;经营数据不出域&quot;；同时财务发现云 API 账单已占该租户收入的 31%。架构评审决定：为高频数据问答任务建立私有化推理与检索能力，前沿复杂任务继续走云 API，由 LLM Runtime 路由。</p>
 <h3 id="递进任务步骤">递进任务步骤</h3>
 <p><strong>步骤 1：起服务。</strong></p>
@@ -428,6 +502,14 @@ if __name__ == &quot;__main__&quot;:
 <li class="task-item"><input type="checkbox"> 路由规则生效：两类任务分别落到自建与云，日志可验证</li>
 <li class="task-item"><input type="checkbox"> 备忘录含公式、实测数、盈亏平衡点、结论四要素</li>
 </ul>
+<h3 id="复盘追问">复盘追问</h3>
+<ol>
+<li><strong>并发翻 10 倍到 200 会话？</strong>——方向：多实例 + 请求队列 + 按队列深度伸缩；这正是卷08-3 容量规划与 AI 服务 SRE 要解决的。</li>
+<li><strong>客户把 SLO 提到 99.95% 且 TTFT ≤1 秒？</strong>——方向：错误预算倒逼双机热备与降级路由；这正是卷08-1 SLO 与错误预算要解决的。</li>
+<li><strong>合规升级：向量库也要加密、审计、备份？</strong>——方向：向量库纳入与卷03 数据库同级的权限与备份策略；这正是本页常见误区 7 的正面应用。</li>
+<li><strong>老板看到效果后想把推荐、定价、巡检全部上模型？</strong>——方向：模型/Prompt/评测集全部纳入平台资产；这正是本页 §6 LLMOps 与篇07 Skill 工程要解决的。</li>
+<li><strong>新模型发布，要不要换？</strong>——方向：先跑回归评测与输出契约测试，再谈切换；这正是篇04 输出契约与篇09 评测门禁要解决的。</li>
+</ol>
 <hr>
 <h2 id="常见误区">常见误区</h2>
 <ol>
@@ -492,9 +574,14 @@ if __name__ == &quot;__main__&quot;:
     <a class="toc-h2" href="#6-llmops-与平台工程-把-ai-资产纳入内部平台">6. LLMOps 与平台工程：把 AI 资产纳入内部平台</a>
     <a class="toc-h3" href="#6-1-与篇04-llm-runtime-的关系-一个管供给-一个管消费">6.1 与篇04 LLM Runtime 的关系：一个管供给，一个管消费</a>
     <a class="toc-h2" href="#本卷实战-retailhub-演进第-6-步-私有化推理服务-向量检索-成本账本">本卷实战：RetailHub 演进第 6 步——私有化推理服务 + 向量检索 + 成本账本</a>
+    <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
+    <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
+    <a class="toc-h3" href="#容量估算与约束推导-显存-并发-成本三本账">容量估算与约束推导（显存 / 并发 / 成本三本账）</a>
+    <a class="toc-h3" href="#方案空间与取舍">方案空间与取舍</a>
     <a class="toc-h3" href="#递进任务步骤">递进任务步骤</a>
     <a class="toc-h3" href="#ai-coding-实操模式">AI Coding 实操模式</a>
     <a class="toc-h3" href="#总验收标准">总验收标准</a>
+    <a class="toc-h3" href="#复盘追问">复盘追问</a>
     <a class="toc-h2" href="#常见误区">常见误区</a>
     <a class="toc-h2" href="#自测清单">自测清单</a>
     <a class="toc-h2" href="#下卷预告">下卷预告</a>

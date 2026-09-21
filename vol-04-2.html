@@ -303,16 +303,93 @@
 <blockquote>
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m4-traffic-observability.zip">下载 retailhub-m4-traffic-observability.zip</a> 本地跑（解压后 <code>cd m4-traffic-observability &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
-<h3 id="8-1-背景">8.1 背景</h3>
+<h3 id="8-1-命题-先合上教程">8.1 命题（先合上教程）</h3>
+<p>大促复盘会上，老板把一沓客服工单拍在桌上：</p>
+<blockquote>
+<p>&quot;上次大促 MQ 抖了 20 分钟，订单下了三百多单库存没扣，超卖退款加客服加班，里外里亏了小十万。我要下单和扣库存<strong>永远一致</strong>，下次大促前必须解决。对了，营销说顺便把'下单成功自动发券'捎上，反正都是顺路的事。&quot;</p>
+</blockquote>
+<p>业务约束：大促峰值 50 万单/日（约为卷02-3 末态日常 5 万单/日的 10 倍）；团队 6 人，距下次大促 6 周；老板的&quot;永远一致&quot;没有定义能容忍多长延迟；&quot;顺便捎上发券&quot;是经典的范围蔓延陷阱。</p>
+<blockquote>
+<p>⚠️ <strong>先合上教程</strong>。给自己 10 分钟，在纸上写出你的方案骨架：一致性目标怎么定义、选哪种事务方案、失败了怎么补救、发券要不要捎。写完再往下对照——差别在哪、谁的更站得住，比&quot;看懂答案&quot;值钱得多。</p>
+</blockquote>
+<h3 id="8-2-架构师的澄清提问">8.2 架构师的澄清提问</h3>
+<p>别急着画架构图。下面 7 个问题先拿去问业务方，<strong>每条都附上了它决定架构形态的理由</strong>：</p>
+<ol>
+<li><strong>&quot;永远一致&quot;能容忍多长的延迟窗口？</strong>——这一句话决定你站在 ACID（2PC/TCC）还是 BASE（Saga/本地消息表）一边。<em>假想回答</em>：库存扣减可以晚，但 1 分钟内必须确认；期间订单页显示&quot;库存确认中&quot;。</li>
+<li><strong>50 万单在全天是均匀分布还是尖峰？</strong>——决定 outbox 表写入压力与 relay 吞吐设计。<em>假想回答</em>：晚 8 点起两小时占全天 40%，即约 20 万单/2 小时。</li>
+<li><strong>兜底底线是&quot;宁可拒单&quot;还是&quot;宁可超卖&quot;？</strong>——决定同步校验与异步补偿的边界划在哪。<em>假想回答</em>：宁可事后取消订单也绝不超卖，卷03 的 DB 条件更新兜底必须保留。</li>
+<li><strong>发券必须与下单同时成功，还是可以事后补发？</strong>——决定发券进不进主事务边界。<em>假想回答</em>：券当天（T+0）补发即可，不进主链路——范围砍掉一半。</li>
+<li><strong>MQ 是自建还是云服务？支持事务消息吗？</strong>——决定是自己实现本地消息表，还是直接用 MQ 的事务消息。<em>假想回答</em>：云厂商标准版 MQ，无事务消息，运维不归我们管。</li>
+<li><strong>财务要不要&quot;每一单可追溯&quot;？记录留多久？</strong>——决定 outbox 表已投递记录的保留期与归档策略。<em>假想回答</em>：订单与扣减记录要可关联查询，保留 90 天。</li>
+<li><strong>消费端失败后谁收拾残局？</strong>——决定补偿队列、告警与人工通道的设计。<em>假想回答</em>：允许告警后人工介入，但系统必须先自动重试 5 分钟。</li>
+</ol>
+<h3 id="8-3-容量估算与约束推导">8.3 容量估算与约束推导</h3>
+<p>back-of-envelope，三笔账：</p>
+<ul>
+<li><strong>写入账</strong>：峰值窗口 20 万单 ÷ 7200 秒 ≈ 28 单/秒，再乘 3 倍瞬时系数 ≈ 90 单/秒。每单 1 行 orders + 1 行 outbox、同一事务提交 ≈ 180 行/秒写入——对 PostgreSQL 主库（轻松数千 TPS）是小数字。<strong>结论：outbox 表不是瓶颈，这一步不需要分库分表。</strong></li>
+<li><strong>投递账</strong>：relay 每轮捞 100 条、每秒一轮 ≈ 100 条/秒，刚够覆盖峰值。但算一算故障清仓：MQ 中断 20 分钟，积压 ≈ 28 单/秒 × 1200 秒 ≈ 3.4 万条，按 100 条/秒清仓要 5-6 分钟——<strong>超过业务方&quot;1 分钟内确认库存&quot;的容忍度</strong>。估算直接改实现：批量上限从 100 提到 1000、或 relay 开多并发，把清仓压进 1 分钟。这就是容量估算的价值——不改架构，改参数。</li>
+<li><strong>存储账</strong>：outbox 每条约 500B × 50 万单/日 ≈ 250MB/日，保留 90 天 ≈ 22GB。可接受，但已投递记录必须定期归档删除，否则 PENDING 扫描越扫越慢——给 status 加索引，配一个清理任务。</li>
+</ul>
+<p><strong>失效边界</strong>（写进你的设计文档，卷05-2 会教你把它落成 ADR）：单量再翻 10 倍（500 万单/日、峰值近千单/秒），单表扫描与单 relay 开始吃力——演进方向是 outbox 表按日期/租户分区、relay 按 id 段多实例分片；若是秒杀型 10 万单/秒级，本地消息表整体让位给 MQ 事务消息或 CDC（订阅数据库日志）。<strong>方案不是选出来的，是被数字逼出来的。</strong></p>
+<h3 id="8-4-方案空间与取舍">8.4 方案空间与取舍</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>方案</th>
+<th>交付时间</th>
+<th>成本</th>
+<th>风险</th>
+<th>可演进性</th>
+<th>认知负荷</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A. 2PC/XA 强一致</td>
+<td>2-3 周（改数据源+联调）</td>
+<td>低（中间件自带）</td>
+<td>高：prepare 全程持锁，90 单/秒峰值下锁等待直接拖垮链路；协调者单点</td>
+<td>差：与本页 §3.1 结论相悖，互联网高并发链路基本弃用</td>
+<td>低（运维心智高）</td>
+</tr>
+<tr>
+<td>B. TCC</td>
+<td>6 周+：每个接口写 Try/Confirm/Cancel 三版</td>
+<td>高：3 倍接口开发量</td>
+<td>中：幂等、空回滚、悬挂三大坑都要处理</td>
+<td>好：资金级场景可直接复用</td>
+<td>高</td>
+</tr>
+<tr>
+<td>C. 本地消息表（本步采用）</td>
+<td>2 周内：1 张表 + relay + 幂等消费</td>
+<td>低：不引入新组件</td>
+<td>中：秒级不一致窗口，需业务书面确认</td>
+<td>好：可平滑演进到 CDC/事务消息</td>
+<td>中</td>
+</tr>
+<tr>
+<td>D. 不做，故障后人工对账（零开发项）</td>
+<td>0</td>
+<td>0（但事故账：上次已亏小十万）</td>
+<td>高：大促 20 分钟故障 = 数百单人工补数据</td>
+<td>无</td>
+<td>0</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>决策：C</strong>。一句话理由：在&quot;90 单/秒峰值 × 6 人 × 6 周&quot;的约束组合下，本地消息表是唯一同时满足&quot;不持锁、不绑 MQ 厂商、故障可自愈、两周可交付&quot;的方案；秒级不一致窗口已拿到业务方书面确认（§8.2 问题 1）。</p>
+<p>想清楚再动手——以下是把决策落地的递进步骤。</p>
+<h3 id="8-5-背景">8.5 背景</h3>
 <p>本步是卷04 实战的第 3 步（前两步见卷04-1）：把下单链路改造为本地消息表（Outbox）方案——这正是本页 §3.4 选型结论的落地，也是卷02 引入的 MQ 的真正用武之地。</p>
-<h3 id="8-2-任务清单-本页一步">8.2 任务清单（本页一步）</h3>
+<h3 id="8-6-任务清单-本页一步">8.6 任务清单（本页一步）</h3>
 <p><strong>第 3 步：本地消息表改造下单链路</strong></p>
 <ul>
 <li>目标：订单与&quot;通知库存&quot;要么都发生、要么都不发生，MQ 故障可恢复。</li>
-<li>操作：按 §8.5 骨架建 <code>outbox</code> 表，改造 <code>create_order</code> 为同事务双写，写 relay 任务与幂等消费端。</li>
+<li>操作：按 §8.7 骨架建 <code>outbox</code> 表，改造 <code>create_order</code> 为同事务双写，写 relay 任务与幂等消费端。</li>
 <li>验收：下单 100 单后中断 MQ，恢复后 outbox 消息全部送达；库存扣减总数 = 成功订单数，无重复扣减。</li>
 </ul>
-<h3 id="8-5-代码骨架-3-本地消息表-outbox-下单链路">8.5 代码骨架 3：本地消息表（Outbox）下单链路</h3>
+<h3 id="8-7-代码骨架-3-本地消息表-outbox-下单链路">8.7 代码骨架 3：本地消息表（Outbox）下单链路</h3>
 <pre><code class="language-python"># retailhub/order/service.py（关键片段）
 from sqlalchemy import insert
 from db import engine, orders, outbox  # outbox(id, topic, payload, status, created_at)
@@ -358,6 +435,15 @@ def handle_order_created(msg: dict, processed_ids: set):
 <ul>
 <li class="task-item"><input type="checkbox"> 下单 100 单后中断 MQ，恢复后 outbox 消息全部送达，库存扣减总数与成功订单数一致，无重复扣减</li>
 </ul>
+<h3 id="8-9-复盘追问">8.9 复盘追问</h3>
+<p>实现跑通不等于思考结束。用下面五个变体逼自己一次——每条只给方向提示，答案要你自己写：</p>
+<ol>
+<li><strong>单量再翻 10 倍（500 万单/日）会怎样？</strong>——方向：outbox 分区 + relay 按 id 段分片，再往上换 CDC；这正是卷03-1 的分区方法与卷08-3 容量规划要解决的。</li>
+<li><strong>老板把可用性 SLO 提到 99.95%（全年故障 ≤4.4 小时）？</strong>——方向：relay 也要算进可用性预算，单个 relay 进程本身就是单点；这正是卷08-1 SLO 与错误预算要解决的。</li>
+<li><strong>财务合规升级：每笔扣减可审计、消息不可篡改、保留 3 年？</strong>——方向：outbox 归档 + 审计场景入库；这正是卷05-2 把这类承诺写成质量属性场景与 ADR 要解决的。</li>
+<li><strong>营销反悔：&quot;券必须实时到账，不能 T+0&quot;？</strong>——方向：券链路升级为多步 Saga 或独立 outbox topic；这正是本页 §3.3 Saga 的用武之地。</li>
+<li><strong>有同事提议&quot;直接上 Seata 一站式分布式事务&quot;？</strong>——方向：用 §3.5 选型表逐项对账，把否决理由写下来；这正是卷05-2 ADR&quot;被否决方案&quot;栏的素材。</li>
+</ol>
 <hr>
 <h2 id="参考与脚注">参考与脚注</h2>
 <p>本页正文未使用编号脚注。理论背景承自卷03-2「一致性与共识」（DDIA 第 9 章）；分布式事务与共识的分布式治理视角另见卷04-1、卷04-3 页末所列《凤凰架构》等参考。</p>
@@ -381,10 +467,15 @@ def handle_order_created(msg: dict, processed_ids: set):
     <a class="toc-h3" href="#3-5-选型对比">3.5 选型对比</a>
     <a class="toc-h3" href="#3-6-共识算法-raft-分布式系统的-宪法">3.6 共识算法：Raft——分布式系统的"宪法"</a>
     <a class="toc-h2" href="#8-本卷实战-中-本地消息表改造下单链路">8. 本卷实战（中）：本地消息表改造下单链路</a>
-    <a class="toc-h3" href="#8-1-背景">8.1 背景</a>
-    <a class="toc-h3" href="#8-2-任务清单-本页一步">8.2 任务清单（本页一步）</a>
-    <a class="toc-h3" href="#8-5-代码骨架-3-本地消息表-outbox-下单链路">8.5 代码骨架 3：本地消息表（Outbox）下单链路</a>
+    <a class="toc-h3" href="#8-1-命题-先合上教程">8.1 命题（先合上教程）</a>
+    <a class="toc-h3" href="#8-2-架构师的澄清提问">8.2 架构师的澄清提问</a>
+    <a class="toc-h3" href="#8-3-容量估算与约束推导">8.3 容量估算与约束推导</a>
+    <a class="toc-h3" href="#8-4-方案空间与取舍">8.4 方案空间与取舍</a>
+    <a class="toc-h3" href="#8-5-背景">8.5 背景</a>
+    <a class="toc-h3" href="#8-6-任务清单-本页一步">8.6 任务清单（本页一步）</a>
+    <a class="toc-h3" href="#8-7-代码骨架-3-本地消息表-outbox-下单链路">8.7 代码骨架 3：本地消息表（Outbox）下单链路</a>
     <a class="toc-h3" href="#8-8-验收标准-本页部分">8.8 验收标准（本页部分）</a>
+    <a class="toc-h3" href="#8-9-复盘追问">8.9 复盘追问</a>
     <a class="toc-h2" href="#参考与脚注">参考与脚注</a>
   </nav>
 </aside>
