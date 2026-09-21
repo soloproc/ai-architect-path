@@ -370,8 +370,43 @@
 <h3 id="7-6-步骤-1-基础设施编排">7.6 步骤 1：基础设施编排</h3>
 <ul>
 <li>目标：一份 <code>docker-compose.yml</code> 拉起全部组件（MySQL 主从、Redis、RocketMQ、两个服务）。</li>
-<li>操作：以如下骨架为起点补全（healthcheck、volume 持久化、两个服务的 Dockerfile）：</li>
+<li>操作：以如下骨架为起点补全（healthcheck、volume 持久化、两个服务的 Dockerfile）。动手前先读懂这份骨架——编排文件是多服务系统的第一张拓扑图，每个配置项都在表达一个设计决策：</li>
 </ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>配置点</th>
+<th>设计意图</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主库 <code>--log-bin --binlog-format=ROW</code></td>
+<td>主从复制的根：binlog 用 ROW 格式记录&quot;哪一行改成什么值&quot;，避免语句复制里 <code>NOW()</code> 等非确定性函数导致主从结果分叉（卷03-1 §5 会系统对比三种复制日志形态）</td>
+</tr>
+<tr>
+<td>从库 <code>--read-only=1</code></td>
+<td>从库只读是写进配置里的纪律：任何&quot;顺手写一下从库&quot;的行为直接报错——写从库会导致复制中断，用配置堵死比靠自觉可靠</td>
+</tr>
+<tr>
+<td><code>depends_on</code></td>
+<td>只保证启动顺序，<strong>不保证对方就绪</strong>——所以验收才要求 healthcheck，这是 compose 新手最常踩的坑</td>
+</tr>
+<tr>
+<td>order-service 同时注入 <code>DB_MASTER</code> 和 <code>DB_SLAVE</code></td>
+<td>读写分离的连接信息走环境变量：写与写后 3 秒内的读走主、其余走从，代码里不留硬编码连接串</td>
+</tr>
+<tr>
+<td>report-service <strong>只有</strong> <code>DB_SLAVE</code></td>
+<td>拆分纪律落到配置上：想连主库都没有连接串可用——比 code review 更硬的护栏（对应 §5.2 那条&quot;不存在的边&quot;）</td>
+</tr>
+<tr>
+<td>RocketMQ 拆 namesrv + broker 两个容器</td>
+<td>NameServer 管路由发现，Broker 才存消息——真实部署就是两个进程，这里提前按真实形态编排，不留&quot;单容器假象&quot;</td>
+</tr>
+</tbody>
+</table></div>
+<p>端口全部错开（8001/8002/6379/9876/10911/3306）也是刻意的：服务一多，端口冲突是最低级的翻车，端口规划表本身就是架构文档的一部分。</p>
 <pre><code class="language-yaml"># docker-compose.yml —— RetailHub 演进第2步编排骨架
 services:
   mysql-master:

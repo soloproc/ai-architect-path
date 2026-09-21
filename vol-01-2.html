@@ -179,6 +179,83 @@
 </tbody>
 </table></div>
 <p>一个反直觉的经验：<strong>池大小由&quot;数据库吃得下多少并发&quot;决定，而不是由&quot;应用有多少并发请求&quot;决定</strong>——借不到连接的请求就该在池外排队，排队远比把数据库打垮便宜。卷02 大促压测时你会亲眼看到这条曲线。</p>
+<p><strong>先想清楚表怎么设计，再看建表代码。</strong> 这是 RetailHub 的第一张 schema——两张表、八个字段，每个决定都有理由：</p>
+<p><code>items</code> 表：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/约束</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>item_id INTEGER PRIMARY KEY</code></td>
+<td>SQLite 下它是 rowid 的别名，天然自增、聚簇存储，无需另设主键索引</td>
+<td></td>
+</tr>
+<tr>
+<td><code>name TEXT NOT NULL</code></td>
+<td>展示名必填；但不加唯一约束——商品允许&quot;同名不同款&quot;</td>
+<td></td>
+</tr>
+<tr>
+<td><code>price REAL NOT NULL CHECK(price &gt;= 0)</code></td>
+<td>当前售价，允许随促销调整；CHECK 把&quot;负价格&quot;挡在库门口——约束是业务规则的最后一道防线</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p><code>orders</code> 表：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/约束</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>order_id INTEGER PRIMARY KEY</code></td>
+<td>同上，自增主键即对外暴露的订单号</td>
+<td></td>
+</tr>
+<tr>
+<td><code>item_id INTEGER NOT NULL</code> + 外键</td>
+<td>声明订单必须指向一件真实存在的商品，挡住&quot;悬空订单&quot;脏数据</td>
+<td></td>
+</tr>
+<tr>
+<td><code>quantity INTEGER NOT NULL</code></td>
+<td>购买件数，参与金额计算也参与库存语义</td>
+<td></td>
+</tr>
+<tr>
+<td><code>amount REAL NOT NULL</code></td>
+<td><strong>冗余存快照</strong>：下单那一刻的 <code>quantity × price</code> 固化在订单上。商品价格日后会改，但历史订单金额绝不能跟着变——这是典型的反范式设计：牺牲范式纯度，换&quot;历史事实不可变&quot;</td>
+<td></td>
+</tr>
+<tr>
+<td><code>status TEXT NOT NULL DEFAULT 'paid'</code></td>
+<td>本卷是&quot;已发生订单的查询服务&quot;，绝大多数记录就是 <code>paid</code>，默认值让种子数据和写入路径保持最简；状态用普通字符串而非枚举表——两种状态（paid/refunded）不值得为此建一张表</td>
+<td></td>
+</tr>
+<tr>
+<td><code>created_at TEXT NOT NULL</code></td>
+<td>SQLite 没有真正的日期类型；TEXT 存 <code>YYYY-MM-DD HH:MM:SS</code> 天然可按字符串比较与排序，<code>substr(created_at, 1, 10)</code> 即可按天分组——这正是步骤 3 那条 GMV SQL 能用 substr 分组的原因</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>索引只有一条 <code>idx_orders_created ON orders(created_at)</code>：GMV 汇总（<code>WHERE created_at BETWEEN ... GROUP BY ...</code>）和&quot;最近订单&quot;列表都按时间过滤，索引就建在被 WHERE/GROUP BY 反复使用的那列上。不给 <code>item_id</code> 建索引——&quot;按商品查订单&quot;当前不是高频路径，多一条索引意味着每一笔写入多一份维护开销，用不上的索引是纯负债。</p>
+<p>三句取舍，把&quot;没设计什么&quot;也说清：</p>
+<ul>
+<li><strong>为什么两张表而不是一张大宽表</strong>：商品信息（名称、价格）会变，订单记录不可变；合成一张表，改一次商品价格就要动成千上万行订单。把&quot;易变的&quot;和&quot;不可变的&quot;分开，是拆表的第一原则。</li>
+<li><strong>为什么 <code>amount</code> 要冗余</strong>：订单金额是历史事实，不是计算结果。宁可写入时多存一份，也不让&quot;今天改价&quot;污染&quot;昨天的 GMV&quot;——董事会看数，口径必须能用手工 SQL 复算（步骤 3 的验收正是这么设计的）。</li>
+<li><strong>故意不设计的</strong>：不建 <code>user</code> 表（内部工具阶段没有用户体系，单机最小形态，卷02 服务拆分时再扩——这是个演进伏笔）；不建 <code>order_items</code> 明细表（一单一件是教学简化，出现一单多件时它是第一个要补的表）；<code>created_at</code> 不存时区（单机房内网，卷04 走向多机房时再面对）。这些&quot;不设计&quot;和&quot;设计&quot;一样是架构决策——每个都标好了触发条件。</li>
+</ul>
 <pre><code class="language-python"># app/db.py —— SQLite 版的数据访问层（含&quot;借还&quot;思想）
 import sqlite3
 from contextlib import contextmanager
@@ -264,6 +341,14 @@ WHERE o.order_id = ?
     DB--&gt;&gt;A: 订单+商品 全部数据
     end
 </pre>
+<h3 id="4-4-端点契约的设计约定-资源-分页与错误格式">4.4 端点契约的设计约定：资源、分页与错误格式</h3>
+<p><code>main.py</code> 的路由骨架已在卷01-1 §3 给出（<code>GET /orders</code>、<code>GET /orders/{order_id}</code>、<code>GET /stats/gmv</code>、<code>GET /health</code>），这里补上骨架背后的设计约定——API 和数据库 schema 一样是契约，发布即负债，第 8 章实战的每条验收标准都对应这里的某一条：</p>
+<ul>
+<li><strong>资源建模：为什么是 <code>/orders</code> 而不是 <code>/getOrders</code>。</strong> URL 里放名词（资源），动作用 HTTP 方法表达（GET 查、POST 建、PUT 改、DELETE 删）。订单详情是资源的具体化 <code>/orders/{order_id}</code>；GMV 汇总返回的不是订单实体而是统计结果，所以单列一个资源域 <code>/stats/gmv</code>。判断标准一句话：<strong>返回的是不是 <code>orders</code> 表里的那一行行实体</strong>。URL 里写动词（<code>/getOrderList</code>）的接口一多就乱，本卷误区 7 会再点名它。</li>
+<li><strong>分页参数：<code>page/size</code> 加边界校验。</strong> 选 <code>page/size</code> 而非 <code>offset/limit</code>，因为调用方（运营）用&quot;第几页&quot;思考；真正不能省的是边界——<code>page ≥ 1</code>、<code>1 ≤ size ≤ 100</code>。上限 100 是护栏：没有上限的分页，等于允许任何人一条请求拖走全表。越界参数返回 <strong>422</strong>（参数本身非法，连业务逻辑都不该进），不是 200 配个空列表。</li>
+<li><strong>错误格式：404/422 返回 JSON，不是 HTML 报错页。</strong> API 的调用方是程序不是浏览器，机器要按状态码和 JSON 体分支处理；FastAPI 默认已满足，你要守住的是别用&quot;200 + 自定义错误字段&quot;破坏它——那是本卷误区 1，监控和前端会因此全部失明。</li>
+<li><strong>为什么 GET 不带 body。</strong> 语义上 GET 是&quot;取&quot;不是&quot;给&quot;，沿途的代理、网关、CDN 都可能忽略甚至丢弃 GET 的 body；查询条件一律放 query string。这也是 GET 响应能被缓存的前提——卷02 给 <code>/orders/{id}</code> 加 Redis 时，这条约定会变成真金白银。</li>
+</ul>
 <hr>
 <h2 id="5-日志与最简单的监控">5. 日志与最简单的监控</h2>
 <h3 id="5-1-日志-出事时你唯一的证人">5.1 日志：出事时你唯一的证人</h3>
@@ -610,6 +695,7 @@ ORDER BY date;
     <a class="toc-h3" href="#4-1-为什么先用-sqlite-以及它和-mysql-的真实差异">4.1 为什么先用 SQLite，以及它和 MySQL 的真实差异</a>
     <a class="toc-h3" href="#4-2-连接与连接池">4.2 连接与连接池</a>
     <a class="toc-h3" href="#4-3-n-1-问题-性能杀手的最小样本">4.3 N+1 问题：性能杀手的最小样本</a>
+    <a class="toc-h3" href="#4-4-端点契约的设计约定-资源-分页与错误格式">4.4 端点契约的设计约定：资源、分页与错误格式</a>
     <a class="toc-h2" href="#5-日志与最简单的监控">5. 日志与最简单的监控</a>
     <a class="toc-h3" href="#5-1-日志-出事时你唯一的证人">5.1 日志：出事时你唯一的证人</a>
     <a class="toc-h3" href="#5-2-监控的最小集">5.2 监控的最小集</a>

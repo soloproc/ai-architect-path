@@ -402,6 +402,45 @@
 <li>操作：按 §8.8 骨架实现 <code>TokenBucket</code> + <code>TenantRateLimiter</code>，挂成 FastAPI 中间件，按 <code>X-Tenant-Plan</code> 分档。</li>
 <li>验收：脚本对 free 租户打 30 QPS 持续 5 秒出现 429（带 <code>Retry-After</code> 头）；同压下 pro 租户不受影响。</li>
 </ul>
+<p>在往下看代码之前，先把骨架里每个&quot;魔法数字&quot;的出处交代清楚——治理参数不是抄来的，是从 §8.2/§8.3 的数字里算出来的。</p>
+<p><strong>设计说明：超时、重试与熔断参数的取值逻辑</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>调用超时 <code>timeout</code></td>
+<td>2.0s</td>
+<td>库存服务正常 P99 ≈ 50ms，恶化信号是 P99 飙到 2s+（§8.2 假想回答）；超时定在&quot;正常 P99 的数十倍、恶化前兆的下沿&quot;——调到 10s 等于把线程抵押给病态下游，§8.3 的线程池账（200 线程 ÷ 2s = 100 QPS &lt; 峰值 200 QPS）立刻崩盘</td>
+</tr>
+<tr>
+<td>超时沿调用链</td>
+<td>网关 3s → 订单 2.5s → 库存 2s</td>
+<td>逐层递减（§2.1）：保证内层先超时，外层的重试与 fallback 还有预算可用；反过来配，内层还没超时外层先放弃，治理链从中间断掉</td>
+</tr>
+<tr>
+<td>重试次数</td>
+<td>≤3 次，指数退避 + 抖动</td>
+<td>第 1 次重试治瞬时抖动性价比最高，第 2、3 次边际收益骤降而放大过载的风险陡增；退避（如 100ms→200ms→400ms）给下游喘息，抖动（±50% 随机）防多客户端同步重试形成&quot;惊群&quot;</td>
+</tr>
+<tr>
+<td><code>failure_threshold</code></td>
+<td>连续 5 次</td>
+<td>库存服务月均抖动 2 次（§8.2）——阈值要能容忍偶发抖动（1-2 次失败不断），又要在真实故障时秒级判定：5 次 × 2s 超时 ≈ 10s 内完成&quot;抖动还是故障&quot;的判决</td>
+</tr>
+<tr>
+<td><code>recovery_timeout</code></td>
+<td>30s</td>
+<td>下游平均 5 分钟恢复（§8.2），30s 冷却意味着恢复后最多多等 30s 就有试探请求通过；调太短会在故障期内反复空试探，调太长则恢复感知迟钝</td>
+</tr>
+</tbody>
+</table></div>
+<p>一句话取舍：<strong>这些值全是&quot;观测数据 × 业务容忍度&quot;的反推，不是行业惯例的照抄</strong>——下游换成更慢的服务、或大促流量结构变了，第一件事就是重算这组参数并走评审（这正是 §8.4 要求落成 ADR 的原因）。骨架里<strong>故意没做</strong>滑动窗口统计与慢调用比例：50 行教学版的职责是把三态状态机讲清，那两个细化交给生产组件（见本骨架末尾说明）。</p>
 <h3 id="8-7-代码骨架-1-迷你熔断器-50-行讲清原理">8.7 代码骨架 1：迷你熔断器（50 行讲清原理）</h3>
 <pre><code class="language-python"># retailhub/common/circuit_breaker.py
 import time
@@ -476,6 +515,39 @@ def deduct_stock(sku: str, qty: int) -&gt; dict:
 <blockquote>
 <p>说明：生产环境可直接用成熟的 <code>pybreaker</code> 库或在网关层（如 Kong/APISIX）配置熔断，这里手写是为了让状态机刻进脑子。Sentinel/resilience4j 的核心逻辑与此相同，只是增加了滑动窗口统计、慢调用比例等更细的指标。</p>
 </blockquote>
+<p><strong>设计说明：令牌桶参数与限流分档的取值逻辑</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段/参数</th>
+<th>取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rate</code>（每秒补令牌数）</td>
+<td>free 10 / pro 100 / enterprise 1000 QPS</td>
+<td>全站正常容量约 2000 QPS（§8.2）：5 家 enterprise 若同时打满 1000 QPS 已超容量——所以 1000 是&quot;防单租户 burst&quot;的天花板，不是总量承诺；free 给 10 是&quot;够演示、不够作恶&quot;</td>
+</tr>
+<tr>
+<td><code>capacity</code>（桶容量）</td>
+<td>各档 rate × 2</td>
+<td>容量 = 允许的最大突发量。取 2 秒的补充量：enterprise 可突发 2000 个请求（约 2 秒的批量导入尖峰）然后被压回 1000 QPS 稳态；再大就失去限流意义，再小则正常业务抖动都被误杀</td>
+</tr>
+<tr>
+<td>分桶键</td>
+<td><code>X-Tenant-Id</code> 请求头</td>
+<td>限流维度必须与业务隔离维度对齐（§2.4）：按租户分桶，一个客户的批量任务挤不死其余 199 家</td>
+</tr>
+<tr>
+<td>拒绝响应</td>
+<td>429 + <code>Retry-After: 1</code></td>
+<td>429 是限流的标准语义，调用方（尤其 AI 生成的客户端）能据此自动退避；<code>Retry-After</code> 告诉对方多久后再来，避免无退避重试把限流打成 DDoS</td>
+</tr>
+</tbody>
+</table></div>
+<p>三句取舍：<strong>速率决定稳态吞吐、容量决定突发容忍</strong>——§2.4 的两个旋钮在这里落成具体数字；单机字典分桶是有意为之（200 家租户 × 每桶几十字节，内存可忽略），但字典无淘汰机制，租户数上万时要加 LRU，这一条已写进 §8.9 评审清单的&quot;资源泄漏&quot;项；分档值写死在 <code>DEFAULT_RULES</code> 里只为教学可读，生产上应进配置中心（卷04-3 §4），改分档不改代码。</p>
 <h3 id="8-8-代码骨架-2-租户级令牌桶限流-fastapi-中间件">8.8 代码骨架 2：租户级令牌桶限流（FastAPI 中间件）</h3>
 <pre><code class="language-python"># retailhub/common/rate_limit.py
 import time

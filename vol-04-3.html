@@ -167,6 +167,49 @@
 <li><strong>Tracing 的深水区是采样</strong>。全量采集 Trace，头部大流量系统扛不住；只采 1%，出问题时大概率没采到出事的那条。工程答案：<strong>尾部采样</strong>（等一条 Trace 走完，发现含错误/超时才保留）或&quot;错误全采 + 正常请求低比例采&quot;。</li>
 <li><strong>两套口诀记牢</strong>：监控指标用 <strong>RED</strong>（Rate 请求量、Errors 错误率、Duration 延迟——面向服务）与 <strong>USE</strong>（Utilization 利用率、Saturation 饱和度、Errors 错误——面向资源）。评审任何系统的监控方案，先问&quot;RED 和 USE 各覆盖了几项&quot;<sup class="fn-ref"><a href="#fn-6" id="ref-6">[3]</a></sup>。</li>
 </ul>
+<p><strong>结构化日志的字段集设计</strong>（承接上面&quot;Logging 的深水区&quot;，这是 RetailHub 全部服务统一的日志契约）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code> / <code>level</code></td>
+<td>ISO8601 / INFO 等</td>
+<td>检索与分层保留的基础——ERROR 留 30 天、DEBUG 留 3 天，是 3000 元月预算（§8.2 问题 5）逼出来的纪律</td>
+</tr>
+<tr>
+<td><code>service</code> / <code>version</code></td>
+<td>字符串</td>
+<td>多服务日志汇聚到一处后，没有这两个字段就无法回答&quot;哪个服务、哪个版本在报错&quot;</td>
+</tr>
+<tr>
+<td><code>trace_id</code> / <code>span_id</code></td>
+<td>OTel 注入</td>
+<td>排查动线的最后一环：从 Jaeger 跳到日志靠它——<strong>缺了这个字段，三支柱断成两柱半</strong></td>
+</tr>
+<tr>
+<td><code>tenant_id</code></td>
+<td>字符串</td>
+<td>多租户平台的必答题：&quot;这次故障影响了哪些租户&quot;直接可算；注意它是&quot;低基数（200 家）可进日志、但绝不可进 Metrics label&quot;的典型例子</td>
+</tr>
+<tr>
+<td><code>event</code> / <code>message</code></td>
+<td>机器可读事件名 / 人类可读描述</td>
+<td><code>event</code>（如 <code>circuit.open</code>、<code>order.created</code>）稳定、用于聚合统计；<code>message</code> 可改、用于人读——两者不混写</td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td>异常类型 + 堆栈摘要</td>
+<td>归因用；完整堆栈只在 ERROR 级输出，控制成本</td>
+</tr>
+</tbody>
+</table></div>
+<p>三句取舍：<strong>字段集刻意做小不做全</strong>——高 QPS 下每多一个字段，TB 级/天的账单里都是真金白银；要&quot;统计&quot;的信息进 <code>event</code> 和 Metrics，要&quot;讲清这一次发生了什么&quot;的进 <code>message</code>；<code>user_id</code>、<code>order_id</code> 这类高基数信息允许出现在日志正文里（日志本来就是高基数数据的归宿），但严禁被顺手提到 Metrics label——上面&quot;基数爆炸&quot;那条深水区防的就是这个。</p>
 <p><strong>OpenTelemetry（OTel）</strong> 是这一领域的事实标准：一套 vendor 中立的 SDK/API，负责产生 Metrics、Logs、Traces 三种信号，通过 TraceID 把它们串起来，后端接什么（Jaeger 还是商业 APM）可以自由换。架构要点：<strong>用 OTel SDK 插桩，不直接绑死任何后端产品</strong>——这又是一次&quot;把易变的决策往后推&quot;的架构基本功。本卷实战将用 OTel 的 Python SDK 打通&quot;查询→订单→库存&quot;链路。</p>
 <p>一条 Trace 在 Jaeger 里的样子，本质是<strong>同一 trace_id 下父子 span 的嵌套时间条</strong>：</p>
 <pre class="mermaid">flowchart TB
@@ -396,6 +439,50 @@ EXPOSE 8001
 # 用 uvicorn 起 2 个 worker；K8s 里靠多副本水平扩展，不靠单容器多进程
 CMD [&quot;uvicorn&quot;, &quot;main:app&quot;, &quot;--host&quot;, &quot;0.0.0.0&quot;, &quot;--port&quot;, &quot;8001&quot;, &quot;--workers&quot;, &quot;2&quot;]
 </code></pre>
+<p>在应用这份清单之前，先交代每个关键字段的取值出处——这份 YAML 是 §8.3 两笔账的落点，不是模板抄来的。</p>
+<p><strong>设计说明：Deployment 清单关键字段的取值理由</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>replicas</code></td>
+<td>3</td>
+<td>§8.3 副本账：峰值 90 单/秒 ÷ 单容器实测 ~40 单/秒 ≈ 3——这个数必须用你自己的压测替换，&quot;拍脑袋说 6&quot;正是 §8.2 问题 4 要消灭的东西</td>
+</tr>
+<tr>
+<td><code>maxSurge: 1</code> / <code>maxUnavailable: 0</code></td>
+<td>1 / 0</td>
+<td>&quot;先多起一个新版本、就绪后再杀旧的&quot;，全程可用副本数不降——这是命题&quot;发版不许停服务&quot;在 YAML 层面的翻译；代价是发版瞬间多占 1/3 资源</td>
+</tr>
+<tr>
+<td><code>requests</code></td>
+<td>100m CPU / 128Mi</td>
+<td>调度依据：K8s 按它选节点。写小了多个 Pod 挤一台节点互相饿死，写大了节点利用率低白烧钱；起点按压测稳态值取</td>
+</tr>
+<tr>
+<td><code>limits</code></td>
+<td>500m / 512Mi</td>
+<td>防爆围栏：单服务内存泄漏不致拖垮整台节点（超内存 OOMKill，超 CPU 被节流）；limits/requests 约 5:1 是&quot;允许突发但不许撒野&quot;的常见配比</td>
+</tr>
+<tr>
+<td><code>readinessProbe</code></td>
+<td><code>/healthz</code>，delay 5s / period 10s</td>
+<td>没就绪不接流量，发版安全的关键：新 Pod 起 5 秒后开始每 10 秒探一次，通过才进 Service；不配它，每次发版都伴随一波 502（§9 误区 6）</td>
+</tr>
+<tr>
+<td><code>livenessProbe</code></td>
+<td>同路径，delay 15s / period 20s</td>
+<td>死了自动重启。initialDelay 必须大于应用冷启动时间，否则慢启动的 Pod 被反复杀死永远起不来；比 readiness 更宽容（15s/20s vs 5s/10s）是故意——重启代价高，宁可多给一次机会</td>
+</tr>
+</tbody>
+</table></div>
+<p>三句取舍：<strong>双探针共用 <code>/healthz</code> 是教学简化</strong>——生产上 readiness 要查依赖（数据库连通性），liveness 只查进程活着；把依赖查进 liveness 会造成&quot;数据库抖动 → 全副本连环重启&quot;的自杀式级联；资源声明是&quot;小而诚实&quot;的起点，全部来源在 §8.3 的资源账里；<strong>故意不写 HPA 和 PodDisruptionBudget</strong>——本页目标是把&quot;发版不停机&quot;这一个承诺先兑现，自动扩缩留到卷08-3 容量规划。</p>
 <pre><code class="language-yaml"># retailhub/deploy/order-service.yaml
 apiVersion: apps/v1
 kind: Deployment

@@ -389,6 +389,49 @@
 <li>操作：按 §8.7 骨架建 <code>outbox</code> 表，改造 <code>create_order</code> 为同事务双写，写 relay 任务与幂等消费端。</li>
 <li>验收：下单 100 单后中断 MQ，恢复后 outbox 消息全部送达；库存扣减总数 = 成功订单数，无重复扣减。</li>
 </ul>
+<p><strong>设计说明：outbox 表结构与事件格式为什么长这样</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段/设计点</th>
+<th>取值/类型</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>自增主键</td>
+<td>relay 按 id 顺序捞取天然保序（同一订单的消息不乱序）；翻 10 倍后按 id 段分片也靠它（§8.3 失效边界）</td>
+</tr>
+<tr>
+<td><code>topic</code></td>
+<td>字符串，如 <code>order.created</code></td>
+<td>&quot;聚合.事件&quot;点分命名，消费者按 topic 订阅；将来发券（<code>order.coupon_requested</code>）新增 topic 即可，不动表结构——这正是命题里&quot;顺便捎上发券&quot;的演进出口</td>
+</tr>
+<tr>
+<td><code>payload</code></td>
+<td>JSON，自包含</td>
+<td>消费者不需要回查订单库就能扣库存——回查会把两个服务重新耦合；故意只放 <code>order_id/sku/qty</code> 三个字段，事件载荷越小，schema 演进越不痛</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>PENDING</code> / <code>SENT</code> 两态状态机</td>
+<td>显式状态机是&quot;至少一次投递&quot;的载体：PENDING 可重捞、SENT 可归档；<strong>故意不加第三态</strong>（如 SENDING）——relay 崩在 SENDING 上会留下无人认领的孤儿，宁可让&quot;捞了没发成&quot;回退为下轮重发，代价转给消费端幂等</td>
+</tr>
+<tr>
+<td><code>created_at</code></td>
+<td>时间戳</td>
+<td>排查&quot;消息积了多久&quot;的唯一依据；90 天保留期（§8.2 问题 6）的归档任务按它切割</td>
+</tr>
+<tr>
+<td>幂等键 <code>message_id</code></td>
+<td>消息唯一标识</td>
+<td>消费端去重的锚点：MQ 重投递是常态不是异常，&quot;不重&quot;靠消费端记住见过的 message_id（生产落 dedup 表或 Redis SETNX），而不是指望 MQ 恰好只投一次</td>
+</tr>
+</tbody>
+</table></div>
+<p>三句取舍：<strong>&quot;订单与消息同事务&quot;是整张表存在的理由</strong>——拿掉这一条，outbox 就退化成普通队列，丢消息和超卖卷土重来；状态机故意做成最小两态，每加一个状态都必须回答&quot;进程崩在这个状态怎么办&quot;；已投递记录必须定期归档（22GB/90 天的账见 §8.3），否则 PENDING 扫描越扫越慢，所以 status 索引和清理任务不是优化项而是正确性的一部分。骨架里 relay 捞 100 条/轮是教学默认值——§8.3 的投递账已经证明它扛不住故障清仓（3.4 万条积压要清 5-6 分钟，超过业务 1 分钟容忍度），验收后请把批量提到 1000。</p>
 <h3 id="8-7-代码骨架-3-本地消息表-outbox-下单链路">8.7 代码骨架 3：本地消息表（Outbox）下单链路</h3>
 <pre><code class="language-python"># retailhub/order/service.py（关键片段）
 from sqlalchemy import insert

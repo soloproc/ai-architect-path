@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -145,6 +146,38 @@
     R-&gt;&gt;R: 聚合写入日报表
     Note over MQ,R: 失败自动重试，最终一致
 </pre>
+<p>消息体是生产者与消费者之间唯一的书面合同，先看它该长什么样，再看发送机制。<code>order_created</code> 的字段设计：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>为什么必须带</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event_id</code></td>
+<td>全局唯一的事件 ID，消费端幂等去重的凭据——at-least-once 意味着必然重投，没有幂等键的去重是空谈</td>
+</tr>
+<tr>
+<td><code>order_id</code></td>
+<td>业务主键：Broker 回查&quot;本地事务成了没有&quot;靠它定位，消费端对账与排查也靠它；同时写进消息的 keys 属性，便于 MQ 侧索引检索</td>
+</tr>
+<tr>
+<td><code>occurred_at</code></td>
+<td>事件发生时间（不是投递时间）：报表按业务时间归集、队列积压后与订单表对账全靠它。用投递时间会算错跨天订单</td>
+</tr>
+<tr>
+<td>载荷（items / quantity / amount）</td>
+<td>消费者只信消息本身、绝不回查订单库——一回查，下游就把压力还给主库，异步化白做</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>消息体 schema 的版本号：字段演进时新旧消费者必然共存一段时间，靠它路由解析逻辑（卷03-1 §4 会展开&quot;编号不动、只加不改&quot;的兼容纪律）</td>
+</tr>
+</tbody>
+</table></div>
+<p>两个先于代码的设计决策：① topic 按<strong>事件</strong>命名（<code>order_created</code>，过去时——描述一件已发生的事实），不按消费方命名（<code>for_report</code> 这种名字会把生产者和第一个消费者焊死，第二个消费者出现时无处安放）；② 消息体宁可冗余带全字段，也不让消费端回查——MQ 链路的价值就是解耦，回查一次就退回耦合。</p>
 <p>事务消息骨架（保证&quot;订单落库&quot;和&quot;消息发出&quot;不分裂）：</p>
 <pre><code class="language-python"># mq_producer.py —— RocketMQ 事务消息骨架
 from rocketmq.client import Producer, TransactionMQProducer, Message, TransactionStatus

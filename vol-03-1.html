@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -260,6 +261,7 @@
 </tr>
 </tbody>
 </table></div>
+<p><strong>编号分配本身就是设计。</strong> 给消息体定 schema 时，字段从 1 连续起编、编号永久封存——<code>event_id</code> 占了 1 号，1 号在消息存续期内就永远是 <code>event_id</code>；要废弃一个字段，就把它的编号 <code>reserved</code> 锁死，而不是删掉腾出来。为什么要这么死板？proto 文件会被订单服务和报表服务各自引用，编号是唯一写进字节流的身份——字段改名随便改（字节流里没有名字），编号动一下就是&quot;安静的错误&quot;：旧代码把新字段按旧含义解读，不报错，只算错数。这条纪律的执行成本几乎为零，但它是大促前夜唯一能拦住&quot;顺手改个字段&quot;的机制。</p>
 <p><strong>落到 RetailHub</strong>：卷02 的 <code>order_created</code> 消息体是 JSON——当报表服务要给消息加个 <code>channel</code> 字段而订单服务还没升级时，JSON 靠&quot;忽略未知字段&quot;的自律勉强兼容；但字段改名、类型变更就是事故。设计文档中将规定：<strong>MQ 消息体改用 Protobuf 并建 schema 登记（Schema Registry 的朴素版：仓库里的 proto 文件 + 评审）</strong>，新增字段只加不改。</p>
 <p><strong>Protobuf 凭什么敢承诺兼容？关键在字段编号。</strong> Protobuf 序列化时不存字段名，只存&quot;字段编号 + 类型 + 值&quot;。于是兼容规则变成了几条可机械执行的纪律：</p>
 <div class="table-wrap"><table>

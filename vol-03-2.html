@@ -419,7 +419,34 @@
 </code></pre>
 <p>参考结论方向（文档中要自行论证，不许照抄）：订单——关系模型、InnoDB、单主半同步、按 tenant_id 分区预留、原子扣减防超卖；商品——JSON 文档取向、读缓存扛流量；行为日志——LSM/列存、无主高写可用、按天范围分区、批流两用。</p>
 <h3 id="11-7-任务二-防超卖隔离级别对比实验-可运行">11.7 任务二：防超卖隔离级别对比实验（可运行）</h3>
-<p>准备一张库存表和两种扣减写法，用并发脚本亲眼看超卖发生与消失：</p>
+<p>准备一张库存表和两种扣减写法，用并发脚本亲眼看超卖发生与消失。实验表也是设计出来的——两张表各有明确职责：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段/表</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sku.stock INT NOT NULL</code></td>
+<td>全实验的&quot;争夺焦点&quot;：2000 并发抢的就是这一行。故意<strong>不加</strong> <code>CHECK(stock &gt;= 0)</code>——让 naive 写法能把库存扣成负数，超卖才看得见、量得出</td>
+</tr>
+<tr>
+<td><code>sku</code> 只有 id/name/stock 三列</td>
+<td>实验变量最小化：任何多余字段都是干扰项——这里教的是并发正确性，不是建表范式</td>
+</tr>
+<tr>
+<td><code>order_log</code> 独立成表</td>
+<td>判定超卖的证据链：成功下单数 = <code>order_log</code> 行数，与 <code>stock</code> 互相印证（<code>stock = -1</code> 且 <code>order_log</code> 有 2 行 = 卖出 2 件、库里只有 1 件）；<code>AUTO_INCREMENT</code> 主键只负责给每条证据编号</td>
+</tr>
+<tr>
+<td><code>order_log.created_at</code> 默认 <code>CURRENT_TIMESTAMP</code></td>
+<td>时间戳由数据库生成、应用不传——实验里少一个变量是一个</td>
+</tr>
+</tbody>
+</table></div>
+<p>注意这个有意为之的&quot;坏设计&quot;：<code>sku</code> 表没有库存非负约束。生产库里该加（约束是最后一道防线），但实验里加了它，naive 写法的第二次 UPDATE 会直接报错——你就看不到 <code>stock = -1</code> 这个最有教学价值的现场了。实验要<strong>暴露</strong>问题，生产要<strong>挡住</strong>问题，两者的 schema 设计目标本来就不同。</p>
 <pre><code class="language-sql">-- setup.sql：准备实验数据
 CREATE TABLE IF NOT EXISTS sku (
   id INT PRIMARY KEY,

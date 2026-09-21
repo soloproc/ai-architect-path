@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -156,6 +157,39 @@
 <p>这就是缓存的标准适应症：<strong>读多写少、读有明显热点、数据允许短暂不一致</strong>。订单详情恰好全中——订单创建后极少修改，晚 1 秒看到也不影响业务。</p>
 <h3 id="2-2-cache-aside-模式与代码骨架">2.2 Cache-Aside 模式与代码骨架</h3>
 <p>业界最通用的读缓存模式是 <strong>Cache-Aside（旁路缓存）</strong>：读先查缓存， miss 再查库并回填；写先写库，再删缓存。</p>
+<p>上代码之前，先定三件事——key 的结构、value 的形态、TTL 的取值。它们是缓存层的&quot;schema&quot;，和数据库表结构一样属于契约：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>本例取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>key 结构</td>
+<td><code>order:{order_id}</code></td>
+<td>冒号分段的命名空间：一眼看出业务域与主键，将来加 <code>item:</code>、<code>stats:</code> 不撞名。禁止裸 ID 当 key——多业务共用一个 Redis 时必冲突</td>
+</tr>
+<tr>
+<td>value 形态</td>
+<td>JSON 字符串</td>
+<td>跨语言可读，<code>redis-cli GET</code> 就能人肉排查；体积敏感可换 Protobuf，但排障阶段先保可读性</td>
+</tr>
+<tr>
+<td>正常 TTL</td>
+<td>300s，回填时加随机抖动</td>
+<td>订单创建后极少修改，5 分钟足够吸收热点；抖动是为了不让&quot;同一批写入的 key 同一秒集体过期&quot;（§2.3 的雪崩）</td>
+</tr>
+<tr>
+<td>空值占位</td>
+<td>字符串 <code>&quot;NULL&quot;</code>，TTL 60s</td>
+<td>防穿透的标记位：必须与正常值可区分；TTL 必须远短于正常值——否则一笔新订单刚创建，会被&quot;缓存里的不存在&quot;挡住好几分钟</td>
+</tr>
+</tbody>
+</table></div>
+<p>一句话取舍：缓存里存的是&quot;可重建的副本&quot;，所以序列化格式选最好排查的，TTL 按&quot;业务能容忍多久的旧数据&quot;定，而不是按&quot;数据多久会变&quot;定——订单详情页秒级不一致可接受，300s 就是合法设计。</p>
 <pre><code class="language-python"># order_service.py —— Cache-Aside 读路径骨架
 import json
 import redis.asyncio as redis
