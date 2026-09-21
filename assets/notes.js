@@ -10,12 +10,15 @@
   'use strict';
 
   /* ================= 云端配置 =================
-   * 内置常量（作者部署时写入）+ 界面设置（localStorage 'aap-config' 覆盖），
-   * 读者在网站「⚙ 云端设置」里粘贴自己的 Supabase 配置即可启用。 */
+   * AI 助教开箱即用：未做任何配置时走内置的免费公共推理端点（匿名额度），
+   * 所有读者零配置直接问答。
+   * Supabase（界面「⚙ 云端设置」或作者内置常量）用于可选增强：
+   * 笔记/收藏跨设备同步、每页评论区；配了 Supabase 后 AI 改走其 Edge Function。 */
   var SUPABASE_URL = '';        // 例如 'https://abcdefgh.supabase.co'
   var SUPABASE_ANON_KEY = '';   // Supabase Settings → API → anon public key
   var ASK_ENDPOINT = '';        // 可选：自定义 OpenAI 兼容答疑网关
   var ASK_API_KEY = '';         // 可选：自定义网关密钥
+  var DEFAULT_ASK = 'https://text.pollinations.ai/openai';  // 免登录公共端点（兜底默认）
 
   function cfg() {
     var c = {};
@@ -30,9 +33,13 @@
   function isCloud() { var c = cfg(); return !!(c.url && c.key); }
   function askEndpoint() {
     var c = cfg();
-    return c.ask || (c.url ? c.url + '/functions/v1/ask' : '');
+    if (c.ask) return c.ask;
+    if (c.url) return c.url + '/functions/v1/ask';
+    return DEFAULT_ASK;
   }
-  function isAiReady() { return !!askEndpoint(); }
+  function isAiReady() { return true; }   // 始终可用：兜底走公共端点
+  /* 是否走本站 Supabase Edge Function（{answer} 格式）；其余一律按 OpenAI 兼容处理 */
+  function useEdgeFn() { var c = cfg(); return !c.ask && !!c.url; }
 
   /* ================= 基础 ================= */
   var STORE_KEY = 'aap-notes-v1';
@@ -679,9 +686,6 @@
       tip.textContent = chatItem || chatPending
         ? '我是本教程的 AI 助教。你划的这段哪里不懂？直接问，我会结合原文讲，可以追问。'
         : '我是本教程的 AI 助教。关于《' + PAGE_TITLE + '》这章有什么想讨论的？';
-      if (!isAiReady()) {
-        tip.textContent += '\n\n（尚未配置云端：你的问题会先存入疑问清单，点右上角「⚙ 设置」填好 Supabase 配置后 AI 即可回答）';
-      }
       log.appendChild(tip);
       return;
     }
@@ -748,19 +752,6 @@
     btn.disabled = true;
     chatLog.push({ role: 'user', content: text, ts: Date.now() });
     renderChatMessages();
-    if (!isAiReady()) {
-      /* 未配置云端：问题已存入疑问清单，提示去设置 */
-      var hintBubble = document.createElement('div');
-      hintBubble.className = 'aap-msg ai';
-      hintBubble.textContent = 'AI 助教还没接通云端，你的疑问已存入「疑问清单」。点右上角「⚙ 设置」填入 Supabase 配置后，我就可以直接回答你了。';
-      chatPanel.querySelector('.aap-chatlog').appendChild(hintBubble);
-      persistChat();
-      renderList();
-      chatSending = false;
-      btn.disabled = false;
-      chatPanel.querySelector('textarea').focus();
-      return;
-    }
     var log = chatPanel.querySelector('.aap-chatlog');
     var typing = document.createElement('div');
     typing.className = 'aap-msg ai typing';
@@ -768,28 +759,48 @@
     log.appendChild(typing);
     log.scrollTop = log.scrollHeight;
 
-    var headers = { 'Content-Type': 'application/json' };
     var ac = cfg();
-    if (ac.askKey) headers['Authorization'] = 'Bearer ' + ac.askKey;
-    else if (ac.key) {
-      headers['apikey'] = ac.key;
-      headers['Authorization'] = 'Bearer ' + ac.key;
-    }
-    var history = chatLog.slice(-12).map(function (m) { return { role: m.role, content: m.content }; });
-    fetch(askEndpoint(), {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify({
-        messages: history,
+    var headers = { 'Content-Type': 'application/json' };
+    var body;
+    if (useEdgeFn()) {
+      /* 本站 Supabase Edge Function：服务端组装提示词，返回 {answer} */
+      if (ac.askKey) headers['Authorization'] = 'Bearer ' + ac.askKey;
+      else if (ac.key) {
+        headers['apikey'] = ac.key;
+        headers['Authorization'] = 'Bearer ' + ac.key;
+      }
+      body = {
+        messages: chatLog.slice(-12).map(function (m) { return { role: m.role, content: m.content }; }),
         quote: chatItem ? chatItem.text : '',
         page: PAGE,
         title: chatItem ? chatItem.title : PAGE_TITLE
-      })
+      };
+    } else {
+      /* OpenAI 兼容端点（含内置公共默认端点）：客户端组装 system 提示词 */
+      if (ac.askKey) headers['Authorization'] = 'Bearer ' + ac.askKey;
+      var quote = chatItem ? chatItem.text : (chatPending ? chatPending.text : '');
+      var sys = '你是中文自学教程《AI 全栈架构师之路》的 AI 助教，读者是零基础到进阶的学习者。'
+        + '当前章节：《' + (chatItem ? chatItem.title : PAGE_TITLE) + '》。'
+        + (quote ? '读者划选了原文：「' + quote.slice(0, 300) + '」。' : '')
+        + '请用通俗的中文讲解，结合原文与章节上下文，多用类比和小例子；回答控制在 300 字以内；读者可以追问，保持连贯。';
+      body = {
+        model: 'openai',
+        messages: [{ role: 'system', content: sys }]
+          .concat(chatLog.slice(-12).map(function (m) { return { role: m.role, content: m.content }; }))
+      };
+    }
+    fetch(askEndpoint(), {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body)
     }).then(function (r) {
       if (!r.ok) throw new Error('http ' + r.status);
       return r.json();
     }).then(function (d) {
-      var ans = d && d.answer ? String(d.answer).trim() : '';
+      var ans = (d && d.answer)
+        || (d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content)
+        || '';
+      ans = String(ans).trim();
       if (!ans) throw new Error('empty');
       typing.remove();
       chatLog.push({ role: 'assistant', content: ans, ts: Date.now() });
@@ -802,7 +813,7 @@
       renderList();
     }).catch(function () {
       typing.className = 'aap-msg ai err';
-      typing.textContent = 'AI 助教暂时不可用，请稍后再发一次。';
+      typing.textContent = 'AI 助教暂时不可用（公共端点可能拥挤），请稍后再发一次；你的疑问已保存在「疑问清单」。';
     }).then(function () {
       chatSending = false;
       btn.disabled = false;
@@ -1208,7 +1219,8 @@
     settingsEl.innerHTML = ''
       + '<div class="card">'
       + '<h3>⚙ 云端设置<button class="x" title="关闭">×</button></h3>'
-      + '<div class="sub">云端开启后：笔记/收藏跨设备同步、每页评论区开放、AI 助教答疑可用。<br>'
+      + '<div class="sub">AI 助教开箱即用（内置免费公共模型，无需任何配置）。<br>'
+      + '配置 Supabase 后可解锁：笔记/收藏跨设备同步、每页公开评论区、AI 改走自家答疑网关。<br>'
       + '还没有 Supabase？到 supabase.com 免费建项目 → SQL Editor 执行本教程附带的 supabase-setup.sql → Settings → API 复制下面两项填进来即可。</div>'
       + '<label>Supabase Project URL</label>'
       + '<input id="aapSUrl" placeholder="https://abcdefgh.supabase.co" value="' + escapeHtml(c.url) + '"/>'
