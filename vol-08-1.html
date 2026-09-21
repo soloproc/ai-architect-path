@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -312,6 +313,34 @@
 已知偏差：不含网关自身故障期间（网关挂了 log 也没了），
          该时段按不可用计入（保守处理）
 </code></pre>
+<p>这份规格说明书的每个字段都有出处，不是表格洁癖：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>规格 / 实现两栏分开</td>
+<td>规格是&quot;用户视角的承诺&quot;，实现是&quot;工程视角的近似&quot;——混在一起写，三个月后没人分得清改的是承诺还是测量手段</td>
+</tr>
+<tr>
+<td>分子 / 分母显式写出</td>
+<td>上文口径之争的解药：分母口径不定死，每次事故复盘都退化成扯皮；&quot;剔除 /healthz 与内网探测&quot;就是口径 B 的书面化</td>
+</tr>
+<tr>
+<td>窗口：28 天滚动、每小时聚合</td>
+<td>滚动窗口让预算连续恢复（§2.4），避免月初清零的节奏抖动；每小时聚合是精度与存储的折中——3000 元月观测预算（卷04-3 口径）下，分钟级原始数据存 28 天会吃掉一半预算</td>
+</tr>
+<tr>
+<td>已知偏差</td>
+<td>显式承认&quot;网关挂了自己也测不到&quot;——把测量盲区写出来，比假装指标完美更能保护决策；偏差方向要&quot;保守&quot;（按不可用计入），宁可指标难看，不可指标虚高</td>
+</tr>
+</tbody>
+</table></div>
+<p>一句话取舍：<strong>SLI 文档的价值不在&quot;定义得多精确&quot;，而在&quot;分歧被提前引爆&quot;</strong>——口径、窗口、偏差在太平时期吵清楚，事故当晚就不用吵。</p>
 <p><strong>先写规格再写实现</strong>——规格回答&quot;用户的什么体验&quot;，实现回答&quot;我们怎么近似测量它&quot;。两者之间的差距（已知偏差）必须显式承认，否则你会把&quot;指标好看&quot;误认为&quot;用户满意&quot;。</p>
 <h3 id="2-3-slo-制定方法-从用户出发-不从能力出发">2.3 SLO 制定方法：从用户出发，不从能力出发</h3>
 <p>错误的制定顺序：先测出系统现在能跑 99.95%，然后把 SLO 定为 99.9%——这叫&quot;向后看&quot;，定出来的 SLO 既不保护用户也不约束自己。正确的顺序是：</p>
@@ -447,6 +476,49 @@
     E --&gt; F[&quot;稳定性改进见效&lt;br/&gt;预算随窗口滚动恢复&quot;]
     F --&gt; C
 </pre>
+<p>把这套机制落成文档与告警时，RetailHub 的 SLO 记录表（每个服务一行）只需要六个字段——每个字段都对应一次真实的扯皮：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>示例</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>service</code> + <code>sli_ref</code></td>
+<td>order-service → §2.2 规格书</td>
+<td>SLO 不重新定义指标，只引用 SLI 规格说明书——指标口径只有一处真相</td>
+</tr>
+<tr>
+<td><code>target</code> / <code>window</code></td>
+<td>99.9% / 滚动 30 天</td>
+<td>目标与窗口成对出现才有意义：&quot;99.9%&quot;不说窗口等于没说（小时级 99.9% 与年度 99.9% 差着数量级）</td>
+</tr>
+<tr>
+<td><code>budget_total</code> / <code>budget_remaining</code></td>
+<td>43.2 分钟 / 当前余额</td>
+<td>错误预算是账户不是形容词——余额必须可从监控系统实时读出，否则&quot;冻结变更&quot;无从执行</td>
+</tr>
+<tr>
+<td><code>alert_rule</code></td>
+<td>多窗口多燃烧率</td>
+<td>按&quot;烧预算的速度&quot;告警（如 1 小时烧掉月预算 2% 立即电话、慢速消耗走天级工单），而不是按&quot;瞬时错误率&quot;——后者对短时抖动过敏、对慢性失血迟钝</td>
+</tr>
+<tr>
+<td><code>freeze_policy</code></td>
+<td>余额 &lt;10% 冻结非必要变更</td>
+<td>红线动作必须预先写死并签字——事故当晚再讨论&quot;要不要冻结&quot;，答案永远是&quot;再发最后一个版本&quot;</td>
+</tr>
+<tr>
+<td><code>review_cadence</code></td>
+<td>每季度重谈</td>
+<td>SLO 是停火协议不是墓碑：业务变了（新增 enterprise 租户、接入推理服务）就要重谈，§2.3 的&quot;用户能容忍什么&quot;每季度重新问一次</td>
+</tr>
+</tbody>
+</table></div>
+<p>三句取舍：<strong>告警只盯预算燃烧率，不背瞬时指标</strong>——一次 5 分钟全站故障（高速燃烧）和持续三天的 1% 错误率（慢速燃烧）由此触发不同紧急度，这是 Google 工作簿多窗口燃烧率方法（见脚注 <sup class="fn-ref"><a href="#fn-sre-workbook" id="ref-sre-workbook">[2]</a></sup>）的落地；<code>budget_remaining</code> 故意做成&quot;系统读数&quot;而非&quot;人工估算&quot;——会撒谎的账户不如没有账户；这套表先落在 Markdown/电子表格里即可，6 人团队的规模上专门的 SLO 平台是过度设计。</p>
 <p>在真机上配置这套机制之前，先用下面的交互 Demo 建立直觉：设定 SLO 档位，往 30 天时间线里注入事故（自己指定持续时长与影响面，或让随机模拟替你&quot;倒霉&quot;），盯着错误预算条被一点点吃掉——特别注意预算耗尽时&quot;冻结变更&quot;是如何改变发布次数的，再切到&quot;无预算约束&quot;对照组，看看没有预算纪律的团队会用发布次数付出什么隐性代价：</p>
 <div class="demo-embed" data-demo="error-budget"><div class="demo-loading">交互 Demo 加载中…</div></div>
 <p><strong>Demo 导学单</strong>（建议按顺序观察）：</p>

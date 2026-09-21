@@ -262,6 +262,44 @@ MRR      = 第一个相关结果排名的倒数均值（排序质量）
 </table></div>
 <p>多租户场景的关键点：<strong>检索必须带租户过滤</strong>（<code>WHERE tenant_id = ?</code> 或 payload filter），否则一个租户的文档会被另一个租户召回——这是 RAG 版的数据越权。</p>
 <h3 id="5-5-代码骨架-pgvector-建库-检索-召回评估-约-50-行">5.5 代码骨架：pgvector 建库 + 检索 + 召回评估（约 50 行）</h3>
+<p><strong>设计说明：<code>doc_chunks</code> 表（即向量库 collection）的字段与索引选择</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>设计点</th>
+<th>取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>embedding vector(1024)</code></td>
+<td>1024 维</td>
+<td>维度由所选 Embedding 模型决定，不是可选项——换模型（如换到 1536 维）必须整表重建，所以维度要进部署文档；维度越高单条存储越大（1024 维 fp32 ≈ 4KB），召回未必更好，§5.3 的 Recall@K 基线是唯一裁判</td>
+</tr>
+<tr>
+<td>距离度量</td>
+<td>余弦（<code>vector_cosine_ops</code> / <code>&lt;=&gt;</code>）</td>
+<td>文本语义检索的事实标准：余弦只看方向不看长度，对&quot;同一问题的长短两种问法&quot;鲁棒；硬约束是<strong>索引与查询必须用同一种度量</strong>——用余弦建索引却用欧氏距离查询，会直接退化成全表扫描，索引白建</td>
+</tr>
+<tr>
+<td><code>tenant_id</code> + B-Tree 索引</td>
+<td>TEXT，普通索引</td>
+<td>多租户硬隔离字段（§5.4）：每条查询强制 <code>WHERE tenant_id = ?</code>，先走 B-Tree 把候选集砍到本租户、再走 HNSW 算距离；没有它，跨租户召回就是 RAG 版数据越权</td>
+</tr>
+<tr>
+<td><code>doc_id</code> / <code>chunk_text</code></td>
+<td>TEXT</td>
+<td><code>doc_id</code> 是召回评估的锚点（Recall@K 判断&quot;应命中文档是否命中&quot;靠它），也是去重与溯源的依据；<code>chunk_text</code> 明文存储是务实选择——它要喂给 LLM 做上下文，代价用&quot;向量库纳入数据库同级权限与备份&quot;来对冲（常见误区 7）</td>
+</tr>
+<tr>
+<td>HNSW 参数</td>
+<td>M、ef 默认起步</td>
+<td>百万级以内的起步规模，默认参数 + Recall@5 ≥0.8 的验收线（澄清提问 6）够用；调参必须以 §5.3 基线为依据，盲调 M 和 ef_search 是常见误区 9</td>
+</tr>
+</tbody>
+</table></div>
+<p>三句取舍：选 pgvector 而不是 Qdrant 的全部理由在 §5.4 那张表里——<strong>零新增组件、SQL 原生租户过滤、随卷03 的 PG 一起备份</strong>，百万级以内这是认知负荷最低的答案；表结构故意不做&quot;文档表 + chunk 表&quot;的规范化拆分，检索链路少一次 join，元数据冗余的代价在百万级可忽略；唯一不许省的是租户过滤与度量一致性——这两条不是性能问题，是正确性问题。</p>
 <pre><code class="language-python">&quot;&quot;&quot;RetailHub 向量检索骨架：pgvector 建表、写入、带租户过滤的检索、Recall@K 评估。
 前提：PostgreSQL 已装 pgvector 扩展（CREATE EXTENSION vector;）。
 Embedding 可来自自建服务（OpenAI 兼容 /v1/embeddings）或云 API。&quot;&quot;&quot;
@@ -319,6 +357,39 @@ if __name__ == &quot;__main__&quot;:
 <li><strong>Prompt/评测资产</strong>：篇02 讲过 Prompt 即代码、资产蒸馏；本卷强调其运行侧——Prompt 版本与模型版本、评测集三者构成发布三元组，进入篇09 的 Regression Gate。</li>
 <li><strong>成本资产</strong>：每租户/每任务类型的 token 账本（篇04 的用量归集）+ 本卷的单价模型 = 一张持续更新的成本看板。</li>
 </ol>
+<p>其中<strong>成本账本的表结构</strong>值得单独说清（它是 §4.1 单价模型的落库形态，也是 §4.3 决策框架的数据源）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ts</code> / <code>tenant_id</code> / <code>task_type</code></td>
+<td>时间 / 字符串 / 枚举</td>
+<td>归集三轴：什么时候、谁、什么任务（客服问答 / 报告生成）——&quot;账单占该租户收入 31%&quot;这种话能被说出来，靠的就是这三个字段</td>
+</tr>
+<tr>
+<td><code>model</code> / <code>provider</code></td>
+<td>字符串</td>
+<td>区分自建 vs 云的成本归属；换模型后的成本变化可对比（复盘追问 5 的证据链）</td>
+</tr>
+<tr>
+<td><code>input_tokens</code> / <code>output_tokens</code></td>
+<td>整数</td>
+<td>分开记：输出贵 3-5 倍（§4.1），合成一个总数就再也拆不开</td>
+</tr>
+<tr>
+<td><code>cost_estimate</code></td>
+<td>数值</td>
+<td>写入时按当时单价表算好——事后重算会随单价变动改写历史，账本必须&quot;记账即冻结&quot;</td>
+</tr>
+</tbody>
+</table></div>
+<p>三句取舍：<strong>只记 token 不记钱是错的、只记钱不记 token 也是错的</strong>——前者丢了单价变动，后者丢了用量结构，所以 token 与估算成本双写；<code>task_type</code> 用枚举不用自由文本，否则一个月后会出现 17 种拼写的&quot;客服问答&quot;；粒度按&quot;次调用&quot;而不是&quot;按天汇总&quot;——汇总可以向上卷，原始记录丢了就回不来，篇04 用量归集的每条调用在这里各落一行。</p>
 <pre class="mermaid">flowchart LR
     subgraph 平台层[&quot;RetailHub 内部平台（呼应卷04 PI）&quot;]
         M[模型资产仓库&lt;br/&gt;权重/量化/许可证/版本]
@@ -365,6 +436,14 @@ if __name__ == &quot;__main__&quot;:
 <li><strong>本卷 AI Infra 是&quot;生产者视角&quot;</strong>：我负责让某个 <code>base_url</code> 背后真的有一组 GPU 实例，在目标 SLA 和成本内稳定吐出 token。</li>
 <li>两者的接缝就是 <strong>OpenAI 兼容协议 + 路由表</strong>：供给层换实现（Ollama 换 vLLM、单卡换多卡），应用层无感；应用层换路由策略（降级、分流），供给层无感。这就是分层架构在 AI 时代的同款演绎<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[2]</a></sup>。</li>
 </ul>
+<p><strong>接缝处的契约设计：为什么选 OpenAI 兼容协议，以及怎么用才不踩坑</strong></p>
+<ul>
+<li><strong>资源建模只承诺三件套</strong>：<code>/v1/chat/completions</code>（对话）、<code>/v1/embeddings</code>（向量）、<code>/v1/models</code>（能力发现）。这三者覆盖 RetailHub 问答与检索的全部需求；故意不承诺 fine-tuning、Assistants 等高级面——承诺面越小，供给层替换实现（Ollama ↔ vLLM ↔ 云）时的违约面越小。</li>
+<li><strong>模型命名即路由键</strong>：<code>served-model-name</code> 用业务名（<code>retailhub-chat</code>、<code>retailhub-embed</code>）而不是模型版本名（<code>qwen2.5-7b</code>）——应用层路由表绑定的是&quot;能力&quot;，换模型版本只改供给层配置，应用层零改动。篇04 路由表的稳定性正是建立在这条命名纪律上。</li>
+<li><strong>错误约定原样透传</strong>：复用 OpenAI 的错误结构（HTTP 状态码 + <code>error.type/message</code>），429 表示限流、5xx 表示服务故障；<strong>不允许自建服务把&quot;排队超时&quot;包装成 200 空响应</strong>——一旦包装，篇04 的 Retry/Deadline 逻辑全部失灵，故障被误记为成功。</li>
+<li><strong>版本兼容的边界</strong>：协议面锁定在&quot;OpenAI 兼容&quot;这个公共子集，任何 Provider 私有参数（如 vLLM 的 <code>guided_json</code>）只允许出现在路由层的适配代码里，不许漏进业务代码——漏进去一次，换 Provider 的成本就从&quot;改配置&quot;变成&quot;改全站&quot;。</li>
+</ul>
+<p>常见误区 4 已经提醒过：<strong>协议兼容 ≠ 行为兼容</strong>。JSON 输出遵从度、Function Calling 稳定性要用篇04 的输出契约测试逐个 Provider 重跑——契约管&quot;接口形状&quot;，测试管&quot;行为实质&quot;。</p>
 <hr>
 <h2 id="本卷实战-retailhub-演进第-6-步-私有化推理服务-向量检索-成本账本">本卷实战：RetailHub 演进第 6 步——私有化推理服务 + 向量检索 + 成本账本</h2>
 <blockquote>

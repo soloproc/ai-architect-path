@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -159,6 +160,54 @@
 <p>一句话区分：Gateway 解决&quot;请求怎么到模型&quot;，Runtime 解决&quot;<strong>这个任务应该用哪个模型、怎么保证这次调用可靠、结果怎么算数</strong>&quot;。DataAgent 需要后者。</p>
 <h3 id="1-3-统一契约与-provider-adapter">1.3 统一契约与 Provider Adapter</h3>
 <p>统一契约的核心是一个与 Provider 无关的请求/响应模型，外加每个 Provider 一个 Adapter 做双向翻译。关键设计点：<strong>契约保留能力差异，不做最小公分母</strong>——<code>reasoning_effort</code>、<code>response_schema</code>、<code>tools</code> 都进契约，Adapter 对不支持的能力做显式降级或拒绝，而不是静默丢弃（&quot;稳定而不失真的边界&quot;）。</p>
+<p>在看代码之前，先把契约字段的设计账摆出来——每个字段都对应一条真实的治理需求：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/含义</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tenant_id</code></td>
+<td>租户标识</td>
+<td>成本归集、配额、审计的第一维度；缺了它，月底算不清&quot;谁烧了多少&quot;，多租户隔离也无从谈起</td>
+</tr>
+<tr>
+<td><code>task_profile</code></td>
+<td>任务语义画像</td>
+<td>路由的依据是&quot;任务要什么&quot;而非&quot;调用方是谁&quot;；业务模块只声明意图，模型选择权留在 Runtime</td>
+</tr>
+<tr>
+<td><code>logical_model</code></td>
+<td>逻辑模型名</td>
+<td>业务代码与物理模型解耦的接缝；写物理名，模型下线就要改业务代码</td>
+</tr>
+<tr>
+<td><code>response_schema</code></td>
+<td>输出契约</td>
+<td>作为契约字段而非 Prompt 文本，才能被 Adapter 翻译成约束解码；无效输出不许越过 Runtime 边界</td>
+</tr>
+<tr>
+<td><code>deadline_ms</code></td>
+<td>总时延预算</td>
+<td>Call 级 Deadline 是所有 Attempt 共享的天花板；只设单次超时会酿成重试雪崩（3.2 节）</td>
+</tr>
+<tr>
+<td><code>max_cost_usd</code></td>
+<td>单次成本硬上限</td>
+<td>事前成本闸门的挂点；5000 问/日规模下没有它，成本只能事后认账</td>
+</tr>
+<tr>
+<td><code>trace_context</code></td>
+<td>run_id/step_id 等</td>
+<td>治理字段从第一天进契约；事后补埋点等于重写所有调用方</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：契约故意<strong>不含</strong> <code>provider</code>、物理模型名、API Key——这些是 Routing 与 Adapter 的内部决策，放进来等于让业务层越权指挥路由。<code>usage</code> 只出现在响应侧，因为计量是事实不是意图。演进纪律是&quot;只加可选字段、不改字段语义&quot;：<code>reasoning_effort</code> 这类新能力以 Optional 加入，老调用方无感；确需破坏性变更就发 v2 契约并行跑——5000 问/日的系统没有&quot;停机改契约&quot;的窗口。</p>
 <pre><code class="language-python"># llm_runtime/contract.py —— 统一调用契约
 from dataclasses import dataclass, field
 from typing import Any, AsyncIterator, Optional
@@ -480,7 +529,39 @@ class ProviderAdapter:
 </tbody>
 </table></div>
 <p><strong>为什么退避要&quot;指数 + 抖动&quot;</strong></p>
-<p>故障期最致命的不是失败本身，而是<strong>所有客户端在同一时刻重试</strong>——刚缓过一口气的服务被齐刷刷的重试流量再次打垮（thundering herd，惊群效应）<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[4]</a></sup>。指数退避让重试节奏随失败次数自动稀疏，抖动（jitter）把不同客户端的重试时刻彼此错开：</p>
+<p>故障期最致命的不是失败本身，而是<strong>所有客户端在同一时刻重试</strong>——刚缓过一口气的服务被齐刷刷的重试流量再次打垮（thundering herd，惊群效应）<sup class="fn-ref"><a href="#fn-phoenix" id="ref-phoenix">[4]</a></sup>。指数退避让重试节奏随失败次数自动稀疏，抖动（jitter）把不同客户端的重试时刻彼此错开。公式里四个参数，各自都是一笔设计账：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>参数</th>
+<th>含义</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base</code></td>
+<td>首次退避基数</td>
+<td>要大于典型瞬时故障的自愈窗口（限流通常以秒计），太小等于立即再打一次；1s 是经验起点</td>
+</tr>
+<tr>
+<td><code>2^n</code> 指数</td>
+<td>随次数稀疏</td>
+<td>故障越持久，探测应越稀疏——线性退避在长故障期仍会制造稳定的高频压力</td>
+</tr>
+<tr>
+<td><code>cap</code></td>
+<td>退避上限</td>
+<td>防止 n 变大后退避无限增长、变相架空 Deadline；&quot;放弃&quot;的决定权必须留在 Deadline 手里</td>
+</tr>
+<tr>
+<td><code>jitter</code></td>
+<td>随机抖动</td>
+<td>把客户端彼此的重试时刻打散；没有它，同时失败的一批请求会永远同步重试，惊群循环</td>
+</tr>
+</tbody>
+</table></div>
+<p>两个故意不做的设计：① 不按错误码定制退避曲线——复杂度收益不成正比，429 的差异用 <code>Retry-After</code> hint 覆盖就够了；② jitter 用加性随机而非乘性，实现一行、行为可解释，排障时能从日志反推退避序列。</p>
 <pre><code class="language-text">delay = min(base × 2^n, cap) + random(0, jitter)     # 例: base=1s, cap=8s
 第 1 次重试 ≈ 1~2s   第 2 次 ≈ 2~3s   第 3 次 ≈ 4~5s   第 4 次 ≈ 8~9s
 </code></pre>

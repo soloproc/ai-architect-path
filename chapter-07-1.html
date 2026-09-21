@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -424,6 +425,44 @@
 </table></div>
 <p>结论：DataAgent 的数据查询能力应该落在<strong>指标语义层</strong>，让 Query Gateway 把业务参数编译成受控 SQL，而不是把 SQL 的自由交给模型。</p>
 <h3 id="2-6-代码骨架-三层-toolcontract">2.6 代码骨架：三层 ToolContract</h3>
+<p><strong>设计说明：关键字段为什么这么定</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>purpose</code> / <code>when_not_to_use</code></td>
+<td>文本，必须含反例</td>
+<td>模型选工具的全部依据是名字和描述；反例把&quot;别用我&quot;写进契约，比事后拦错便宜一个量级</td>
+</tr>
+<tr>
+<td><code>params_schema</code></td>
+<td>JSON Schema，服务端强校验</td>
+<td>模型提议只是文本不是事实，校验必须在 Runtime 重做一遍</td>
+</tr>
+<tr>
+<td><code>risk</code></td>
+<td>read_only / low_write / high_write</td>
+<td>审批级别的唯一来源；这个字段缺失意味着所有动作同权，高风险动作只能&quot;全开或全关&quot;</td>
+</tr>
+<tr>
+<td><code>tenant_visibility</code></td>
+<td>租户列表，空=全租户</td>
+<td>作用域必须结构化表达，ToolSet 编译期过滤靠它机检；写成描述里的形容词则无法执行</td>
+</tr>
+<tr>
+<td><code>side_effect</code> / <code>idempotency</code></td>
+<td>布尔 / 策略串</td>
+<td>写操作治理的入口：没有副作用标记，Runtime 不知道该为这次调用准备幂等键与审计</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：三层分字段而不是一份大 Schema，是因为三层的读者和变更频率不同——治理层随策略周调，模型理解层随语义慢变，合在一起意味着每次收紧治理都要重发模型可见描述。作用域（tenant_visibility）与审批级别（risk）必须是一等字段：&quot;高风险&quot;写在 purpose 里模型也许遵守，写在 risk 里 Runtime 必然执行——这就是&quot;结构性约束&quot;与&quot;口头约束&quot;的分界线。故意不做的：契约不携带执行逻辑与凭据，&quot;谁来执行、拿什么凭据&quot;属于 Credential Broker，混进契约会把治理文档变成攻击面。演进路径：配额、数据分级等治理字段可后续以可空字段追加，但 risk 与 tenant_visibility 第一天就要在——权限模型事后补，等于重做全部审计。</p>
 <pre><code class="language-python">from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
@@ -628,6 +667,49 @@ class ToolContract:
 </table></div>
 <p>DataAgent 的 Action Runtime 是&quot;幂等键 + 状态机&quot;双保险：去重表挡住传输层的重复，状态机挡住业务层的跳态——两者防的是不同层面的重复，不能只留一个。</p>
 <h3 id="3-5-代码骨架-actionrequest-状态机">3.5 代码骨架：ActionRequest 状态机</h3>
+<p><strong>设计说明：ActionRequest 的字段为什么一个都不能少</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型/取值</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>requested_by</code></td>
+<td>真实用户 ID</td>
+<td>鉴权对象是人不是模型；以模型身份做授权依据，越权就只隔着一层 Prompt</td>
+</tr>
+<tr>
+<td><code>expected_state</code></td>
+<td>前置状态快照</td>
+<td>防&quot;提议到审批之间世界变了&quot;；缺了它，审批通过的可能是一个已经过期的决定</td>
+</tr>
+<tr>
+<td><code>request_id</code></td>
+<td>UUID，幂等键</td>
+<td>&quot;至少一次投递&quot;是分布式系统的物理现实，重复扣款只能靠幂等键挡住（3.4 节）</td>
+</tr>
+<tr>
+<td><code>reason</code> + <code>evidence_refs</code></td>
+<td>文本 + 引用列表</td>
+<td>审批人审的是理由与证据，不是参数 JSON；没有它们，审批退化成盲签</td>
+</tr>
+<tr>
+<td><code>risk</code></td>
+<td>风险级别</td>
+<td>自动执行与人工审批的分流器，必须随请求走，而不是执行前临时查表猜</td>
+</tr>
+<tr>
+<td><code>state</code> + <code>ALLOWED</code></td>
+<td>状态机白名单</td>
+<td>只允许显式定义的迁移；跳态（如 PROPOSED 直接 EXECUTING）在结构层面就不成立</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍：状态机枚举刻意&quot;啰嗦&quot;——VALIDATED、PENDING_APPROVAL、EXECUTING 各占一态，是因为每一站都是独立的审计点与拦截点；合并成一个&quot;处理中&quot;，事故复盘就失去了时间线。ALLOWED 只白名单合法迁移，宁可拒掉一个本该合法的跳转（人工补一条迁移记录），不可放行一个非法跳态。故意不做的：ActionRequest 不携带凭据和执行结果原文——凭据由执行器按 Action 现场申领，结果进审计存储，请求对象本身保持可序列化、可入队、可重放。演进：新增状态（如 COMPENSATING）只加迁移边、不动既有边，保证在途请求的行为不变。</p>
 <pre><code class="language-python">from dataclasses import dataclass, field
 from enum import Enum
 import time, uuid

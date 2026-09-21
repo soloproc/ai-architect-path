@@ -27,6 +27,7 @@
     <a href="index.html" class="">首页</a>
     <div class="nav-group">学习地图</div>
     <a href="guide.html" class="">总纲 · 学习路径</a>
+    <a href="labs.html" class="">实操指南 · 手把手跑起来</a>
     <a href="glossary.html" class="">附录 · 术语表（卡壳就查）</a>
     <div class="nav-group">阶段一 · 服务端筑基</div>
     <div class="nav-sub">卷01 · 服务端筑基</div>
@@ -444,6 +445,49 @@
 <li><strong>Checkpoint</strong>：某个 Step 边界上 State 的可序列化快照 + 事件游标。崩溃恢复 = 加载最近 Checkpoint + 从事件流补齐。</li>
 </ul>
 <h3 id="3-2-run-状态机">3.2 Run 状态机</h3>
+<p>状态集不是拍脑袋列的，每个状态都对应一种必须被区分的&quot;现实处境&quot;：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PENDING</code></td>
+<td>已创建未领取</td>
+<td>提交与执行解耦——队列削峰的落点；没有它，API 层只能同步拒绝或假接收</td>
+</tr>
+<tr>
+<td><code>RUNNING</code></td>
+<td>Worker 持 Lease 执行中</td>
+<td>唯一允许推进 Step 的状态，Lease 语义的锚</td>
+</tr>
+<tr>
+<td><code>RETRYING</code></td>
+<td>Step 失败重试中</td>
+<td>与 RUNNING 分开：&quot;在跑&quot;和&quot;在挣扎&quot;对运维是两个信号，重试风暴在指标上一眼可见</td>
+</tr>
+<tr>
+<td><code>WAITING_APPROVAL</code></td>
+<td>持久化挂起等审批</td>
+<td>审批可能隔夜，必须是独立状态而非 RUNNING 的内部标记——否则&quot;卡了&quot;和&quot;在审批&quot;无法区分，超时策略无处挂</td>
+</tr>
+<tr>
+<td><code>SUSPENDED</code></td>
+<td>崩溃/心跳丢失待接管</td>
+<td>与 FAILED 分开：它可恢复，Resume 后还能成功；并入 FAILED 等于宣布所有中断都是死刑</td>
+</tr>
+<tr>
+<td><code>SUCCEEDED</code> / <code>FAILED</code> / <code>CANCELLED</code></td>
+<td>三个终态</td>
+<td>成功、失败、人为取消必须分开——审计要问&quot;它是做完的、做死的、还是被叫停的&quot;，三者合规含义完全不同</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：迁移表用<strong>白名单</strong>而非黑名单——列出允许的，其余一律拒绝。这是故意的防御姿态：新增状态时白名单逼你显式思考&quot;它允许去哪&quot;，黑名单则默认放行一切没想到的迁移。故意不设 <code>PAUSED</code> 态：暂停语义已被 <code>WAITING_APPROVAL</code>（等人）和 <code>SUSPENDED</code>（等接管）覆盖，第三个&quot;暂停&quot;只会制造&quot;谁负责让它恢复&quot;的歧义。演进纪律是只加状态、不改既有迁移语义——历史 Run 的终态必须永远可解释。</p>
 <pre class="mermaid">stateDiagram-v2
     [*] --&gt; PENDING: 创建 Run
     PENDING --&gt; RUNNING: Worker 领取(Lease)
@@ -464,6 +508,49 @@
 </pre>
 <p>状态机的工程纪律：<strong>状态迁移只能由 Runtime 通过事件触发，模型永远不能直接改 Run 状态。</strong> 模型可以&quot;建议完成&quot;，只有 Verifier 确认后 Runtime 才落 <code>SUCCEEDED</code>。</p>
 <h3 id="3-3-代码骨架-run-step-event-checkpoint">3.3 代码骨架：Run / Step / Event / Checkpoint</h3>
+<p>看代码之前，先看 Event 与 Checkpoint 的字段设计——这两个结构是&quot;可恢复、可回放、可审计&quot;全部能力的载体：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>所属</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>seq</code></td>
+<td>Event</td>
+<td>单 Run 内单调递增序号——回放顺序与断点续传的游标都靠它；用时间戳代替会撞时钟回拨</td>
+</tr>
+<tr>
+<td><code>type</code> + <code>payload</code></td>
+<td>Event</td>
+<td>类型与载荷分离：路由、过滤、统计只看 type，不解析 payload；payload 保持 dict，事件类型可独立演进</td>
+</tr>
+<tr>
+<td><code>step_cursor</code></td>
+<td>Checkpoint</td>
+<td>恢复点以 Step 边界为单位，Step 内部原子；细到&quot;行内断点&quot;只会让恢复语义无法定义</td>
+</tr>
+<tr>
+<td><code>event_cursor</code></td>
+<td>Checkpoint</td>
+<td>&quot;状态快照 + 事件补齐&quot;的接缝：加载快照后从这里继续消费事件，崩溃窗口内的事实一条不丢</td>
+</tr>
+<tr>
+<td><code>output_ref</code></td>
+<td>Step</td>
+<td>大结果只存引用——Run 记录要轻到能高频读写，几万行结果集内嵌进来，状态存储先死</td>
+</tr>
+<tr>
+<td><code>lease_owner</code> / <code>lease_expire_at</code></td>
+<td>Run</td>
+<td>分布式接管（下一页 5.3 节）的字段从第一天就留在结构里，单进程阶段它们只是空值</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：Event 被设计成 <strong>append-only</strong>——没有 update、没有 delete，修正用新事件表达；缺了这条，审计回放和故障重放全部失去地基（你回放的是被改过的历史）。故意不把 <code>state</code> 拆成细粒度字段入库：Analysis State 的结构演进快，存为整体序列化 dict 并用版本号管理演进，而不是每改一个字段就迁移一次表结构。</p>
 <pre><code class="language-python">from __future__ import annotations
 import time, uuid
 from dataclasses import dataclass, field

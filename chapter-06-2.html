@@ -198,6 +198,49 @@
     N1[&quot;要点：权限不在检索后补查，&lt;br/&gt;而在候选入池时同步过滤&quot;]
 </pre>
 <p>同理，4.2 节的&quot;按缺口选数据源&quot;是对朴素 RAG 的第二个超越：<strong>不是所有缺口都走向量库</strong>——指标定义问语义层、事实数据问数仓，向量检索只是五路数据源之一。把一切问题都退化成向量检索，等于用一把锤子看所有钉子。</p>
+<p>检索器之所以能&quot;即插即用&quot;地接入管线，是因为每个管线阶段的输入输出契约是显式的：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>输入</th>
+<th>输出（契约）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>① 候选收集</td>
+<td>AssembleRequest（租户/角色/Step 契约）</td>
+<td>带完整元数据的 ContextItem 列表——缺元数据的候选视为非法产出，直接拒收</td>
+</tr>
+<tr>
+<td>② 硬性过滤</td>
+<td>ContextItem + 权限/有效期/信任规则</td>
+<td>幸存列表 + 每条被滤者的出局原因（进 Decision Trace）</td>
+</tr>
+<tr>
+<td>③ 软性排序</td>
+<td>幸存列表</td>
+<td>有序列表 + 每条的相关性分数（分数必须可解释，黑盒分数无法排障）</td>
+</tr>
+<tr>
+<td>④ 去重冲突</td>
+<td>有序列表</td>
+<td>裁决后列表 + 冲突事实记录（冲突本身写入上下文，不静默二选一）</td>
+</tr>
+<tr>
+<td>⑤ 分区装填</td>
+<td>裁决后列表 + 分区预算</td>
+<td>装入清单 + 压缩动作记录（谁被压成引用卡、谁被剔除）</td>
+</tr>
+<tr>
+<td>⑥ 充分性检查</td>
+<td>装入清单 + Step 契约必需项</td>
+<td>放行，或 InsufficientContext 异常（缺什么报什么，禁止带病调用）</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：契约的关键不是&quot;传什么&quot;，而是<strong>每个阶段都必须留下可审计的副产品</strong>（过滤原因、排序分数、压缩动作）——缺了它们，6.3 节的 Decision Trace 就是无源之水，&quot;口径为什么没进去&quot;永远答不出。阶段间只允许传结构化对象，不允许传拼好的字符串——字符串化是最后一站的事，提前拼字符串等于把前面所有阶段的元数据付之一炬。新 Provider（RAG、记忆召回、外部 API）只要产出合规 ContextItem 即可入池，不需要改管线——这是契约化换来的开放性。</p>
 <h3 id="4-4-agentic-search-与搜索预算">4.4 Agentic Search 与搜索预算</h3>
 <p>一次 Top-K 检索覆盖不了&quot;GMV 为什么跌&quot;这种复合问题。Agentic Search 是<strong>多轮、由缺口驱动的检索循环</strong>：检索 → 评估是否闭合了某个 open_question → 没闭合就改写查询或换数据源再来。但循环必须有笼头：</p>
 <ul>
@@ -224,6 +267,49 @@
 <li><strong>证据定生死</strong>：假设只能被挂有 Artifact 引用（含查询参数与数据时间）的证据支持或排除，模型&quot;觉得合理&quot;不算数；</li>
 <li><strong>结论必须挂证据</strong>：最终报告的每条 Claim 携带 <code>evidence_ids</code>，无证据的句子要么降级为&quot;待验证假设&quot;写入报告，要么删除。审计时可以沿着 Claim → Evidence → Artifact → SQL 与数据时间一路下钻。</li>
 </ol>
+<p>证据记录的最小 schema 及字段理由——审计下钻链上的每一环都由字段保证：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>evidence_id</code></td>
+<td>稳定标识</td>
+<td>Claim 挂证据靠 ID 引用，不内嵌内容——同一证据可被多条 Claim 复用，改证据不改结论</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>来源（语义层 / SQL / 外部检索）</td>
+<td>证据的可信度首先取决于来源；<code>external_untrusted</code> 来源的证据不能独立支撑结论</td>
+</tr>
+<tr>
+<td><code>artifact_ref</code></td>
+<td>原始数据引用</td>
+<td>证据正文出窗入 Store，记录里只留指针；指针必须存活是压缩不变量⑤</td>
+</tr>
+<tr>
+<td><code>lineage</code></td>
+<td>查询参数 + 数据时间 + 口径版本</td>
+<td>可复现的核心：没有 lineage，&quot;这个数字怎么来的&quot;答不出；审计要的就是沿它重放同一查询</td>
+</tr>
+<tr>
+<td><code>confidence</code></td>
+<td>governed / derived / unverified</td>
+<td>治理级别直接决定证据能支撑什么级别的结论；未验证证据支撑的建议必须降级标注</td>
+</tr>
+<tr>
+<td><code>supports</code></td>
+<td>支持/排除了哪个假设</td>
+<td>证据定生死是双向的——&quot;排除了什么&quot;与&quot;证实了什么&quot;一样是结论的一部分</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：故意<strong>不</strong>存模型对证据的&quot;解读文本&quot;——解读是可重新生成的派生物，存进证据记录会让&quot;事实&quot;与&quot;观点&quot;混居，审计时无法区分。<code>lineage</code> 里的口径版本指向 Metric Registry 的具体版本而非&quot;最新版&quot;，保证三个月后重放得到同一数字。字段演进只加不删；<code>confidence</code> 枚举收紧（如废弃 derived）视为破坏性变更，需 Replay 全部受影响的历史结论。</p>
 <p>GMV 诊断的实战形态就是&quot;流量—转化—客单价—库存—退款&quot;假设树逐层验证，被排除的分支同样保留在报告里——<strong>&quot;排除了什么&quot;和&quot;证实了什么&quot;一样是结论的一部分</strong>。</p>
 <hr>
 <h2 id="5-长任务上下文治理-数小时运行不丢目标-不重做-不漂移">5. 长任务上下文治理：数小时运行不丢目标、不重做、不漂移</h2>

@@ -156,6 +156,44 @@
 </table></div>
 <p><strong>约束解码为什么近乎零成本又近乎必对</strong>：模型生成是逐 token 采样，约束解码在每步采样前把 Schema 编译成文法/状态机，将&quot;此刻不合法&quot;的 token 直接从候选词表屏蔽——模型&quot;想错都错不了&quot;。格式正确性就这样从&quot;概率事件&quot;变成了&quot;构造保证&quot;，这是它配当第一道防线的根本原因 <sup class="fn-ref"><a href="#fn-openai-so" id="ref-openai-so">[1]</a></sup>。</p>
 <p>但也要看清边界：约束解码保证的是<strong>格式</strong>，不是<strong>语义</strong>——Schema 要求 <code>confidence</code> 是 0~1 的数值，模型可以给一个格式完美但胡说八道的 0.87。语义正确性要靠 Verifier（第五篇）与 Eval（第九篇）兜底。</p>
+<p>落到 DataAgent，SQL 生成的 <code>response_schema</code> 该怎么设计？每个决定都有理由：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Schema 设计点</th>
+<th>DataAgent 示例</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>字段最小化</td>
+<td><code>sql</code>、<code>confidence</code>、<code>assumptions[]</code> 三个字段封顶</td>
+<td>每多一个字段就多一块模型自由发挥的面；Schema 是契约不是许愿池，下游不消费的字段一律不进</td>
+</tr>
+<tr>
+<td><code>enum</code> 收枚举</td>
+<td><code>chart_type: enum[&quot;line&quot;,&quot;bar&quot;,&quot;none&quot;]</code></td>
+<td>枚举把开放生成变成封闭选择，约束解码能在词表层物理排除非法值——这是&quot;格式保证&quot;最强的一档</td>
+</tr>
+<tr>
+<td><code>required</code> 宁多勿少</td>
+<td><code>sql</code> 与 <code>confidence</code> 均必填</td>
+<td>可选字段等于允许模型&quot;不交作业&quot;，下游被迫写一堆 None 防御；必填把缺失变成校验错误，进修复循环而非业务异常</td>
+</tr>
+<tr>
+<td>数值带边界</td>
+<td><code>confidence: 0~1</code></td>
+<td>边界约束免费（写进 Schema 即可），却能拦下一整类离谱输出</td>
+</tr>
+<tr>
+<td>不放自由文本大字段</td>
+<td>解释走 <code>assumptions[]</code> 短句数组</td>
+<td>长自由文本是语义胡说的藏身地；结构化短句便于 Verifier 逐条核对</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：Schema 设计的元规则是&quot;<strong>宁严勿宽，宽了再松</strong>&quot;——收紧 Schema 是兼容变更（只是拦截更多坏输出），放松 Schema 是破坏变更（下游已按严契约写了消费代码）。版本演进走&quot;新字段可选加入、旧字段永不改义&quot;；确实要改语义时，新旧 Schema 名并行，靠 4.3 节的 Replay 对比后再让旧版下线。</p>
 <p>最后记住修复循环与&quot;简单重试&quot;的本质区别：<strong>重试是同样的输入再来一次，修复是把校验错误作为新输入重问</strong>。前者指望运气，后者给了模型它唯一真正需要的信息——&quot;上一次错在哪&quot;。</p>
 <p>下面这个交互 Demo 把三档防线摆在一起对比：先选档位点「生成一次」，看 Attempt → 校验 → 修复重问的完整过程；再点「批量模拟 100 次」，对比三档的一次通过率、修复挽救率与平均 Attempts：</p>
 <div class="demo-embed" data-demo="structured-output"><div class="demo-loading">交互 Demo 加载中…</div></div>
@@ -266,6 +304,34 @@ class ReliableExecutor:
 <li><strong>工具描述是 Prompt 的一部分，而且是很贵的一部分</strong>。工具名、描述、参数说明都占 token、都直接影响模型选工具的准确率。工具一多就要按 Task Profile 动态挂载，而不是 50 个工具全量塞给每一次调用。</li>
 <li><strong>tool_call 输出同样要走 Output Contract</strong>。参数 JSON 的 Schema 校验、枚举合法性、危险参数（<code>DROP</code>、跨租户 ID）检查，与 3.3 节是同一套机制——函数调用没有豁免权。</li>
 </ol>
+<p>工具声明本身也是一份契约，三个部件各有设计账：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>部件</th>
+<th>写法</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>工具名</td>
+<td>动词_名词，如 <code>sql_query</code></td>
+<td>名字是模型选工具的第一信号；含糊的名字（<code>helper</code>、<code>process</code>）是幻觉调用的温床</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>写&quot;何时用、何时不要用&quot;，不写实现</td>
+<td>模型靠描述做路由决策——&quot;只读查询经营数仓，不要用于写操作&quot;比&quot;查询数据库&quot;的选中准确率高一个量级；描述占 token，50 个工具全量塞等于每问白烧几百 token</td>
+</tr>
+<tr>
+<td>参数 Schema</td>
+<td>与 3.3 同一套 JSON Schema：enum 收敛、required 收紧</td>
+<td>参数幻觉无法靠描述防住，只能靠 Schema 校验物理拦截；<code>DROP</code>、跨租户 ID 这类危险参数的正确设计是<strong>在 Schema 里不存在</strong>，而不是&quot;声明了再提醒别用&quot;</td>
+</tr>
+</tbody>
+</table></div>
+<p>一句话取舍：工具描述写给&quot;选择者&quot;（模型）看，参数 Schema 写给&quot;校验者&quot;（Runtime）看，两者都不能省——省掉前者模型选错工具，省掉后者模型编错参数。</p>
 <p>常见失败模式速查：</p>
 <div class="table-wrap"><table>
 <thead>

@@ -122,6 +122,49 @@
 <li><strong>Resume = 加载最近 Checkpoint → 重建内存状态 → 从事件游标之后继续消费</strong>，绝不简单&quot;重跑整个 Run&quot;；</li>
 <li>恢复后第一步是<strong>重新校验前置条件</strong>（租户权限是否仍有效、数据源凭据是否过期），而不是盲目继续。</li>
 </ol>
+<p>落到存储，一条 Run 记录 + 一条 Checkpoint 记录的最小 schema 及字段理由：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run_id</code> / <code>tenant_id</code></td>
+<td>Run 标识与租户</td>
+<td>一切查询、隔离、审计的锚；恢复路径必须带 tenant 校验，防&quot;把 A 的 Checkpoint 装给 B&quot;（Invariant ④）</td>
+</tr>
+<tr>
+<td><code>status</code> + <code>status_version</code></td>
+<td>状态 + 乐观锁版本</td>
+<td>状态迁移的并发守卫：两个 Writer 同时写状态，版本旧者被拒——fencing 思想在记录层的落地</td>
+</tr>
+<tr>
+<td><code>step_cursor</code></td>
+<td>已完成 Step 边界</td>
+<td>Resume 的起点；以边界而非时间戳为游标，因为&quot;崩溃发生在哪一秒&quot;没有语义，&quot;哪个 Step 完成了&quot;才有</td>
+</tr>
+<tr>
+<td><code>event_cursor</code></td>
+<td>已落盘事件序号</td>
+<td>Checkpoint 与事件流的对账点：恢复 = 快照 + 游标后事件，二者缺一不可</td>
+</tr>
+<tr>
+<td><code>state_payload</code> + <code>state_version</code></td>
+<td>序列化 State + schema 版本</td>
+<td>State 结构会演进，版本号让旧 Checkpoint 能被新代码升级读取，而不是一恢复就反序列化爆炸</td>
+</tr>
+<tr>
+<td><code>budget_consumed</code></td>
+<td>已消耗预算快照</td>
+<td>预算守恒（Invariant ⑥）：恢复不重置已烧的 token——否则崩溃成了省钱漏洞</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：故意<strong>不</strong>在 Run 记录里内嵌 Step 明细与事件——Run 行保持轻量可高频更新，Step 与 Event 各自存流，靠游标对齐。Checkpoint 只追加不覆盖（每次一条新记录而非原地 update），代价是存储翻倍，换来的是&quot;恢复到任意历史边界&quot;的能力——对月度报告这种任务，这个能力值回全部存储成本。</p>
 <h3 id="4-3-human-approval-让人成为系统的一等节点">4.3 Human Approval：让人成为系统的一等节点</h3>
 <p>预算调整审批流的正确姿势：</p>
 <ul>
@@ -199,6 +242,44 @@
 <li><strong>Scheduler</strong>：决定&quot;下一个跑谁&quot;——按优先级、租户配额、公平性策略出队；同时定期扫描<strong>租约过期</strong>的 Run（Worker 死了但任务没完成），重新入队接管。</li>
 <li><strong>Worker</strong>：无状态执行器。领取任务即获得 Lease，执行中只读写外部状态存储，本地不留任何&quot;丢了就没了&quot;的东西。</li>
 </ul>
+<p>Run 任务消息与 Lease 记录的字段设计——队列消息故意极薄：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th>含义</th>
+<th>设计理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run_id</code></td>
+<td>任务引用</td>
+<td>消息只带 ID 不带载荷——Run 的全部上下文在状态层，消息重复投递、乱序都不会复制状态</td>
+</tr>
+<tr>
+<td><code>priority</code> / <code>tenant_id</code></td>
+<td>调度依据</td>
+<td>Scheduler 做配额与公平性的输入；放消息里而非现查，是为了出队决策不依赖状态层可用性</td>
+</tr>
+<tr>
+<td><code>not_before</code></td>
+<td>延迟执行时间</td>
+<td>退避重入队、定时任务的统一表达；没有它，延迟逻辑就散落在各 Worker 的 sleep 里</td>
+</tr>
+<tr>
+<td><code>lease_owner</code> / <code>lease_expire_at</code></td>
+<td>租约持有者与期限</td>
+<td>&quot;谁在跑、跑到什么时候算死&quot;的唯一事实源；Scheduler 扫描过期租约只看这两个字段</td>
+</tr>
+<tr>
+<td><code>fence</code></td>
+<td>fencing token，单调递增</td>
+<td>脑裂防火墙：旧 Worker 复活后携旧 fence 写状态必被拒；缺了它，Lease 接管反而制造双写</td>
+</tr>
+</tbody>
+</table></div>
+<p>取舍说明：消息里<strong>不放</strong> Task Contract、State、凭据——载荷膨胀只是表象，真问题是同一事实出现两个副本（队列一份、状态层一份），崩溃窗口内二者必然不一致。消息格式演进同样只加可选字段；<code>fence</code> 的生成权只在状态层（领取/接管时 +1），Worker 永远是携带者而非制造者，这条纪律要写进代码评审清单。</p>
 <h3 id="5-3-lease-与-heartbeat-分布式下-只执行一次-的现实解">5.3 Lease 与 Heartbeat：分布式下&quot;只执行一次&quot;的现实解</h3>
 <p>分布式系统没有真正的 exactly-once 执行，只有&quot;lease + 幂等&quot;的组合逼近 <sup class="fn-ref"><a href="#fn-ddia8" id="ref-ddia8">[1]</a></sup>：</p>
 <ol>
