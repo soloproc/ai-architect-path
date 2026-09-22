@@ -114,6 +114,91 @@
 <p>建议姿势：读章节时用「在线运行」建立直觉；想跑完整服务（含 FastAPI 端口、压测脚本）就开云端虚拟机；读到「本卷实战 / 本篇实战」要长期折腾时，下载源码包到本地，亲手跑通验收清单。</p>
 </blockquote>
 <hr>
+<h2 id="0-5-代码到底跑在哪-三种运行环境图解">0.5 代码到底跑在哪？三种运行环境图解</h2>
+<p>很多读者第一次点「云端虚拟机」会犯嘀咕：代码到底跑在哪？环境是谁装的？这一节用一张图讲清楚。三条路径，<strong>执行代码的机器完全不同</strong>：</p>
+<pre class="mermaid">flowchart TB
+    subgraph A[路径 A · 在线运行]
+        A1[你的浏览器] --&gt; A2[页面内嵌 Pyodide&lt;br&gt;Python 编译成 WebAssembly]
+        A2 --&gt; A3[代码在浏览器沙箱里跑&lt;br&gt;不离开你的电脑]
+        A3 --&gt; A4[仅限标准库加少量扩展&lt;br&gt;不能开端口起服务]
+    end
+    subgraph B[路径 B · 云端虚拟机]
+        B1[你的浏览器] --&gt; B2[GitHub Codespaces&lt;br&gt;云端一台真实 Linux 虚拟机]
+        B2 --&gt; B3[仓库 .devcontainer 配置自动装好&lt;br&gt;Python 3.12 与全部依赖]
+        B3 --&gt; B4[浏览器里出现 VS Code 和终端]
+        B4 --&gt; B5[能跑 FastAPI 服务&lt;br&gt;端口自动转发 可 curl 验收]
+    end
+    subgraph C[路径 C · 本地源码包]
+        C1[你的电脑] --&gt; C2[解压 zip]
+        C2 --&gt; C3[bootstrap.sh 一键建&lt;br&gt;python3 venv 虚拟环境]
+        C3 --&gt; C4[离线可跑 完全掌控]
+    end
+</pre>
+<p>一句话概括：<strong>在线运行在浏览器沙箱里跑，云端虚拟机在 GitHub 的 Linux 机器上跑，源码包在你自己电脑上跑。</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>对比项</th>
+<th>在线运行（浏览器）</th>
+<th>云端虚拟机（Codespaces）</th>
+<th>本地源码包</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码跑在哪</td>
+<td>你的浏览器沙箱里</td>
+<td>GitHub 云端的 Linux 虚拟机</td>
+<td>你自己的电脑</td>
+</tr>
+<tr>
+<td>环境谁来装</td>
+<td>页面自带，不用装</td>
+<td>GitHub 按仓库配置自动装好</td>
+<td>你跑 <code>bootstrap.sh</code> 装一次</td>
+</tr>
+<tr>
+<td>能跑什么</td>
+<td>核心逻辑与算法，<strong>不能起 HTTP 服务、开端口</strong></td>
+<td>完整服务：FastAPI、端口转发、curl 验收都能跑</td>
+<td>完整服务，什么都能跑</td>
+</tr>
+<tr>
+<td>需要什么</td>
+<td>只要网络和浏览器</td>
+<td>网络 + 免费 GitHub 账号</td>
+<td>Python 3.10 以上，装一次环境后可离线</td>
+</tr>
+<tr>
+<td>关掉页面后</td>
+<td>一切消失，不留痕迹</td>
+<td>虚拟机会自动休眠，代码和文件还在</td>
+<td>都在你硬盘上，随便折腾</td>
+</tr>
+<tr>
+<td>适合什么时候</td>
+<td>快速看懂逻辑、核对验收口径</td>
+<td>想跑完整服务但不想折腾本机</td>
+<td>长期实战、离线使用、想改源码做实验</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="云端虚拟机点下去之后-发生了什么">云端虚拟机点下去之后，发生了什么</h3>
+<ol>
+<li>你点了章节里的「☁️ 云端虚拟机」链接。</li>
+<li>GitHub 用<strong>你的账号</strong>在云端开一台全新的 Linux 虚拟机——不占你本机任何资源。</li>
+<li>虚拟机自动读取仓库里的 <code>.devcontainer/devcontainer.json</code> 配置，装好 Python 3.12 和全部依赖——所以教程说&quot;环境已预装&quot;，装环境的就是这一步。</li>
+<li>浏览器里打开一个 VS Code 界面，界面是真的，跑在云端那台机器上。</li>
+<li>底部终端里执行 <code>cd labs/m1-monolith &amp;&amp; bash run.sh</code>。</li>
+<li>服务起来后端口自动转发，点弹出的「在浏览器打开」，就能访问 FastAPI 页面。</li>
+</ol>
+<p>两点说明：<strong>需要一个免费 GitHub 账号</strong>；个人账号每月有免费使用额度，具体以 GitHub 官网为准。虚拟机不用时 GitHub 会自动休眠，不花你本机一分资源。</p>
+<h3 id="为什么在线运行跑的是-在线逻辑版">为什么在线运行跑的是「在线逻辑版」</h3>
+<p>浏览器沙箱有个硬性限制：<strong>不能开端口起 HTTP 服务</strong>。所以页面里的在线运行，是把 labs 源码里的数据库和算法核心提炼出来，跑通逻辑和验收口径；完整的 FastAPI 服务，得用云端虚拟机或本地源码包跑。</p>
+<p>顺带说明：在线运行的 Python 是 Pyodide——编译成 WebAssembly 的 CPython，首次打开会从 CDN 下载约 10MB 运行时；<code>sqlite3</code> 等模块是独立扩展包，首次用到时会自动补装，不用你操心。</p>
+<hr>
+<p><strong>三条路径产出完全相同的验收结果——选哪条取决于你当下有多少时间，不取决于学到的东西不同。</strong> 想立刻跑通完整服务 → 云端虚拟机最快；想离线长期折腾 → 回到第 1 节装本地环境。</p>
+<hr>
 <h2 id="0-实战的正确打开方式-先遮住方案-再想再看">0. 实战的正确打开方式（先遮住方案，再想再看）</h2>
 <p>从卷01-2 起，每个实战章节都是<strong>五段式结构</strong>，实现步骤只是其中一段：</p>
 <ol>
@@ -341,6 +426,9 @@ uvicorn app.main:app --port 8000
 <aside class="toc">
   <div class="toc-title">本页目录</div>
   <nav>
+    <a class="toc-h2" href="#0-5-代码到底跑在哪-三种运行环境图解">0.5 代码到底跑在哪？三种运行环境图解</a>
+    <a class="toc-h3" href="#云端虚拟机点下去之后-发生了什么">云端虚拟机点下去之后，发生了什么</a>
+    <a class="toc-h3" href="#为什么在线运行跑的是-在线逻辑版">为什么在线运行跑的是「在线逻辑版」</a>
     <a class="toc-h2" href="#0-实战的正确打开方式-先遮住方案-再想再看">0. 实战的正确打开方式（先遮住方案，再想再看）</a>
     <a class="toc-h2" href="#1-环境准备-只做一次-macos-为主">1. 环境准备（只做一次，macOS 为主）</a>
     <a class="toc-h3" href="#1-1-检查-python3">1.1 检查 python3</a>

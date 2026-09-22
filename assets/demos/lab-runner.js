@@ -136,17 +136,10 @@ window.LABRUNNER = function (container, config) {
     document.head.appendChild(script);
   }
 
-  function run() {
-    if (failed) return;
-    if (!pyodide) { boot(true); return; }
-    $('run').disabled = true;
-    setStatus('运行中…');
-    clearOut();
-    pyodide.setStdout({ batched: function (s) { printOut(s + '\n'); } });
-    pyodide.setStderr({ batched: function (s) { printOut(s + '\n', 'err'); } });
+  function exec(code) {
     setTimeout(function () {
       try {
-        pyodide.runPython($('code').value);
+        pyodide.runPython(code);
         setStatus('运行完成。');
       } catch (e) {
         /* traceback 友好化：突出最后一行错误本身 */
@@ -160,6 +153,34 @@ window.LABRUNNER = function (container, config) {
       }
       $('run').disabled = false;
     }, 30);
+  }
+
+  function run() {
+    if (failed) return;
+    if (!pyodide) { boot(true); return; }
+    $('run').disabled = true;
+    setStatus('运行中…');
+    clearOut();
+    pyodide.setStdout({ batched: function (s) { printOut(s + '\n'); } });
+    pyodide.setStderr({ batched: function (s) { printOut(s + '\n', 'err'); } });
+    var code = $('code').value;
+    /* Pyodide ≥0.26 把 sqlite3/ssl/lzma 拆成独立包，不在 python_stdlib.zip 里；
+     * 运行前先用 loadPackagesFromImports 按 import 语句自动补装，否则 import sqlite3 直接报 ModuleNotFoundError */
+    if (typeof pyodide.loadPackagesFromImports === 'function') {
+      setStatus('正在准备依赖包（sqlite3 等，仅首次）…');
+      pyodide.loadPackagesFromImports(code).then(function () {
+        setStatus('运行中…');
+        exec(code);
+      }).catch(function (e) {
+        printOut('\n依赖包加载失败（' + String(e) + '）。\n' +
+          '这段代码需要 sqlite3 等浏览器版扩展包，下载被网络挡住了。\n' +
+          '可以重试；或改用页面上方的「☁️ 云端虚拟机」/「下载源码包」在真实 Linux 环境运行。\n', 'err');
+        setStatus('依赖加载失败，请重试或换云端虚拟机运行。');
+        $('run').disabled = false;
+      });
+    } else {
+      exec(code);
+    }
   }
 
   $('toggle').addEventListener('click', function () {

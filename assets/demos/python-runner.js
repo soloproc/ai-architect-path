@@ -188,16 +188,10 @@ window.DEMOS['python-runner'] = function (container) {
     document.head.appendChild(script);
   }
 
-  function run() {
-    if (!pyodide) { boot(true); return; }
-    $('run').disabled = true;
-    setStatus('运行中…');
-    clearOut();
-    pyodide.setStdout({ batched: function (s) { printOut(s + '\n'); } });
-    pyodide.setStderr({ batched: function (s) { printOut(s + '\n', 'err'); } });
+  function exec(code) {
     setTimeout(function () {
       try {
-        pyodide.runPython($('code').value);
+        pyodide.runPython(code);
         setStatus('运行完成。');
       } catch (e) {
         printOut('\n' + String(e) + '\n', 'err');
@@ -205,6 +199,27 @@ window.DEMOS['python-runner'] = function (container) {
       }
       $('run').disabled = false;
     }, 30);
+  }
+
+  function run() {
+    if (!pyodide) { boot(true); return; }
+    $('run').disabled = true;
+    setStatus('运行中…');
+    clearOut();
+    pyodide.setStdout({ batched: function (s) { printOut(s + '\n'); } });
+    pyodide.setStderr({ batched: function (s) { printOut(s + '\n', 'err'); } });
+    var code = $('code').value;
+    /* Pyodide ≥0.26 把 sqlite3 等模块拆成独立包，运行前按 import 自动补装 */
+    if (typeof pyodide.loadPackagesFromImports === 'function') {
+      pyodide.loadPackagesFromImports(code).then(function () { exec(code); })
+        .catch(function (e) {
+          printOut('\n依赖包加载失败（' + String(e) + '），请检查网络后重试。\n', 'err');
+          setStatus('依赖加载失败。');
+          $('run').disabled = false;
+        });
+    } else {
+      exec(code);
+    }
   }
 
   $('boot').addEventListener('click', function () { boot(false); });
