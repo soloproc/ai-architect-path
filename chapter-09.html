@@ -809,6 +809,98 @@ class BatchEvalRunner:
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m9-eval-ops.zip">下载 retailhub-m9-eval-ops.zip</a> 本地跑（解压后 <code>cd m9-eval-ops &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m9"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>M9 是一条单向的评测流水线：评测集与 Fixture 在左端输入，Runner 用 Multi-Trial 驱动被测系统跑完所有 Case，四类 Grader 逐次评分聚合成多维 Scorecard，最后 Regression Gate 拿候选版对比基线，产出 PASS / WARN / BLOCK 的发布决策与 gate_report。demo 的剧情是 v1.0 建基线、v1.1 越权回退、Gate 阻断——读码时始终带着这个剧情对照。</p>
+<pre class="mermaid">flowchart LR
+    subgraph 评测输入
+        DS[&quot;dataset.py&lt;br&gt;EvalCase 加 Task Taxonomy&quot;]
+        CJ[&quot;cases.jsonl&lt;br&gt;12 条 六类配额&quot;]
+        FX[&quot;fixture.py&lt;br&gt;数据 时间 权限冻结&lt;br&gt;故障注入&quot;]
+        SUT[&quot;sut.py&lt;br&gt;MockDataAgent&lt;br&gt;v1.0 与 v1.1&quot;]
+    end
+    subgraph 执行层
+        RN[&quot;BatchEvalRunner&lt;br&gt;每 Case 跑 3 trials&lt;br&gt;每 trial 一份新 Fixture&quot;]
+        GRD[&quot;四类 Grader&lt;br&gt;Code Environment&lt;br&gt;Trace MockLLMJudge&quot;]
+        CARD[&quot;system_scorecard&lt;br&gt;质量 安全 成本 时延四维&lt;br&gt;硬门槛单列&quot;]
+    end
+    subgraph 门禁层
+        GATE[&quot;evaluate_gate&lt;br&gt;Regression Gate 三条规则&quot;]
+        REP[&quot;GateDecision.render&lt;br&gt;gate_report.md&quot;]
+    end
+
+    CJ --&gt; DS
+    DS --&gt; RN
+    FX --&gt; RN
+    SUT --&gt; RN
+    RN --&gt; GRD
+    GRD --&gt; CARD
+    CARD --&gt; GATE
+    GATE --&gt; REP
+    GATE --&gt;|PASS WARN 放行 BLOCK 拦截| OUT[&quot;发布决策&quot;]
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → 再看 <code>demo.py</code> → <code>evals/dataset.py</code> → <code>evals/fixture.py</code> → <code>evals/sut.py</code> → <code>evals/graders.py</code> → <code>evals/runner.py</code> → <code>evals/gate.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键冒烟：测试 → 评测集体检 → 基线/候选/Gate 完整演示</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>demo.py</code></td>
+<td>演示主线：v1.0 建基线 → v1.1 越权回退 → Gate 阻断</td>
+<td><code>main</code></td>
+</tr>
+<tr>
+<td><code>evals/dataset.py</code></td>
+<td>评测集：EvalCase 结构化验收点 + Task Taxonomy 配额体检</td>
+<td><code>load_cases</code> / <code>quota_report</code></td>
+</tr>
+<tr>
+<td><code>evals/fixture.py</code></td>
+<td>环境快照：数据/时间/权限冻结 + 故障注入，每 trial 一份新实例</td>
+<td><code>Fixture</code> / <code>env_state</code></td>
+</tr>
+<tr>
+<td><code>evals/sut.py</code></td>
+<td>被测系统适配层：确定性 MockDataAgent，v1.0 与 v1.1 行为脚本</td>
+<td><code>MockDataAgent.run</code> / <code>RunRecord</code></td>
+</tr>
+<tr>
+<td><code>evals/graders.py</code></td>
+<td>四类 Grader：代码断言、环境终态、轨迹、裁判模型，统一 <code>grade</code> 接口</td>
+<td><code>CodeGrader</code> / <code>EnvironmentGrader</code> / <code>TraceGrader</code> / <code>MockLLMJudge</code></td>
+</tr>
+<tr>
+<td><code>evals/runner.py</code></td>
+<td>Multi-Trial 执行 + Case 级聚合 + 系统级四维 Scorecard</td>
+<td><code>BatchEvalRunner.run</code> / <code>system_scorecard</code></td>
+</tr>
+<tr>
+<td><code>evals/gate.py</code></td>
+<td>Regression Gate：安全零容忍、质量回退阻断、成本告警</td>
+<td><code>evaluate_gate</code> / <code>GateDecision.render</code></td>
+</tr>
+<tr>
+<td><code>templates/</code></td>
+<td>质量契约与 M0 基线记录模板</td>
+<td><code>quality_contract.md</code> / <code>m0_baseline.md</code></td>
+</tr>
+<tr>
+<td><code>reports/</code></td>
+<td>demo 运行产物：baseline / candidate / gate_report</td>
+<td><code>gate_report.md</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：流水线是直线，按模块地图的顺序读即可；两个题眼——<code>runner.py</code> 的 <code>system_scorecard</code>（安全违规直接整体 FAIL，硬门槛不被平均分掩盖）和 <code>gate.py</code> 的 <code>evaluate_gate</code>（三条规则五十行代码，就是&quot;受控进化&quot;的全部牙齿）。读完回看 <code>reports/gate_report.md</code> 的实际产物，BLOCK 的理由能逐条对上代码里的规则。</p>
 <h3 id="命题-先合上教程">命题（先合上教程）</h3>
 <blockquote>
 <p>&quot;模型供应商通知：现网版本三个月后下线，必须升级。同时老板拍板：DataAgent 每月至少迭代一次，体验要『持续变好』。运营主管在群里问了一句没人敢接的话——『你们说变好，拿什么证明？上次升级后退款率诊断错了两天才有人发现。』&quot;</p>
@@ -996,6 +1088,7 @@ evidence 必须指出违规的具体 seq 序号。
     <a class="toc-h3" href="#ai-自动优化的责任边界">AI 自动优化的责任边界</a>
     <a class="toc-h2" href="#常见误区">常见误区</a>
     <a class="toc-h2" href="#本篇实战-为-dataagent-建一条-evalops-流水线">本篇实战：为 DataAgent 建一条 EvalOps 流水线</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
     <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
     <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>

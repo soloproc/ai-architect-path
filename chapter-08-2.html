@@ -534,6 +534,93 @@ def governed_recall(contract: RecallContract, ctx: SecurityContext) -&gt; list[d
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m8-context-memory.zip">下载 retailhub-m8-context-memory.zip</a> 本地跑（解压后 <code>cd m8-context-memory &amp;&amp; bash run.sh</code> 一键跑通记忆写入/召回管线，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m8"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>M8 是两条共用同一套存储的流水线：写入路径把 Run 事件流里的记忆候选过五段管线才准入库，召回路径拿 Recall Contract 走受控召回、结果只进 Context 装配管线。两条路径都绕不开存储三层——SQLite 主库是唯一事实来源，向量索引只是召回加速器，所有候选都要回主库校验。</p>
+<pre class="mermaid">flowchart LR
+    subgraph 写入路径
+        EV[&quot;Run 事件流&lt;br&gt;memory_candidate 事件&quot;] --&gt; EX[&quot;提取 Extract&quot;]
+        EX --&gt; NM[&quot;标准化 Normalize&quot;]
+        NM --&gt; VA[&quot;校验 Validate&lt;br&gt;黑名单拦截&quot;]
+        VA --&gt; PO[&quot;策略判断 Policy&lt;br&gt;白名单 确认级别 TTL&quot;]
+        PO --&gt; CO[&quot;提交 Commit&lt;br&gt;幂等 语义去重 版本治理&quot;]
+    end
+    subgraph 存储三层
+        MS[&quot;MemoryStore&lt;br&gt;SQLite 主库 唯一事实来源&quot;]
+        VI[&quot;VectorIndex&lt;br&gt;词袋余弦向量索引&quot;]
+        EVS[&quot;EvidenceStore&lt;br&gt;证据原文&quot;]
+        MR[&quot;MemoryRecord&lt;br&gt;Scope 状态 TTL 版本&quot;]
+    end
+    subgraph 召回路径
+        RC[&quot;RecallContract&lt;br&gt;意图 预算 top_k&quot;]
+        SC[&quot;SecurityContext&lt;br&gt;Scope 只来自安全上下文&quot;]
+        GR[&quot;governed_recall&lt;br&gt;向量候选 回主库校验&quot;]
+        ASM[&quot;ContextAssembler&lt;br&gt;六阶段装配管线&quot;]
+        CTX[&quot;最小充分上下文&lt;br&gt;注入模型&quot;]
+    end
+
+    CO --&gt; MS
+    CO --&gt; VI
+    MR -.记录载体.-&gt; MS
+    RC --&gt; GR
+    SC --&gt; GR
+    VI --&gt; GR
+    MS --&gt; GR
+    GR --&gt; ASM
+    ASM --&gt; CTX
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → 再看 <code>demo.py</code> → <code>memory_eng/pipeline.py</code> → <code>memory_eng/store.py</code> → <code>memory_eng/recall.py</code> → <code>context_eng/assembler.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键冒烟：六条治理不变量测试 + 全流程演示</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>demo.py</code></td>
+<td>三幕剧主线：装配 → 写入 → 召回</td>
+<td><code>act1_assemble</code> / <code>act2_write_memory</code> / <code>act3_recall</code></td>
+</tr>
+<tr>
+<td><code>context_eng/schema.py</code></td>
+<td>统一 Context Schema：来源、信任、TTL，不可信内容包裹定界标记</td>
+<td><code>ContextItem.render</code> / <code>compressed</code></td>
+</tr>
+<tr>
+<td><code>context_eng/assembler.py</code></td>
+<td>六阶段装配管线：硬过滤→软排序→去重冲突→分区预算→可信压缩→充分性检查</td>
+<td><code>ContextAssembler.assemble</code></td>
+</tr>
+<tr>
+<td><code>memory_eng/store.py</code></td>
+<td>存储三层：SQLite 主库、向量索引、Evidence Store</td>
+<td><code>MemoryStore</code> / <code>VectorIndex</code> / <code>MemoryRecord</code></td>
+</tr>
+<tr>
+<td><code>memory_eng/pipeline.py</code></td>
+<td>写入管线五段 + Memory Policy 四问</td>
+<td><code>MemoryWritePipeline.submit</code> / <code>commit</code></td>
+</tr>
+<tr>
+<td><code>memory_eng/recall.py</code></td>
+<td>Recall Contract 受控召回 + 使用追踪</td>
+<td><code>governed_recall</code> / <code>RecallContract</code> / <code>UsageTrace</code></td>
+</tr>
+<tr>
+<td><code>tests/test_m8.py</code></td>
+<td>六条治理不变量的可执行证明</td>
+<td><code>python -m unittest discover -s tests -v</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：跟着 <code>demo.py</code> 的三幕走一遍数据流，然后重点啃 <code>recall.py</code> 的 <code>governed_recall</code>——&quot;向量层只产候选，回主库校验才是门禁&quot;这行循环是全篇题眼；再看 <code>pipeline.py</code> 的 <code>commit</code>，幂等键、语义指纹、冲突版本治理三件事在一个函数里咬合，对照 <code>tests/test_m8.py</code> 的六条不变量逐条验证，就算真读懂了。</p>
 <h3 id="命题-先合上教程">命题（先合上教程）</h3>
 <blockquote>
 <p>&quot;客户成功部收上来两条完全相反的用户反馈。一条：『你们 AI 是金鱼吗？我每周都说周报要用同比口径，它下周又忘了。』另一条来自法务：『客户行使删除权，要求把系统里关于他的一切删干净——包括 AI 记住的东西，你们做得到吗？』老板说，记忆功能这个月要上。&quot;</p>
@@ -712,6 +799,7 @@ def governed_recall(contract: RecallContract, ctx: SecurityContext) -&gt; list[d
     <a class="toc-h3" href="#4-7-上线验收-三组对照实验">4.7 上线验收：三组对照实验</a>
     <a class="toc-h2" href="#常见误区">常见误区</a>
     <a class="toc-h2" href="#本篇实战-为-dataagent-设计记忆治理体系">本篇实战：为 DataAgent 设计记忆治理体系</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
     <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
     <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>
