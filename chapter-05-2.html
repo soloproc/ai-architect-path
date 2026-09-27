@@ -520,6 +520,87 @@
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m7-agent-runtime.zip">下载 retailhub-m7-agent-runtime.zip</a> 本地跑（解压后 <code>cd m7-agent-runtime &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m7"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>M7 的代码分四层：最上层的 <code>agent/data_agent.py</code> 是业务场景，中间的 <code>runtime/harness.py</code> 是管理制度外壳，<code>runtime/execution.py</code> 是状态层（状态机 + 事件流 + Checkpoint），最底下的 <code>runtime/llm.py</code> 是模型底座。控制流自上而下：任务进来先建 Run，Harness 循环每步调一次模型、执行工具、在 Step 边界打 Checkpoint，所有事实都以 append-only 事件落进 SQLite；高风险工具在 Loop 外侧走持久化挂起的人工审批。教学版刻意不做 Scheduler 与 Lease 接管——幂等键和事件流先在单进程里建对，Lease + fencing token 是并发上来之后的演进方向，图上不画不存在的模块。</p>
+<pre class="mermaid">flowchart LR
+    subgraph 业务层
+        DA[&quot;agent/data_agent.py&lt;br&gt;DataAgent 雏形&lt;br&gt;三工具加 GMV 诊断场景&quot;]
+    end
+    subgraph Harness层
+        LOOP[&quot;AgentHarness&lt;br&gt;计划-执行-观察循环&quot;]
+        REG[&quot;ToolRegistry&lt;br&gt;ToolContract 风险分级&quot;]
+        BUD[&quot;AutonomyBudget&lt;br&gt;预算闸门&quot;]
+        GATE[&quot;Human Gate&lt;br&gt;高风险工具持久化挂起&quot;]
+    end
+    subgraph 状态层
+        SM[&quot;Run 状态机&lt;br&gt;PENDING RUNNING&lt;br&gt;WAITING_APPROVAL 终态&quot;]
+        ES[&quot;EventStore&lt;br&gt;append-only 事件流&quot;]
+        CP[&quot;Checkpoint&lt;br&gt;Step 边界快照&quot;]
+        RP[&quot;replay&lt;br&gt;从事件流重建状态&quot;]
+    end
+    subgraph 模型层
+        RE[&quot;ReliableExecutor&lt;br&gt;超时 退避重试 成本记账&quot;]
+        MP[&quot;MockProvider&lt;br&gt;离线确定性脚本&quot;]
+    end
+    DB[(&quot;SQLite&lt;br&gt;events checkpoints approvals&quot;)]
+
+    DA --&gt; LOOP
+    LOOP --&gt; REG
+    LOOP --&gt; BUD
+    LOOP --&gt; RE
+    RE --&gt; MP
+    LOOP --&gt; SM
+    LOOP --&gt; ES
+    LOOP --&gt; CP
+    LOOP --&gt; GATE
+    GATE --&gt; ES
+    ES --&gt; DB
+    CP --&gt; DB
+    RP -.验证状态即事件的结果.-&gt; ES
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → 再看 <code>agent/data_agent.py</code> → <code>runtime/harness.py</code> → <code>runtime/execution.py</code> → <code>runtime/llm.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键冒烟：先跑测试，再跑完整诊断场景</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>agent/data_agent.py</code></td>
+<td>业务层：零售库 seed、三个风险分级工具、GMV 诊断主线</td>
+<td><code>seed_retail_db</code> / <code>make_tools</code></td>
+</tr>
+<tr>
+<td><code>runtime/harness.py</code></td>
+<td>管理制度外壳：工具注册、预算、Stop Condition、审批挂起</td>
+<td><code>AgentHarness.run</code> / <code>_loop</code> / <code>_execute_tool</code></td>
+</tr>
+<tr>
+<td><code>runtime/execution.py</code></td>
+<td>统一执行模型：Run 状态机、事件流、Checkpoint、审批幂等</td>
+<td><code>Run.transition</code> / <code>EventStore</code> / <code>replay</code></td>
+</tr>
+<tr>
+<td><code>runtime/llm.py</code></td>
+<td>模型底座：统一契约、Provider 适配、可靠执行</td>
+<td><code>ReliableExecutor.call</code> / <code>MockProvider</code></td>
+</tr>
+<tr>
+<td><code>tests/</code></td>
+<td>三条不变量的可执行证明：事件重放、Checkpoint 恢复、审批幂等</td>
+<td><code>python -m unittest discover -s tests -v</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：从 <code>data_agent.py</code> 的场景顺流而下，主线在 <code>AgentHarness._loop</code>——一轮循环就是&quot;计划-执行-观察&quot;加预算检查加 Checkpoint 的完整骨架；&quot;题眼&quot;是 <code>runtime/execution.py</code> 的 <code>EventStore</code>，三张表（events / checkpoints / approvals）撑起了恢复、审计、幂等全部工程纪律，看懂了它再看 <code>_execute_tool</code> 的高风险分支，审批与幂等键的咬合关系就一目了然。</p>
 <h3 id="命题-先合上教程">命题（先合上教程）</h3>
 <blockquote>
 <p>&quot;客户成功团队又投诉了：经营月报生成到一半服务重启，仨小时的分析白跑，只能从头再来。另外数据组想要一个『退款率异常自动诊断』：自己查数、比对、归因，最后给人审一眼再发建议。还有，新版补贴系统上线后，日均问答要从 500 涨到 5000。别跟我说重启加内存就行。&quot;</p>
@@ -717,6 +798,7 @@
     <a class="toc-h3" href="#6-4-故障注入测试-证明-能跨故障完成任务">6.4 故障注入测试：证明"能跨故障完成任务"</a>
     <a class="toc-h2" href="#常见误区">常见误区</a>
     <a class="toc-h2" href="#本篇实战-把-退款率异常诊断-从-while-循环升级为可恢复的-run">本篇实战：把"退款率异常诊断"从 while 循环升级为可恢复的 Run</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
     <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
     <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>

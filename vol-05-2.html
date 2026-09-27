@@ -234,6 +234,61 @@ P99 ≤ 300ms、可用性 99.95%。
 <blockquote>
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m5-architecture-docs.zip">下载 retailhub-m5-architecture-docs.zip</a> 本地跑（文档模板，无代码；解压后按 <code>m5-architecture-docs/README.md</code> 填写 <code>docs/</code> 下的 4+1 视图 / 质量属性场景 / ADR / 评审纪要模板，使用说明见<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>这个里程碑没有代码，交付物是 docs/ 下的一套可填模板：README.md 是文档包唯一入口，四份交付物（视图、场景、ADR、评审纪要）之间存在明确的引用关系与填写顺序——视图是骨架，场景是承诺，ADR 是历史，评审是验收。</p>
+<pre class="mermaid">flowchart LR
+    RD[docs/README.md&lt;br&gt;导览索引 · 唯一入口] --&gt; V[步骤1 views/views-template.md&lt;br&gt;4+1 视图图集 · 5 张 mermaid]
+    RD --&gt; QS[步骤2 quality-scenarios.md&lt;br&gt;质量属性场景 · 六要素表格]
+    RD --&gt; ADR[步骤3 adr/0000-adr-template.md&lt;br&gt;Nygard 标准 ADR 模板]
+    RD --&gt; RV[步骤4 reviews/review-minutes-template.md&lt;br&gt;架构评审纪要模板]
+    V --&gt;|每条场景要在物理视图&lt;br&gt;找到对应部署单元| QS
+    QS --&gt;|场景编号被关联引用| ADR
+    ADR --&gt;|决策史与风险清单&lt;br&gt;汇总受审| RV
+    QS --&gt;|验证手段回指&lt;br&gt;压测或混沌实验| RV
+</pre>
+<p><strong>模块地图</strong>（填写顺序：先读 lab 根 <code>README.md</code> 拿任务对照表 → 再按 视图 → 场景 → ADR → 评审 依次填 docs/ 下四份模板）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>README.md</code>（lab 根目录）</td>
+<td>实战说明：四份交付物对照表、验收标准、常见误区</td>
+<td>「四份交付物」表格</td>
+</tr>
+<tr>
+<td><code>docs/README.md</code></td>
+<td>文档包唯一入口：30 分钟 onboarding 路径与文档目录</td>
+<td>owner 与「最近验证日期」字段</td>
+</tr>
+<tr>
+<td><code>docs/views/views-template.md</code></td>
+<td>4+1 视图骨架，已按 RetailHub 卷04 末态预填 5 张图</td>
+<td>五个视图小节（逻辑/进程/物理/开发/场景）</td>
+</tr>
+<tr>
+<td><code>docs/quality-scenarios.md</code></td>
+<td>六要素质量属性场景清单，含 PERF-01 等 3 条已填示例</td>
+<td>「场景清单」六要素表格</td>
+</tr>
+<tr>
+<td><code>docs/adr/0000-adr-template.md</code></td>
+<td>Nygard 标准 ADR 模板 + ADR-004 已接受示例</td>
+<td>状态机 Proposed → Accepted / Rejected</td>
+</tr>
+<tr>
+<td><code>docs/reviews/review-minutes-template.md</code></td>
+<td>评审纪要：质询结论四分类（风险/非风险/敏感点/权衡点）</td>
+<td>「行动项跟踪表」</td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：这不是代码而是&quot;可填的架构&quot;，读的顺序就是填的顺序。主线是 <code>docs/views/views-template.md</code>——先把系统的当前形态用五个视图表达一致；题眼是 ADR 模板里的「备选方案」一栏，被否决方案与否决理由才是 ADR 的价值所在，只写结论的 ADR 等于没写。</p>
 <h3 id="命题-先合上教程">命题（先合上教程）</h3>
 <p>大促刚结束，CEO 把你叫进办公室：</p>
 <blockquote>
@@ -630,6 +685,7 @@ PostgreSQL 主从 + Redis + MQ（outbox 模式），OTel 全链路追踪。
     <a class="toc-h3" href="#8-4-三个月备考计划">8.4 三个月备考计划</a>
     <a class="toc-h2" href="#9-这套方法论在阶段九如何全部复用">9. 这套方法论在阶段九如何全部复用</a>
     <a class="toc-h2" href="#10-本卷实战-retailhub-演进第-5-步-产出完整架构文档包">10. 本卷实战：RetailHub 演进第 5 步——产出完整架构文档包</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
     <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
     <a class="toc-h3" href="#容量估算与约束推导">容量估算与约束推导</a>

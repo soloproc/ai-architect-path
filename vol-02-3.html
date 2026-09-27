@@ -284,6 +284,79 @@
 <blockquote>
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m2-cache-mq.zip">下载 retailhub-m2-cache-mq.zip</a> 本地跑（解压后 <code>cd m2-cache-mq &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>M2 在 M1 单体上叠加了三层：读路径走 <code>app/cache.py</code> 的 Cache-Aside（fakeredis 内存缓存，miss 时回源 SQLite 从库），写路径把日报这类重计算投进 <code>app/queue.py</code> 的 SQLite 任务表、由 worker 线程异步消费，底层由 <code>app/db.py</code> 把读写分别引到主、从两个 SQLite 文件——用零依赖的方式模拟 Redis + MQ + MySQL 主从的完整心态模型。</p>
+<pre class="mermaid">flowchart LR
+    req[HTTP 请求] --&gt; app[app/main.py&lt;br&gt;FastAPI 路由层]
+    subgraph rd[读路径 Cache-Aside]
+        detail[GET /orders/:id] --&gt; cos[app/cache.py&lt;br&gt;get_or_set]
+        cos --&gt;|命中 直接返回| redis[fakeredis 内存缓存&lt;br&gt;空值占位防穿透&lt;br&gt;TTL 抖动防雪崩]
+        cos --&gt;|未命中 回源后回填| loader[回源查询&lt;br&gt;读从库]
+        loader --&gt; redis
+        app2stats[GET /cache/stats] -.命中率观测.-&gt; cos
+    end
+    subgraph wr[写路径 异步日报]
+        post[POST /reports/daily&lt;br&gt;返回 202 加 job_id] --&gt; eq[app/queue.py&lt;br&gt;enqueue 写 jobs 表]
+        worker[worker 线程&lt;br&gt;轮询消费] --&gt; handler[handle_daily_report&lt;br&gt;聚合从库]
+    end
+    app --&gt; detail
+    app --&gt; app2stats
+    app --&gt; post
+    eq --&gt; masterdb[SQLite 主库&lt;br&gt;retailhub_master.db]
+    worker --&gt; masterdb
+    loader --&gt; slavedb[SQLite 从库&lt;br&gt;retailhub_slave.db]
+    handler --&gt; slavedb
+    handler --&gt;|INSERT OR REPLACE&lt;br&gt;幂等落库 daily_report 表| masterdb
+    repl[scripts/replicate.py&lt;br&gt;backup API 全量复制] --&gt;|主库到从库| slavedb
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → <code>app/cache.py</code> → <code>app/queue.py</code> → <code>app/db.py</code> → <code>app/main.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键启动：seed 主库 → 复制到从库 → uvicorn</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>app/db.py</code></td>
+<td>主/从双库连接管理，从库缺失时降级回主库</td>
+<td><code>get_master()</code> / <code>get_slave()</code></td>
+</tr>
+<tr>
+<td><code>app/cache.py</code></td>
+<td>Cache-Aside 读路径、空值缓存防穿透、TTL 抖动防雪崩、命中率统计</td>
+<td><code>get_or_set()</code>、<code>make_expire()</code>、<code>stats()</code></td>
+</tr>
+<tr>
+<td><code>app/queue.py</code></td>
+<td>SQLite 任务表 + worker 线程的教学版 MQ</td>
+<td><code>enqueue()</code>、<code>start_worker()</code>、<code>handle_daily_report()</code></td>
+</tr>
+<tr>
+<td><code>app/main.py</code></td>
+<td>路由层：缓存读端点 + 异步日报端点</td>
+<td><code>GET /orders/{order_id}</code>、<code>GET /cache/stats</code>、<code>POST /reports/daily</code>、<code>GET /reports/{job_id}</code></td>
+</tr>
+<tr>
+<td><code>scripts/replicate.py</code></td>
+<td>用 SQLite backup API 模拟主从全量复制</td>
+<td><code>replicate()</code></td>
+</tr>
+<tr>
+<td><code>scripts/avalanche_demo.py</code></td>
+<td>雪崩对照实验：固定 TTL vs 随机抖动的回源次数</td>
+<td><code>run_scenario()</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：主线分两条，按&quot;先读后写&quot;的顺序看。先读 <code>app/cache.py</code> 的 <code>get_or_set()</code>——命中、未命中、空值占位三个分支就是缓存三大问题（穿透、雪崩、一致性）的最小实现；再读 <code>app/queue.py</code> 的 <code>_process_one()</code>，看 pending → running → done 的状态流转和失败落库。<code>app/main.py</code> 最后看，它只是把这两层接到 HTTP 上。</p>
 <h3 id="7-1-命题-先合上教程">7.1 命题（先合上教程）</h3>
 <p>一年过去，&quot;翻 10 倍&quot;兑现了。周一早会，老板脸色不好看：</p>
 <blockquote>
@@ -590,6 +663,7 @@ services:
     <a class="toc-h3" href="#6-4-时代差异-2020-年代起步的项目-起点在哪里">6.4 时代差异：2020 年代起步的项目，起点在哪里</a>
     <a class="toc-h3" href="#6-5-另一个样本-wps-云服务的四时代演化">6.5 另一个样本：WPS 云服务的四时代演化</a>
     <a class="toc-h2" href="#7-本卷实战-retailhub-演进第-2-步">7. 本卷实战：RetailHub 演进第 2 步</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#7-1-命题-先合上教程">7.1 命题（先合上教程）</a>
     <a class="toc-h3" href="#7-2-架构师的澄清提问">7.2 架构师的澄清提问</a>
     <a class="toc-h3" href="#7-3-容量估算与约束推导">7.3 容量估算与约束推导</a>

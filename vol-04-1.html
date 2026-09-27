@@ -308,6 +308,71 @@
 <blockquote>
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m4-traffic-observability.zip">下载 retailhub-m4-traffic-observability.zip</a> 本地跑（解压后 <code>cd m4-traffic-observability &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 浏览器在线运行覆盖 M1/M3/M6/M7/M8/M9（见对应章节）</p>
 </blockquote>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>这个里程碑的代码分三层：demo.py 是入口装配层，把防护层（限流器 + 熔断器）串进一条模拟下单链路；tracing.py 横切全程，负责记录调用链；outbox.py 是旁路可靠性组件，独立演示&quot;下单与发消息同一事务&quot;。主线数据流：请求先进令牌桶限流，过了限流进业务链路，业务链路里的下游调用全部经过熔断器状态机。</p>
+<pre class="mermaid">flowchart LR
+    REQ[模拟下单流量&lt;br&gt;demo.py main] --&gt; RL[rate_limiter.py&lt;br&gt;租户令牌桶&lt;br&gt;TenantRateLimiter.acquire]
+    RL --&gt;|超配额| R429[RateLimitExceeded&lt;br&gt;429 拒绝]
+    RL --&gt;|放行| BIZ[创建订单链路&lt;br&gt;demo.py create_order]
+    BIZ --&gt; CB[circuit_breaker.py&lt;br&gt;熔断器状态机&lt;br&gt;CLOSED / OPEN / HALF_OPEN]
+    CB --&gt;|打开或探测名额满| FF[CircuitOpenError&lt;br&gt;快速失败]
+    CB --&gt;|放行| INV[下游库存服务&lt;br&gt;InventoryService.deduct]
+    TR[tracing.py&lt;br&gt;trace 装饰器 + contextvars] -.记录 span 树.-&gt; BIZ
+    TR -.记录 span 树.-&gt; CB
+    subgraph OB[旁路 · Outbox 本地消息表 独立演示]
+        PO[place_order&lt;br&gt;订单与消息同一事务] --&gt; DB[(SQLite&lt;br&gt;orders + outbox 表)]
+        DB --&gt; RLY[OutboxRelay.run&lt;br&gt;后台轮询投递]
+        RLY --&gt;|至少一次 失败重投| CON[consume_order_created&lt;br&gt;幂等消费扣库存]
+    end
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → 再看 <code>demo.py</code> 主线 → 防护层两个文件 → <code>tracing.py</code> → 最后单独读 <code>outbox.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键冒烟：单元测试 → demo.py 综合演示 → outbox 演示</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>demo.py</code></td>
+<td>综合演示：装配三层防护，跑 60 次带故障窗口的模拟下单</td>
+<td><code>main()</code>、<code>place_order_guarded()</code></td>
+</tr>
+<tr>
+<td><code>src/rate_limiter.py</code></td>
+<td>租户级令牌桶限流（容量=突发，速率=均值，惰性补充）</td>
+<td><code>TenantRateLimiter.acquire()</code>、<code>TokenBucket.try_acquire()</code></td>
+</tr>
+<tr>
+<td><code>src/circuit_breaker.py</code></td>
+<td>熔断器状态机：滑动窗口失败率跳闸、冷却、半开探测</td>
+<td><code>CircuitBreaker.call()</code></td>
+</tr>
+<tr>
+<td><code>src/tracing.py</code></td>
+<td>极简调用链：trace_id / span_id / parent_id，树形渲染</td>
+<td><code>trace</code> 装饰器、<code>Tracer.render_tree()</code></td>
+</tr>
+<tr>
+<td><code>src/outbox.py</code></td>
+<td>本地消息表 Outbox + relay 重投 + 消费端幂等</td>
+<td><code>place_order()</code>、<code>OutboxRelay.run()</code></td>
+</tr>
+<tr>
+<td><code>tests/</code></td>
+<td>熔断器 6 例 + 限流器 6 例（假时钟注入，不真等待）</td>
+<td><code>python -m unittest discover -s tests</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：<code>demo.py</code> 是故事线，先看清&quot;限流 → 业务链路 → 熔断 → 下游&quot;的装配顺序；题眼是 <code>CircuitBreaker.call()</code>——它把一次调用拆成 <code>_before_call()</code>（准入判断）和 <code>_record()</code>（结果记账）两步，状态机全部藏在这两个私有方法里。<code>outbox.py</code> 与主线不相连，作为独立的&quot;双写难题&quot;实验单独读，重点看 <code>place_order()</code> 里那一个事务。</p>
 <h3 id="8-1-命题-先合上教程">8.1 命题（先合上教程）</h3>
 <p>服务化改造刚上线一个月，老板转发来一封大客户的投诉邮件，只加了一句&quot;解释&quot;：</p>
 <blockquote>
@@ -677,6 +742,7 @@ async def rate_limit_middleware(request: Request, call_next):
     <a class="toc-h3" href="#2-6-对比总表">2.6 对比总表</a>
     <a class="toc-h3" href="#2-7-延伸-更大尺度的容灾-异地多活与单元化">2.7 延伸：更大尺度的容灾——异地多活与单元化</a>
     <a class="toc-h2" href="#8-本卷实战-上-给订单服务装上-安全气囊">8. 本卷实战（上）：给订单服务装上"安全气囊"</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#8-1-命题-先合上教程">8.1 命题（先合上教程）</a>
     <a class="toc-h3" href="#8-2-架构师的澄清提问">8.2 架构师的澄清提问</a>
     <a class="toc-h3" href="#8-3-容量估算与约束推导">8.3 容量估算与约束推导</a>

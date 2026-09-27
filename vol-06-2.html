@@ -450,6 +450,62 @@ if __name__ == &quot;__main__&quot;:
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m6-inference-bench.zip">下载 retailhub-m6-inference-bench.zip</a> 本地跑（解压后 <code>cd m6-inference-bench &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m6"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>这个里程碑是三个文件组成的一条流水线：mock_server.py 扮演推理引擎（复刻 vLLM 的批次槽位排队与带宽争抢），load_test.py 扮演压测客户端（逐请求打点 TTFT/TPOT），cost_calc.py 把容量曲线拐点处的实测吞吐换算成&quot;自建 vs 云&quot;成本账本。数据流：压测客户端发流式请求 → mock 服务排队、prefill、decode 逐 chunk 返回 → 客户端统计出容量曲线 → 曲线拐点处的吞吐喂给成本计算。</p>
+<pre class="mermaid">flowchart LR
+    subgraph CL[压测客户端 bench/load_test.py]
+        WK[并发 worker 池&lt;br&gt;run_level] --&gt; ONE[one_request&lt;br&gt;打点 TTFT 与逐 token 间隔]
+        ONE --&gt; STAT[percentile 统计&lt;br&gt;TTFT P50/P95 · TPOT · 聚合吞吐]
+    end
+    subgraph SRV[mock 推理服务 bench/mock_server.py]
+        EP[端点 /v1/chat/completions&lt;br&gt;OpenAI 兼容 SSE] --&gt; SEM[信号量批次槽位&lt;br&gt;排队时间计入 TTFT]
+        SEM --&gt; PF[prefill 阶段&lt;br&gt;耗时正比于 prompt 长度]
+        PF --&gt; DC[decode 阶段&lt;br&gt;TPOT 随批次争抢放大]
+        DC --&gt; SSE2[逐 chunk 流出&lt;br&gt;以 DONE 信号结束]
+    end
+    ONE --&gt;|HTTP 流式请求| EP
+    SSE2 --&gt;|data 行逐 chunk 到达| ONE
+    STAT --&gt;|并发扫描模式| CURVE[capacity_curve.json + curve.csv&lt;br&gt;容量曲线找拐点]
+    CURVE --&gt;|实测吞吐替换 GPU_PROFILES| CC[cost_calc.py&lt;br&gt;自建 vs 云成本与盈亏平衡点]
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → 再看 <code>bench/mock_server.py</code> 的时间行为 → <code>bench/load_test.py</code> 的打点口径 → 最后 <code>bench/cost_calc.py</code> 的公式）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键冒烟：起服务 → curl SSE 验证 → 单档压测 → 成本计算</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>bench/mock_server.py</code></td>
+<td>OpenAI 兼容 mock 推理服务，复刻槽位排队/prefill 线性/decode 争抢</td>
+<td><code>POST /v1/chat/completions</code>、<code>chat_completions_stream()</code></td>
+</tr>
+<tr>
+<td><code>bench/load_test.py</code></td>
+<td>并发压测客户端：TTFT/TPOT/P50/P95/聚合吞吐，扫描导出 CSV</td>
+<td><code>one_request()</code>、<code>run_level()</code>、<code>percentile()</code></td>
+</tr>
+<tr>
+<td><code>bench/cost_calc.py</code></td>
+<td>自建 vs 云月成本、单位成本、盈亏平衡点（公式全部打印）</td>
+<td><code>cloud_monthly_cost()</code>、<code>selfhost_instances()</code>、<code>break_even_tokens()</code></td>
+</tr>
+<tr>
+<td><code>capacity_curve.json</code> / <code>curve.csv</code></td>
+<td>并发扫描产物，找 TTFT_P95 陡增、吞吐见顶的拐点</td>
+<td>由 <code>--concurrencies</code> 参数生成</td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：主线是 <code>load_test.py</code>，题眼是 <code>one_request()</code> 里的打点口径——第一个内容 chunk 到达记 TTFT，相邻 chunk 间隔的均值记 TPOT，指标定义全在这十几行里。<code>mock_server.py</code> 重点看信号量 <code>semaphore</code>：它就是容量曲线拐点的物理来源，并发超过槽位数后排队时间全部计入 TTFT。</p>
 <h3 id="命题-先合上教程">命题（先合上教程）</h3>
 <p>季度经营会上，老板连珠炮：</p>
 <blockquote>
@@ -653,6 +709,7 @@ if __name__ == &quot;__main__&quot;:
     <a class="toc-h2" href="#6-llmops-与平台工程-把-ai-资产纳入内部平台">6. LLMOps 与平台工程：把 AI 资产纳入内部平台</a>
     <a class="toc-h3" href="#6-1-与篇04-llm-runtime-的关系-一个管供给-一个管消费">6.1 与篇04 LLM Runtime 的关系：一个管供给，一个管消费</a>
     <a class="toc-h2" href="#本卷实战-retailhub-演进第-6-步-私有化推理服务-向量检索-成本账本">本卷实战：RetailHub 演进第 6 步——私有化推理服务 + 向量检索 + 成本账本</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#命题-先合上教程">命题（先合上教程）</a>
     <a class="toc-h3" href="#架构师的澄清提问">架构师的澄清提问</a>
     <a class="toc-h3" href="#容量估算与约束推导-显存-并发-成本三本账">容量估算与约束推导（显存 / 并发 / 成本三本账）</a>

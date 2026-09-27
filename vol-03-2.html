@@ -312,6 +312,66 @@
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m3-oversell-lab.zip">下载 retailhub-m3-oversell-lab.zip</a> 本地跑（解压后 <code>cd m3-oversell-lab &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m3"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>M3 不是一个服务，而是一组对照实验：<code>lab/seed.py</code> 每次重建同一份库存（stock = 5），6 个买家线程在 Barrier 处集结后同时下单；<code>lab/naive.py</code> 用&quot;读库存 → 判断 → 扣减&quot;的错误写法必现超卖，<code>lab/atomic.py</code> 在同一并发压力下演示两种正确方案，<code>lab/timeline.py</code> 负责把线程交错打印成看得见的时间线。</p>
+<pre class="mermaid">flowchart LR
+    run[run.sh 一键冒烟] --&gt; seed[lab/seed.py&lt;br&gt;重建 lab.db 库存 5]
+    seed --&gt; naive[lab/naive.py&lt;br&gt;错误示范 读改写]
+    seed --&gt; atomic[lab/atomic.py&lt;br&gt;正确方案对照]
+    subgraph buyers[6 个并发买家线程 Barrier 集结]
+        t[T1 到 T6&lt;br&gt;每人买 1 件 总需求 6 大于库存 5]
+    end
+    naive --&gt; n1[第 1 步 SELECT 读库存&lt;br&gt;6 人都读到 stock 等于 5]
+    n1 --&gt; n2[第 2 步 应用层判断&lt;br&gt;依据的是旧值]
+    n2 --&gt; n3[第 3 步 UPDATE 扣减&lt;br&gt;6 人全部成交]
+    atomic --&gt; planA[方案 A 原子 UPDATE&lt;br&gt;WHERE stock ≥ qty&lt;br&gt;影响行数 0 即安全失败]
+    atomic --&gt; planB[方案 B BEGIN IMMEDIATE&lt;br&gt;持锁事务 约等于 SELECT FOR UPDATE]
+    n3 --&gt; db[SQLite lab.db&lt;br&gt;sku 表 stock 字段]
+    planA --&gt; db
+    planB --&gt; db
+    db --&gt; outNaive[naive 输出&lt;br&gt;成交 6 单 最终库存 -1 超卖]
+    db --&gt; outAtomic[atomic 输出&lt;br&gt;成交 5 单 最终库存 0 断言通过]
+    tl[lab/timeline.py&lt;br&gt;并发时间线记录器] -.记录每一步.-&gt; naive
+    tl -.记录每一步.-&gt; atomic
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → <code>lab/seed.py</code> → <code>lab/naive.py</code> → <code>lab/atomic.py</code> → <code>lab/timeline.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键冒烟：种子 → 错误示范 → 正确方案</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>lab/seed.py</code></td>
+<td>确定性种子：删除旧库重建，SKU-1001 库存 5</td>
+<td><code>seed()</code>、<code>show_stock()</code></td>
+</tr>
+<tr>
+<td><code>lab/naive.py</code></td>
+<td>错误示范：读-判断-写三步非原子，必现超卖</td>
+<td><code>naive_buy()</code></td>
+</tr>
+<tr>
+<td><code>lab/atomic.py</code></td>
+<td>正确方案对照：原子 UPDATE 与持锁事务</td>
+<td><code>buy_atomic()</code>、<code>buy_tx()</code></td>
+</tr>
+<tr>
+<td><code>lab/timeline.py</code></td>
+<td>线程安全的并发时间线记录器</td>
+<td><code>Timeline.log()</code>、<code>Timeline.print()</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：先读 <code>lab/naive.py</code> 的 <code>naive_buy()</code>，找到 <code>barrier.wait()</code> 那一行——它就是被放大的竞态窗口，全实验的题眼是&quot;判断依据（旧值）和写入不是同一条原子语句&quot;。带着这个洞去读 <code>lab/atomic.py</code>，看 <code>buy_atomic()</code> 怎样用一条带 <code>WHERE stock &gt;= ?</code> 的 UPDATE 把判断和扣减合并成原子操作。</p>
 <h3 id="11-1-命题-先合上教程">11.1 命题（先合上教程）</h3>
 <p>大促复盘会开到一半，老板把报表摔在桌上：</p>
 <blockquote>
@@ -637,6 +697,7 @@ if __name__ == &quot;__main__&quot;:
     <a class="toc-h2" href="#9-一致性与共识-线性一致与-cap-的真实含义">9. 一致性与共识：线性一致与 CAP 的真实含义</a>
     <a class="toc-h2" href="#10-批处理与流处理-gmv-报表的两条路">10. 批处理与流处理：GMV 报表的两条路</a>
     <a class="toc-h2" href="#11-本卷实战-retailhub-演进第-3-步">11. 本卷实战：RetailHub 演进第 3 步</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#11-1-命题-先合上教程">11.1 命题（先合上教程）</a>
     <a class="toc-h3" href="#11-2-架构师的澄清提问">11.2 架构师的澄清提问</a>
     <a class="toc-h3" href="#11-3-容量估算与约束推导">11.3 容量估算与约束推导</a>

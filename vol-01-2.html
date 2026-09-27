@@ -254,7 +254,8 @@
 <ul>
 <li><strong>为什么两张表而不是一张大宽表</strong>：商品信息（名称、价格）会变，订单记录不可变；合成一张表，改一次商品价格就要动成千上万行订单。把&quot;易变的&quot;和&quot;不可变的&quot;分开，是拆表的第一原则。</li>
 <li><strong>为什么 <code>amount</code> 要冗余</strong>：订单金额是历史事实，不是计算结果。宁可写入时多存一份，也不让&quot;今天改价&quot;污染&quot;昨天的 GMV&quot;——董事会看数，口径必须能用手工 SQL 复算（步骤 3 的验收正是这么设计的）。</li>
-<li><strong>故意不设计的</strong>：不建 <code>user</code> 表（内部工具阶段没有用户体系，单机最小形态，卷02 服务拆分时再扩——这是个演进伏笔）；不建 <code>order_items</code> 明细表（一单一件是教学简化，出现一单多件时它是第一个要补的表）；<code>created_at</code> 不存时区（单机房内网，卷04 走向多机房时再面对）。这些&quot;不设计&quot;和&quot;设计&quot;一样是架构决策——每个都标好了触发条件。</li>
+<li><strong>故意不设计的</strong>：不建 <code>user</code> 表（内部工具阶段没有用户体系，单机最小形态，卷02 服务拆分时再扩——这是个演进伏笔）；<code>created_at</code> 不存时区（单机房内网，卷04 走向多机房时再面对）。这些&quot;不设计&quot;和&quot;设计&quot;一样是架构决策——每个都标好了触发条件。</li>
+<li><strong>一个对照阅读提示</strong>：本节代码是&quot;一单一件&quot;的教学精简版，所以只有两张表；而你下载的完整源码 <code>labs/m1-monolith</code> 已经是<strong>三张表</strong>——它把 <code>order_items</code> 明细表补上了（一单多件），且明细行里的 <code>price</code> 同样是成交价快照，理由和 <code>amount</code> 一模一样：&quot;商品现价会变，历史成交价必须固化&quot;。对照着读，你能亲眼看到上面每条设计理由在真实代码里的样子。</li>
 </ul>
 <pre><code class="language-python"># app/db.py —— SQLite 版的数据访问层（含&quot;借还&quot;思想）
 import sqlite3
@@ -463,6 +464,65 @@ git log --oneline --graph                 # 看懂自己的历史
 <p>📦 <strong>本步源码</strong>：<a href="assets/labs/retailhub-m1-monolith.zip">下载 retailhub-m1-monolith.zip</a> 本地跑（解压后 <code>cd m1-monolith &amp;&amp; bash run.sh</code> 一键跑通，首次运行先完成<a href="labs.html">环境与一键准备</a>）· <a href="https://codespaces.new/soloproc/ai-architect-path">☁️ 云端虚拟机</a>（GitHub 账号一键开机，环境已预装）· 下方可直接在线运行</p>
 </blockquote>
 <div class="demo-embed" data-demo="lab-m1"><div class="demo-loading">交互 Demo 加载中…</div></div>
+<h3 id="代码架构图-先看图-再读码">代码架构图：先看图，再读码</h3>
+<p>M1 是一个 FastAPI 单体，只有两层：所有 HTTP 请求进 <code>app/main.py</code> 的路由层，每个端点向 <code>app/db.py</code> 借一条 SQLite 连接、用完即还；<code>app/seed.py</code> 只在启动时灌一次确定性种子数据。GMV 的口径不靠注释口头约定，而是固化在 SQL 里，并由 ADR 0001 背书。</p>
+<pre class="mermaid">flowchart LR
+    req[HTTP 请求] --&gt; mw[access_log 中间件&lt;br&gt;每请求一行 JSON 日志]
+    mw --&gt; app[app/main.py&lt;br&gt;FastAPI 路由层]
+    app --&gt; health[GET /health]
+    app --&gt; list[GET /orders&lt;br&gt;分页列表]
+    app --&gt; detail[GET /orders 详情&lt;br&gt;一次 JOIN 取商品明细]
+    app --&gt; gmv[GET /stats/gmv&lt;br&gt;按日汇总 GMV]
+    list --&gt; conn[app/db.py&lt;br&gt;get_conn 每请求借还连接]
+    detail --&gt; conn
+    gmv --&gt; conn
+    conn --&gt; sqlite[SQLite&lt;br&gt;retailhub.db]
+    seed[app/seed.py&lt;br&gt;确定性种子数据&lt;br&gt;50 商品 5000 订单 30 天] --&gt; sqlite
+    adr[docs/adr/0001&lt;br&gt;GMV 不计退款] -.口径依据.-&gt; gmv
+</pre>
+<p><strong>模块地图</strong>（读码顺序：先看 <code>run.sh</code> → <code>app/db.py</code> → <code>app/main.py</code> → <code>app/seed.py</code>）：</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>职责</th>
+<th>关键入口</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>run.sh</code></td>
+<td>一键启动：seed（若库为空）+ uvicorn</td>
+<td><code>bash run.sh</code></td>
+</tr>
+<tr>
+<td><code>app/db.py</code></td>
+<td>SQLite 连接管理与建表（items / orders / order_items 三表 + 索引）</td>
+<td><code>get_conn()</code>、<code>init_db()</code></td>
+</tr>
+<tr>
+<td><code>app/main.py</code></td>
+<td>全部路由 + 参数校验 + JSON 访问日志中间件</td>
+<td><code>GET /orders</code>、<code>GET /orders/{order_id}</code>、<code>GET /stats/gmv</code></td>
+</tr>
+<tr>
+<td><code>app/seed.py</code></td>
+<td>确定性种子数据，random.seed 固定为 42</td>
+<td><code>seed()</code></td>
+</tr>
+<tr>
+<td><code>docs/adr/0001-gmv-exclude-refunded.md</code></td>
+<td>GMV 口径决策记录（剔除 refunded）</td>
+<td>文档，非代码</td>
+</tr>
+<tr>
+<td><code>tests/test_api.py</code></td>
+<td>验收命令的自动化版本</td>
+<td><code>python -m pytest tests/ -q</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>读码建议：主线是 <code>app/main.py</code>，四个端点都很短，从上往下顺着读即可；题眼在 <code>daily_gmv()</code> 里那条 <code>status != 'refunded'</code> 的 SQL——它就是 ADR 0001 变成代码的样子。<code>app/db.py</code> 只需记住一件事：所有连接都从 <code>get_conn()</code> 拿，将来换 MySQL 连接池只改这一个文件。</p>
 <h3 id="8-1-命题-先合上教程">8.1 命题（先合上教程）</h3>
 <p>周五下班前，老板把你叫住：</p>
 <blockquote>
@@ -702,6 +762,7 @@ ORDER BY date;
     <a class="toc-h2" href="#6-git-协作基本功">6. Git 协作基本功</a>
     <a class="toc-h2" href="#7-linux-部署最小集-概念级">7. Linux 部署最小集（概念级）</a>
     <a class="toc-h2" href="#8-本卷实战-retailhub-演进第-1-步">8. 本卷实战：RetailHub 演进第 1 步</a>
+    <a class="toc-h3" href="#代码架构图-先看图-再读码">代码架构图：先看图，再读码</a>
     <a class="toc-h3" href="#8-1-命题-先合上教程">8.1 命题（先合上教程）</a>
     <a class="toc-h3" href="#8-2-架构师的澄清提问">8.2 架构师的澄清提问</a>
     <a class="toc-h3" href="#8-3-容量估算与约束推导">8.3 容量估算与约束推导</a>
