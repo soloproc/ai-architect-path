@@ -12,6 +12,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/index.min.css">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+<script>
+/* 主题无闪烁：首帧渲染前恢复上次选择的模式（day / night / eye） */
+try { document.documentElement.dataset.theme = localStorage.getItem('aap-theme') || 'day'; } catch (e) {}
+</script>
 </head>
 <body>
 <div class="progress" id="progress"></div>
@@ -19,6 +23,7 @@
 <header class="topbar">
   <button class="menu-btn" id="menu-btn" aria-label="打开目录">☰</button>
   <a class="topbar-title" href="index.html">AI 全栈架构师之路 · 自学教程</a>
+  <button class="theme-cycle-btn" id="theme-cycle" aria-label="切换日间/夜间/护眼模式" style="margin-left:auto">☀️ 日间</button>
 </header>
 
 <aside class="sidebar" id="sidebar">
@@ -97,6 +102,11 @@
     <a href="ref-06.html" class="">资料06 · ADR 原始博客</a>
     <a href="ref-07.html" class="">资料07 · Building Effective Agents</a>
   </nav>
+  <div class="theme-switch" id="theme-switch" role="group" aria-label="阅读模式">
+    <button type="button" data-theme="day">☀️ 日间</button>
+    <button type="button" data-theme="night">🌙 夜间</button>
+    <button type="button" data-theme="eye">🍃 护眼</button>
+  </div>
   <div class="sidebar-foot">RetailHub → DataAgent 贯穿项目 · 原创自学材料</div>
 </aside>
 <div class="overlay" id="overlay"></div>
@@ -777,6 +787,7 @@ ORDER BY date;
 </aside>
 
 <script src="assets/demos-loader.js"></script>
+<script src="assets/theme.js" defer></script>
 <script src="assets/terms.js" defer></script>
 <script src="assets/notes.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" onerror="document.documentElement.classList.add('no-mermaid')"></script>
